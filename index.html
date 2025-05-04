@@ -37,22 +37,25 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
         .combined-result-container {
-            display: none;
-            width: 100%;
-            height: 90vh;
-            overflow: hidden;
-            position: relative;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            margin-bottom: 16px;
-            background-color: #000;
-        }
-        .combined-result {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: top;
-        }
+  display: none;
+  width: 100%;
+  height: 90vh;
+  overflow: hidden;
+  position: relative;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  margin-bottom: 16px;
+  background-color: #000;
+}
+
+.combined-result {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;    /* muestra toda la foto */
+  object-position: top;   /* alinea arriba si sobra espacio */
+  display: block;
+  margin: 0 auto;
+}
         .pulse {
             animation: pulse 1.5s infinite;
         }
