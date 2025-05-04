@@ -36,34 +36,26 @@
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
-        
-        /* FIXED: Combined result container with perfect fit */
-        .combined-result-container {
-            display: none;
-            width: 100%;
-            height: 90vh;
-            overflow: hidden;
-            position: relative;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            margin: 0; /* Remove any margin that could cause offset */
-            padding: 0; /* Remove any padding */
-            background-color: #000;
-            display: flex; /* Use flex for perfect centering */
-            align-items: center; /* Vertical center */
-            justify-content: center; /* Horizontal center */
-        }
+  .combined-result-container {
+  display: none;
+  width: 100%;
+  height: 90vh;
+  overflow: hidden;
+  position: relative;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  margin-bottom: 16px;
+  background-color: #000;
+}
 
-        /* FIXED: Combined image with responsive scaling */
-        .combined-result {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-        }
+.combined-result {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;    /* muestra toda la foto */
+  object-position: top;   /* alinea arriba si sobra espacio */
+  display: block;
+  margin: 0 auto;
+}
 
         .pulse {
             animation: pulse 1.5s infinite;
@@ -209,9 +201,10 @@
             <div class="camera-container mb-4">
                 <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
                 <img id="photoResult" class="photo-result" alt="Captured photo">
-                <div id="combinedResultContainer" class="combined-result-container">
-                    <img id="combinedResult" class="combined-result" alt="Combined photo">
-                </div>
+                <!-- contenedor para la foto combinada -->
+<div id="combinedResultContainer" class="combined-result-container">
+  <img id="combinedResult" class="combined-result" alt="Combined photo">
+</div>
 
                 <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
                     <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -660,7 +653,7 @@
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
                             // Display combined photo automatically
                             combinedResult.src = combinedUrl;
-                            combinedResultContainer.style.display = 'flex'; // Changed to flex
+                            combinedResultContainer.style.display = 'block';
                             photoResult.style.display = 'none';
                             cameraFeed.style.display = 'none';
                             
