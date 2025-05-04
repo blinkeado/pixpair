@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SyncSnap - Synchronized Photo Capture</title>
+    <title>PixPair - Synchronized Photo Capture</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -47,14 +47,28 @@
             50% { opacity: 0; }
             100% { opacity: 1; }
         }
+        .session-id-badge {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+        .copy-icon {
+            margin-left: 6px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-6">
-        <h1 class="text-3xl font-bold text-center text-indigo-600 mb-2">SyncSnap</h1>
-        <p class="text-gray-500 text-center mb-6">Capture moments together in perfect sync</p>
-        
-        <div id="sessionSetup" class="mb-6">
+        <div id="sessionSetup">
+            <h1 class="text-3xl font-bold text-center text-indigo-600 mb-2">PixPair</h1>
+            <p class="text-gray-500 text-center mb-6">Capture moments together in perfect sync</p>
+            
             <div class="flex items-center mb-4">
                 <input type="text" id="sessionId" placeholder="Enter session ID" 
                        class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -69,6 +83,17 @@
         </div>
         
         <div id="cameraSection" class="hidden">
+            <div class="flex items-center justify-center mb-2">
+                <h1 class="text-2xl font-bold text-center text-indigo-600 mr-2">PixPair</h1>
+                <div class="session-id-badge" id="sessionIdBadge">
+                    <span id="displaySessionId"></span>
+                    <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </div>
+            </div>
+            
             <div class="camera-container mb-4">
                 <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
                 <img id="photoResult" class="photo-result" alt="Captured photo">
@@ -101,14 +126,15 @@
 
     <script>
         // Firebase configuration
-       const firebaseConfig = {
-  apiKey: "AIzaSyBva82TdQ9mEdUBwS-KonyCU1IlZKeyvE",
+        const firebaseConfig = {
+  apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
   authDomain: "pixpair.firebaseapp.com",
   databaseURL: "https://pixpair-default-rtdb.firebaseio.com",
   projectId: "pixpair",
-  storageBucket: "pixpair.appspot.com",
+  storageBucket: "pixpair.firebasestorage.app",
   messagingSenderId: "743134014753",
-  appId: "1:743134014753:web:bd5a6239114eb696a5a260"
+  appId: "1:743134014753:web:da56b2391f4eb69a63a260",
+  measurementId: "G-08ST8X93R2"
 };
         
         // Initialize Firebase
@@ -130,6 +156,8 @@
         const peerCount = document.getElementById('peerCount');
         const countdownOverlay = document.getElementById('countdownOverlay');
         const toast = document.getElementById('toast');
+        const displaySessionId = document.getElementById('displaySessionId');
+        const sessionIdBadge = document.getElementById('sessionIdBadge');
         
         // App state
         let currentSessionId = null;
@@ -238,6 +266,9 @@
             currentSessionId = sessionId;
             isSessionOwner = isOwner;
             
+            // Display session ID
+            displaySessionId.textContent = sessionId;
+            
             // Initialize camera
             initCamera();
             
@@ -331,6 +362,15 @@
             }
         }
         
+        // Copy session ID to clipboard
+        sessionIdBadge.addEventListener('click', () => {
+            navigator.clipboard.writeText(currentSessionId).then(() => {
+                showToast('Session ID copied!');
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+            });
+        });
+        
         // Event listeners
         joinSessionBtn.addEventListener('click', () => {
             const sessionId = sessionIdInput.value.trim();
@@ -373,9 +413,9 @@
         });
         
         // Show instructions for first-time users
-        if (!localStorage.getItem('syncsnap_visited')) {
+        if (!localStorage.getItem('pixpair_visited')) {
             showToast('Share the session ID with a friend to sync photos!');
-            localStorage.setItem('syncsnap_visited', 'true');
+            localStorage.setItem('pixpair_visited', 'true');
         }
     </script>
 </body>
