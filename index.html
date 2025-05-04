@@ -2,17 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PixPair - Synchronized Photo Capture</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
         .camera-container {
             position: relative;
             width: 100%;
             height: 0;
-            padding-bottom: 75%; /* 4:3 aspect ratio */
+            padding-bottom: 133.33%; /* 3:4 aspect ratio */
             overflow: hidden;
             background-color: #000;
             border-radius: 16px;
@@ -25,13 +29,7 @@
             height: 100%;
             object-fit: cover;
         }
-        .photo-result {
-            display: none;
-            width: 100%;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-        .combined-result {
+        .photo-result, .combined-result {
             display: none;
             width: 100%;
             border-radius: 16px;
@@ -74,15 +72,61 @@
         .download-btn:hover {
             background-color: #45a049;
         }
+        .debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 8px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .debug-toggle {
+            position: fixed;
+            bottom: 110px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 12px;
+            z-index: 1001;
+        }
+        .countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        .countdown-text {
+            color: white;
+            font-size: 120px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-6">
-        <div id="sessionSetup">
+<body class="bg-gray-100 h-full">
+    <div class="max-w-md w-full h-full mx-auto bg-white flex flex-col">
+        <div id="sessionSetup" class="flex-1 flex flex-col items-center justify-center p-6">
             <h1 class="text-3xl font-bold text-center text-indigo-600 mb-2">PixPair</h1>
             <p class="text-gray-500 text-center mb-6">Capture moments together in perfect sync</p>
             
-            <div class="flex items-center mb-4">
+            <div class="flex items-center mb-4 w-full">
                 <input type="text" id="sessionId" placeholder="Enter session ID" 
                        class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <button id="joinSession" class="bg-indigo-600 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition">
@@ -95,7 +139,7 @@
             </button>
         </div>
         
-        <div id="cameraSection" class="hidden">
+        <div id="cameraSection" class="hidden flex-1 flex flex-col p-6">
             <div class="flex items-center justify-center mb-2">
                 <h1 class="text-2xl font-bold text-center text-indigo-600 mr-2">PixPair</h1>
                 <div class="session-id-badge" id="sessionIdBadge">
@@ -135,14 +179,35 @@
             </button>
         </div>
         
-        <div id="countdownOverlay" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div class="text-white text-9xl font-bold pulse" id="countdownText">3</div>
+        <div id="countdownOverlay" class="countdown-overlay hidden">
+            <div class="countdown-text pulse" id="countdownText">3</div>
         </div>
     </div>
     
     <div id="toast" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg"></div>
+    
+    <button id="debugToggle" class="debug-toggle">DBG</button>
+    <div id="debugConsole" class="debug-console"></div>
 
     <script>
+        // Debugging function
+        function debugLog(message) {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString() + '.' + now.getMilliseconds().toString().padStart(3, '0');
+            const debugConsole = document.getElementById('debugConsole');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            debugConsole.appendChild(logEntry);
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            console.log(`[PixPair] ${message}`);
+        }
+
+        // Toggle debug console
+        document.getElementById('debugToggle').addEventListener('click', () => {
+            const consoleElem = document.getElementById('debugConsole');
+            consoleElem.style.display = consoleElem.style.display === 'none' ? 'block' : 'none';
+        });
+
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
@@ -188,6 +253,7 @@
         let countdownInterval = null;
         let userId = null;
         let combinedPhotoUrl = null;
+        let lastCaptureTime = 0;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -201,6 +267,7 @@
         
         // Show toast message
         function showToast(message) {
+            debugLog(`Toast: ${message}`);
             toast.textContent = message;
             toast.classList.remove('hidden');
             setTimeout(() => {
@@ -211,13 +278,20 @@
         // Initialize camera
         async function initCamera() {
             try {
+                debugLog("Initializing camera...");
                 stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } },
+                    video: { 
+                        facingMode: 'user', 
+                        width: { ideal: 1280 }, 
+                        height: { ideal: 960 },
+                        aspectRatio: 0.75 // 3:4 ratio
+                    },
                     audio: false
                 });
                 cameraFeed.srcObject = stream;
+                debugLog("Camera initialized successfully");
             } catch (err) {
-                console.error('Camera error:', err);
+                debugLog(`Camera error: ${err.message}`);
                 showToast('Could not access camera. Please allow camera permissions.');
             }
         }
@@ -225,6 +299,7 @@
         // Stop camera
         function stopCamera() {
             if (stream) {
+                debugLog("Stopping camera...");
                 stream.getTracks().forEach(track => track.stop());
                 cameraFeed.srcObject = null;
                 stream = null;
@@ -233,54 +308,101 @@
         
         // Start synchronized countdown
         function startCountdown(captureTime) {
+            debugLog(`Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
+            
             const now = Date.now();
             const timeUntilCapture = captureTime - now;
             
             if (timeUntilCapture <= 0) {
-                // If we're already past the capture time, take photo immediately
+                debugLog("Capture time already passed, taking photo immediately");
                 takePhoto();
                 return;
             }
             
+            // Clear any existing countdown
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
             // Show countdown overlay
             countdownOverlay.classList.remove('hidden');
+            debugLog("Countdown overlay shown");
             
             // Calculate countdown steps
             const countdownSteps = Math.floor(timeUntilCapture / 1000);
             let currentCount = countdownSteps;
             
             countdownText.textContent = currentCount;
+            debugLog(`Countdown started: ${currentCount} seconds remaining`);
             
+            // Update countdown every second
             countdownInterval = setInterval(() => {
                 currentCount--;
                 
                 if (currentCount > 0) {
                     countdownText.textContent = currentCount;
+                    debugLog(`Countdown: ${currentCount}`);
                 } else {
                     // When countdown reaches 0, show "Capture!" for the last second
                     countdownText.textContent = "Capture!";
-                    
-                    // Clear the interval and hide overlay after capture
-                    setTimeout(() => {
-                        clearInterval(countdownInterval);
-                        countdownOverlay.classList.add('hidden');
-                    }, 1000);
+                    debugLog("Countdown: Capture!");
                 }
             }, 1000);
             
             // Schedule the actual photo capture
-            setTimeout(takePhoto, timeUntilCapture);
+            setTimeout(() => {
+                debugLog("Countdown complete, taking photo...");
+                clearInterval(countdownInterval);
+                countdownOverlay.classList.add('hidden');
+                takePhoto();
+            }, timeUntilCapture);
         }
         
         // Take photo at the exact synchronized time
         function takePhoto() {
-            if (!stream) return;
+            if (!stream) {
+                debugLog("Cannot take photo - no camera stream");
+                return;
+            }
+            
+            debugLog("Taking photo...");
             
             const canvas = document.createElement('canvas');
-            canvas.width = cameraFeed.videoWidth;
-            canvas.height = cameraFeed.videoHeight;
+            // Use 3:4 aspect ratio (portrait)
+            const targetWidth = Math.min(cameraFeed.videoWidth, cameraFeed.videoHeight * 0.75);
+            const targetHeight = targetWidth * (4/3);
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+            
+            // Calculate center crop
+            const sourceAspect = cameraFeed.videoWidth / cameraFeed.videoHeight;
+            const targetAspect = targetWidth / targetHeight;
+            
+            let sourceWidth, sourceHeight, sourceX, sourceY;
+            
+            if (sourceAspect > targetAspect) {
+                // Source is wider than target, crop horizontally
+                sourceHeight = cameraFeed.videoHeight;
+                sourceWidth = sourceHeight * targetAspect;
+                sourceX = (cameraFeed.videoWidth - sourceWidth) / 2;
+                sourceY = 0;
+            } else {
+                // Source is taller than target, crop vertically
+                sourceWidth = cameraFeed.videoWidth;
+                sourceHeight = sourceWidth / targetAspect;
+                sourceX = 0;
+                sourceY = (cameraFeed.videoHeight - sourceHeight) / 2;
+            }
+            
+            // Draw cropped image
+            ctx.drawImage(
+                cameraFeed, 
+                sourceX, sourceY, sourceWidth, sourceHeight,
+                0, 0, targetWidth, targetHeight
+            );
             
             // Show the photo
             photoResult.src = canvas.toDataURL('image/jpeg');
@@ -293,47 +415,61 @@
                 cameraSection.classList.remove('shutter-effect');
             }, 500);
             
+            debugLog("Photo taken and displayed");
+            
             // Upload photo to Firebase
             uploadPhoto(canvas.toDataURL('image/jpeg'));
         }
         
         // Upload photo to Firebase
         function uploadPhoto(photoData) {
+            debugLog("Uploading photo to Firebase...");
             const photoRef = database.ref(`sessions/${currentSessionId}/photos/${userId}`);
             photoRef.set({
                 photoData: photoData,
                 timestamp: Date.now()
+            }).then(() => {
+                debugLog("Photo uploaded successfully");
+            }).catch(err => {
+                debugLog(`Photo upload failed: ${err.message}`);
             });
         }
         
-        // Combine photos vertically
+        // Combine photos vertically with consistent size
         function combinePhotos(photo1, photo2) {
+            debugLog("Starting photo combination...");
             return new Promise((resolve) => {
                 const img1 = new Image();
                 const img2 = new Image();
                 
                 img1.onload = img2.onload = function() {
-                    // Determine the width of the combined image (use the wider photo)
-                    const width = Math.max(img1.width, img2.width);
-                    
-                    // Calculate heights maintaining aspect ratio
-                    const height1 = (width / img1.width) * img1.height;
-                    const height2 = (width / img2.width) * img2.height;
+                    // Use the same width for both photos (use the smaller width)
+                    const width = Math.min(img1.width, img2.width);
+                    const height = width * (4/3); // 3:4 aspect ratio
                     
                     // Create canvas for combined image
                     const canvas = document.createElement('canvas');
                     canvas.width = width;
-                    canvas.height = height1 + height2;
+                    canvas.height = height * 2; // Double height for two photos
                     const ctx = canvas.getContext('2d');
                     
-                    // Draw first photo
-                    ctx.drawImage(img1, 0, 0, width, height1);
+                    // Draw first photo (cropped to center)
+                    ctx.drawImage(
+                        img1, 
+                        (img1.width - width) / 2, (img1.height - height) / 2, width, height,
+                        0, 0, width, height
+                    );
                     
-                    // Draw second photo below first one
-                    ctx.drawImage(img2, 0, height1, width, height2);
+                    // Draw second photo below first one (also cropped)
+                    ctx.drawImage(
+                        img2, 
+                        (img2.width - width) / 2, (img2.height - height) / 2, width, height,
+                        0, height, width, height
+                    );
                     
                     // Convert to data URL
                     const combinedUrl = canvas.toDataURL('image/jpeg');
+                    debugLog("Photos combined successfully");
                     resolve(combinedUrl);
                 };
                 
@@ -344,9 +480,11 @@
         
         // Join a session
         function joinSession(sessionId, isOwner = false) {
+            debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
             currentSessionId = sessionId;
             isSessionOwner = isOwner;
             userId = generateUserId();
+            lastCaptureTime = 0;
             
             // Display session ID
             displaySessionId.textContent = sessionId;
@@ -359,7 +497,7 @@
             cameraSection.classList.remove('hidden');
             
             // Update UI
-            captureBtn.disabled = false; // Both users can initiate capture now
+            captureBtn.disabled = false;
             statusText.textContent = 'Connecting...';
             connectionStatus.className = 'w-3 h-3 rounded-full bg-yellow-500 mr-2';
             
@@ -370,7 +508,10 @@
             sessionRef.child('capture').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const captureData = snapshot.val();
-                    if (captureData.captureTime) {
+                    if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
+                        lastCaptureTime = captureData.captureTime;
+                        debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
+                        
                         // Start synchronized countdown
                         startCountdown(captureData.captureTime);
                     }
@@ -386,6 +527,7 @@
                     // Update peer count
                     peers = photoKeys.length;
                     peerCount.textContent = `${peers} ${peers === 1 ? 'peer' : 'peers'} connected`;
+                    debugLog(`Peer count updated: ${peers}`);
                     
                     // Check if we have both photos
                     if (photoKeys.length >= 2) {
@@ -394,9 +536,11 @@
                             photoUrls.push(photos[key].photoData);
                         }
                         
+                        debugLog(`Both photos received, combining...`);
+                        
                         // Combine the photos
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
-                            // Display combined photo
+                            // Display combined photo automatically
                             combinedResult.src = combinedUrl;
                             combinedResult.style.display = 'block';
                             photoResult.style.display = 'none';
@@ -407,6 +551,8 @@
                             
                             // Show download button
                             downloadBtn.classList.remove('hidden');
+                            
+                            debugLog("Combined photo displayed");
                             
                             // Notify users
                             showToast('Photos combined! Ready to download.');
@@ -420,14 +566,17 @@
                 if (snapshot.exists()) {
                     statusText.textContent = 'Connected';
                     connectionStatus.className = 'w-3 h-3 rounded-full bg-green-500 mr-2';
+                    debugLog("Connected to Firebase session");
                 } else {
                     statusText.textContent = 'Disconnected';
                     connectionStatus.className = 'w-3 h-3 rounded-full bg-red-500 mr-2';
+                    debugLog("Disconnected from Firebase session");
                 }
             });
             
             // Clean up when session is removed
             sessionRef.on('child_removed', () => {
+                debugLog("Session ended by owner");
                 showToast('Session ended');
                 leaveSession();
             });
@@ -435,11 +584,13 @@
         
         // Leave current session
         function leaveSession() {
+            debugLog("Leaving current session...");
             if (currentSessionId) {
                 database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
                 database.ref(`sessions/${currentSessionId}`).off();
                 
                 if (isSessionOwner) {
+                    debugLog("Removing session from Firebase (owner)");
                     database.ref(`sessions/${currentSessionId}`).remove();
                 }
                 
@@ -458,6 +609,8 @@
                     clearInterval(countdownInterval);
                     countdownOverlay.classList.add('hidden');
                 }
+                
+                debugLog("Session left successfully");
             }
         }
         
@@ -465,6 +618,7 @@
         function downloadPhoto() {
             if (!combinedPhotoUrl) return;
             
+            debugLog("Downloading combined photo...");
             const link = document.createElement('a');
             link.href = combinedPhotoUrl;
             link.download = `pixpair_${currentSessionId}.jpg`;
@@ -477,8 +631,9 @@
         sessionIdBadge.addEventListener('click', () => {
             navigator.clipboard.writeText(currentSessionId).then(() => {
                 showToast('Session ID copied!');
+                debugLog("Session ID copied to clipboard");
             }).catch(err => {
-                console.error('Could not copy text: ', err);
+                debugLog(`Could not copy session ID: ${err.message}`);
             });
         });
         
@@ -489,26 +644,46 @@
                 joinSession(sessionId, false);
             } else {
                 showToast('Please enter a valid session ID');
+                debugLog("Invalid session ID entered");
             }
         });
         
         createSessionBtn.addEventListener('click', () => {
             const sessionId = generateSessionId();
             sessionIdInput.value = sessionId;
+            debugLog(`Creating new session: ${sessionId}`);
             database.ref(`sessions/${sessionId}`).set({
                 created: Date.now()
             }).then(() => {
                 joinSession(sessionId, true);
+            }).catch(err => {
+                debugLog(`Session creation failed: ${err.message}`);
+                showToast('Failed to create session');
             });
         });
         
         captureBtn.addEventListener('click', () => {
+            // Prevent rapid multiple captures
+            const now = Date.now();
+            if (now - lastCaptureTime < 5000) {
+                debugLog("Capture too soon after last capture");
+                showToast('Please wait before capturing again');
+                return;
+            }
+            
             // Schedule capture 4 seconds from now (3 second countdown + 1 second for "Capture!")
             const captureTime = Date.now() + 4000;
+            lastCaptureTime = captureTime;
+            
+            debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
             
             // Set the capture time in Firebase
             database.ref(`sessions/${currentSessionId}/capture`).set({
                 captureTime: captureTime
+            }).then(() => {
+                debugLog("Capture command sent to Firebase");
+            }).catch(err => {
+                debugLog(`Failed to send capture command: ${err.message}`);
             });
             
             // Start countdown on this device
@@ -522,11 +697,13 @@
         // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
+                debugLog("Page hidden, pausing camera");
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
                 }
             } else {
                 if (currentSessionId && !stream) {
+                    debugLog("Page visible again, resuming camera");
                     initCamera();
                 }
             }
@@ -536,7 +713,10 @@
         if (!localStorage.getItem('pixpair_visited')) {
             showToast('Share the session ID with a friend to sync photos!');
             localStorage.setItem('pixpair_visited', 'true');
+            debugLog("First-time user welcome message shown");
         }
+        
+        debugLog("PixPair app initialized");
     </script>
 </body>
 </html>
