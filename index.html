@@ -11,6 +11,7 @@
         html, body {
             height: 100%;
             overflow: hidden;
+            touch-action: manipulation;
         }
         .camera-container {
             position: relative;
@@ -29,11 +30,26 @@
             height: 100%;
             object-fit: cover;
         }
-        .photo-result, .combined-result {
+        .photo-result {
             display: none;
             width: 100%;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .combined-result-container {
+            display: none;
+            width: 100%;
+            height: calc(100vh - 200px);
+            overflow: hidden;
+            position: relative;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+        }
+        .combined-result {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .pulse {
             animation: pulse 1.5s infinite;
@@ -118,6 +134,12 @@
             font-weight: bold;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
         }
+        .image-quality-info {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-full">
@@ -154,7 +176,9 @@
             <div class="camera-container mb-4">
                 <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
                 <img id="photoResult" class="photo-result" alt="Captured photo">
-                <img id="combinedResult" class="combined-result" alt="Combined photo">
+                <div id="combinedResultContainer" class="combined-result-container">
+                    <img id="combinedResult" class="combined-result" alt="Combined photo">
+                </div>
             </div>
             
             <div class="flex justify-between items-center mb-4">
@@ -177,6 +201,9 @@
             <button id="downloadBtn" class="w-full download-btn px-4 py-3 rounded-lg font-medium transition hidden">
                 Download Combined Photo
             </button>
+            <div id="imageQualityInfo" class="image-quality-info hidden">
+                Image quality: <span id="imageSize">0</span> KB
+            </div>
         </div>
         
         <div id="countdownOverlay" class="countdown-overlay hidden">
@@ -235,6 +262,7 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const cameraFeed = document.getElementById('cameraFeed');
         const photoResult = document.getElementById('photoResult');
+        const combinedResultContainer = document.getElementById('combinedResultContainer');
         const combinedResult = document.getElementById('combinedResult');
         const connectionStatus = document.getElementById('connectionStatus');
         const statusText = document.getElementById('statusText');
@@ -244,6 +272,8 @@
         const toast = document.getElementById('toast');
         const displaySessionId = document.getElementById('displaySessionId');
         const sessionIdBadge = document.getElementById('sessionIdBadge');
+        const imageQualityInfo = document.getElementById('imageQualityInfo');
+        const imageSizeSpan = document.getElementById('imageSize');
         
         // App state
         let currentSessionId = null;
@@ -282,8 +312,8 @@
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { 
                         facingMode: 'user', 
-                        width: { ideal: 1280 }, 
-                        height: { ideal: 960 },
+                        width: { ideal: 1920 },  // Request higher resolution
+                        height: { ideal: 1080 },
                         aspectRatio: 0.75 // 3:4 ratio
                     },
                     audio: false
@@ -368,9 +398,9 @@
             debugLog("Taking photo...");
             
             const canvas = document.createElement('canvas');
-            // Use 3:4 aspect ratio (portrait)
-            const targetWidth = Math.min(cameraFeed.videoWidth, cameraFeed.videoHeight * 0.75);
-            const targetHeight = targetWidth * (4/3);
+            // Target size for individual photos (1080x960 - 9:8 aspect ratio)
+            const targetWidth = 1080;
+            const targetHeight = 960;
             
             canvas.width = targetWidth;
             canvas.height = targetHeight;
@@ -405,7 +435,7 @@
             );
             
             // Show the photo
-            photoResult.src = canvas.toDataURL('image/jpeg');
+            photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
             photoResult.style.display = 'block';
             cameraFeed.style.display = 'none';
             
@@ -418,7 +448,7 @@
             debugLog("Photo taken and displayed");
             
             // Upload photo to Firebase
-            uploadPhoto(canvas.toDataURL('image/jpeg'));
+            uploadPhoto(canvas.toDataURL('image/jpeg', 0.95));
         }
         
         // Upload photo to Firebase
@@ -435,7 +465,7 @@
             });
         }
         
-        // Combine photos vertically with consistent size
+        // Combine photos vertically with consistent size (1080x1920 - 9:16 aspect ratio)
         function combinePhotos(photo1, photo2) {
             debugLog("Starting photo combination...");
             return new Promise((resolve) => {
@@ -443,34 +473,55 @@
                 const img2 = new Image();
                 
                 img1.onload = img2.onload = function() {
-                    // Use the same width for both photos (use the smaller width)
-                    const width = Math.min(img1.width, img2.width);
-                    const height = width * (4/3); // 3:4 aspect ratio
+                    // Check if both images are loaded
+                    if (!img1.complete || !img2.complete) return;
+                    
+                    debugLog(`Combining photos with dimensions: ${img1.width}x${img1.height} and ${img2.width}x${img2.height}`);
+                    
+                    // Target size for individual photos (1080x960)
+                    const individualWidth = 1080;
+                    const individualHeight = 960;
+                    
+                    // Final combined image size (1080x1920)
+                    const combinedWidth = 1080;
+                    const combinedHeight = 1920;
                     
                     // Create canvas for combined image
                     const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height * 2; // Double height for two photos
+                    canvas.width = combinedWidth;
+                    canvas.height = combinedHeight;
                     const ctx = canvas.getContext('2d');
                     
-                    // Draw first photo (cropped to center)
+                    // Draw first photo (top half)
                     ctx.drawImage(
                         img1, 
-                        (img1.width - width) / 2, (img1.height - height) / 2, width, height,
-                        0, 0, width, height
+                        0, 0, img1.width, img1.height,
+                        0, 0, individualWidth, individualHeight
                     );
                     
-                    // Draw second photo below first one (also cropped)
+                    // Draw second photo (bottom half)
                     ctx.drawImage(
                         img2, 
-                        (img2.width - width) / 2, (img2.height - height) / 2, width, height,
-                        0, height, width, height
+                        0, 0, img2.width, img2.height,
+                        0, individualHeight, individualWidth, individualHeight
                     );
                     
-                    // Convert to data URL
-                    const combinedUrl = canvas.toDataURL('image/jpeg');
-                    debugLog("Photos combined successfully");
-                    resolve(combinedUrl);
+                    // Convert to data URL with high quality
+                    canvas.toBlob((blob) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const combinedUrl = reader.result;
+                            debugLog("Photos combined successfully");
+                            
+                            // Calculate and display image size
+                            const sizeInKB = Math.round(blob.size / 1024);
+                            imageSizeSpan.textContent = sizeInKB;
+                            debugLog(`Combined image size: ${sizeInKB} KB`);
+                            
+                            resolve(combinedUrl);
+                        };
+                        reader.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.95);
                 };
                 
                 img1.src = photo1;
@@ -542,15 +593,16 @@
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
                             // Display combined photo automatically
                             combinedResult.src = combinedUrl;
-                            combinedResult.style.display = 'block';
+                            combinedResultContainer.style.display = 'block';
                             photoResult.style.display = 'none';
                             cameraFeed.style.display = 'none';
                             
                             // Store combined photo URL for download
                             combinedPhotoUrl = combinedUrl;
                             
-                            // Show download button
+                            // Show download button and quality info
                             downloadBtn.classList.remove('hidden');
+                            imageQualityInfo.classList.remove('hidden');
                             
                             debugLog("Combined photo displayed");
                             
@@ -601,9 +653,10 @@
                 sessionSetup.classList.remove('hidden');
                 cameraSection.classList.add('hidden');
                 photoResult.style.display = 'none';
-                combinedResult.style.display = 'none';
+                combinedResultContainer.style.display = 'none';
                 cameraFeed.style.display = 'block';
                 downloadBtn.classList.add('hidden');
+                imageQualityInfo.classList.add('hidden');
                 
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
@@ -621,10 +674,11 @@
             debugLog("Downloading combined photo...");
             const link = document.createElement('a');
             link.href = combinedPhotoUrl;
-            link.download = `pixpair_${currentSessionId}.jpg`;
+            link.download = `pixpair_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            debugLog("Download initiated");
         }
         
         // Copy session ID to clipboard
