@@ -31,6 +31,12 @@
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
+        .combined-result {
+            display: none;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
         .pulse {
             animation: pulse 1.5s infinite;
         }
@@ -60,6 +66,13 @@
         .copy-icon {
             margin-left: 6px;
             cursor: pointer;
+        }
+        .download-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .download-btn:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
@@ -97,6 +110,7 @@
             <div class="camera-container mb-4">
                 <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
                 <img id="photoResult" class="photo-result" alt="Captured photo">
+                <img id="combinedResult" class="combined-result" alt="Combined photo">
             </div>
             
             <div class="flex justify-between items-center mb-4">
@@ -107,7 +121,7 @@
                 <div id="peerCount" class="text-sm text-gray-500">0 peers connected</div>
             </div>
             
-            <div class="flex space-x-4">
+            <div class="flex space-x-4 mb-4">
                 <button id="captureBtn" class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50" disabled>
                     Capture
                 </button>
@@ -115,10 +129,14 @@
                     New Session
                 </button>
             </div>
+            
+            <button id="downloadBtn" class="w-full download-btn px-4 py-3 rounded-lg font-medium transition hidden">
+                Download Combined Photo
+            </button>
         </div>
         
         <div id="countdownOverlay" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div class="text-white text-9xl font-bold pulse">3</div>
+            <div class="text-white text-9xl font-bold pulse" id="countdownText">3</div>
         </div>
     </div>
     
@@ -127,15 +145,15 @@
     <script>
         // Firebase configuration
         const firebaseConfig = {
-  apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
-  authDomain: "pixpair.firebaseapp.com",
-  databaseURL: "https://pixpair-default-rtdb.firebaseio.com",
-  projectId: "pixpair",
-  storageBucket: "pixpair.firebasestorage.app",
-  messagingSenderId: "743134014753",
-  appId: "1:743134014753:web:da56b2391f4eb69a63a260",
-  measurementId: "G-08ST8X93R2"
-};
+            apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
+            authDomain: "pixpair.firebaseapp.com",
+            databaseURL: "https://pixpair-default-rtdb.firebaseio.com",
+            projectId: "pixpair",
+            storageBucket: "pixpair.firebasestorage.app",
+            messagingSenderId: "743134014753",
+            appId: "1:743134014753:web:da56b2391f4eb69a63a260",
+            measurementId: "G-08ST8X93R2"
+        };
         
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
@@ -149,12 +167,15 @@
         const createSessionBtn = document.getElementById('createSession');
         const captureBtn = document.getElementById('captureBtn');
         const newSessionBtn = document.getElementById('newSessionBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
         const cameraFeed = document.getElementById('cameraFeed');
         const photoResult = document.getElementById('photoResult');
+        const combinedResult = document.getElementById('combinedResult');
         const connectionStatus = document.getElementById('connectionStatus');
         const statusText = document.getElementById('statusText');
         const peerCount = document.getElementById('peerCount');
         const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownText = document.getElementById('countdownText');
         const toast = document.getElementById('toast');
         const displaySessionId = document.getElementById('displaySessionId');
         const sessionIdBadge = document.getElementById('sessionIdBadge');
@@ -165,10 +186,17 @@
         let isSessionOwner = false;
         let peers = 0;
         let countdownInterval = null;
+        let userId = null;
+        let combinedPhotoUrl = null;
         
         // Generate a random session ID
         function generateSessionId() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+        
+        // Generate a random user ID
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substring(2, 9);
         }
         
         // Show toast message
@@ -203,61 +231,114 @@
             }
         }
         
-        // Capture photo
-        function capturePhoto() {
-            if (!stream) return;
+        // Start synchronized countdown
+        function startCountdown(captureTime) {
+            const now = Date.now();
+            const timeUntilCapture = captureTime - now;
             
-            // Show countdown
-            let count = 3;
-            countdownOverlay.querySelector('div').textContent = count;
+            if (timeUntilCapture <= 0) {
+                // If we're already past the capture time, take photo immediately
+                takePhoto();
+                return;
+            }
+            
+            // Show countdown overlay
             countdownOverlay.classList.remove('hidden');
             
+            // Calculate countdown steps
+            const countdownSteps = Math.floor(timeUntilCapture / 1000);
+            let currentCount = countdownSteps;
+            
+            countdownText.textContent = currentCount;
+            
             countdownInterval = setInterval(() => {
-                count--;
-                countdownOverlay.querySelector('div').textContent = count;
+                currentCount--;
                 
-                if (count <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownOverlay.classList.add('hidden');
+                if (currentCount > 0) {
+                    countdownText.textContent = currentCount;
+                } else {
+                    // When countdown reaches 0, show "Capture!" for the last second
+                    countdownText.textContent = "Capture!";
                     
-                    // Take the photo
-                    const canvas = document.createElement('canvas');
-                    canvas.width = cameraFeed.videoWidth;
-                    canvas.height = cameraFeed.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
-                    
-                    // Show the photo
-                    photoResult.src = canvas.toDataURL('image/jpeg');
-                    photoResult.style.display = 'block';
-                    cameraFeed.style.display = 'none';
-                    
-                    // Add shutter effect
-                    cameraSection.classList.add('shutter-effect');
+                    // Clear the interval and hide overlay after capture
                     setTimeout(() => {
-                        cameraSection.classList.remove('shutter-effect');
-                    }, 500);
-                    
-                    // Upload photo to Firebase
-                    uploadPhoto(canvas.toDataURL('image/jpeg'));
-                    
-                    // Notify peers to capture photo
-                    if (isSessionOwner) {
-                        database.ref(`sessions/${currentSessionId}/capture`).set({
-                            timestamp: Date.now()
-                        });
-                    }
+                        clearInterval(countdownInterval);
+                        countdownOverlay.classList.add('hidden');
+                    }, 1000);
                 }
             }, 1000);
+            
+            // Schedule the actual photo capture
+            setTimeout(takePhoto, timeUntilCapture);
+        }
+        
+        // Take photo at the exact synchronized time
+        function takePhoto() {
+            if (!stream) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = cameraFeed.videoWidth;
+            canvas.height = cameraFeed.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+            
+            // Show the photo
+            photoResult.src = canvas.toDataURL('image/jpeg');
+            photoResult.style.display = 'block';
+            cameraFeed.style.display = 'none';
+            
+            // Add shutter effect
+            cameraSection.classList.add('shutter-effect');
+            setTimeout(() => {
+                cameraSection.classList.remove('shutter-effect');
+            }, 500);
+            
+            // Upload photo to Firebase
+            uploadPhoto(canvas.toDataURL('image/jpeg'));
         }
         
         // Upload photo to Firebase
         function uploadPhoto(photoData) {
-            const photoRef = database.ref(`sessions/${currentSessionId}/photos`).push();
+            const photoRef = database.ref(`sessions/${currentSessionId}/photos/${userId}`);
             photoRef.set({
-                userId: isSessionOwner ? 'host' : 'peer',
                 photoData: photoData,
                 timestamp: Date.now()
+            });
+        }
+        
+        // Combine photos vertically
+        function combinePhotos(photo1, photo2) {
+            return new Promise((resolve) => {
+                const img1 = new Image();
+                const img2 = new Image();
+                
+                img1.onload = img2.onload = function() {
+                    // Determine the width of the combined image (use the wider photo)
+                    const width = Math.max(img1.width, img2.width);
+                    
+                    // Calculate heights maintaining aspect ratio
+                    const height1 = (width / img1.width) * img1.height;
+                    const height2 = (width / img2.width) * img2.height;
+                    
+                    // Create canvas for combined image
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height1 + height2;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Draw first photo
+                    ctx.drawImage(img1, 0, 0, width, height1);
+                    
+                    // Draw second photo below first one
+                    ctx.drawImage(img2, 0, height1, width, height2);
+                    
+                    // Convert to data URL
+                    const combinedUrl = canvas.toDataURL('image/jpeg');
+                    resolve(combinedUrl);
+                };
+                
+                img1.src = photo1;
+                img2.src = photo2;
             });
         }
         
@@ -265,6 +346,7 @@
         function joinSession(sessionId, isOwner = false) {
             currentSessionId = sessionId;
             isSessionOwner = isOwner;
+            userId = generateUserId();
             
             // Display session ID
             displaySessionId.textContent = sessionId;
@@ -277,7 +359,7 @@
             cameraSection.classList.remove('hidden');
             
             // Update UI
-            captureBtn.disabled = !isOwner;
+            captureBtn.disabled = false; // Both users can initiate capture now
             statusText.textContent = 'Connecting...';
             connectionStatus.className = 'w-3 h-3 rounded-full bg-yellow-500 mr-2';
             
@@ -286,8 +368,12 @@
             
             // Listen for capture command
             sessionRef.child('capture').on('value', (snapshot) => {
-                if (snapshot.exists() && !isOwner) {
-                    capturePhoto();
+                if (snapshot.exists()) {
+                    const captureData = snapshot.val();
+                    if (captureData.captureTime) {
+                        // Start synchronized countdown
+                        startCountdown(captureData.captureTime);
+                    }
                 }
             });
             
@@ -297,18 +383,34 @@
                     const photos = snapshot.val();
                     const photoKeys = Object.keys(photos);
                     
-                    // Check if we have both host and peer photos
-                    const hasHost = photoKeys.some(key => photos[key].userId === 'host');
-                    const hasPeer = photoKeys.some(key => photos[key].userId === 'peer');
+                    // Update peer count
+                    peers = photoKeys.length;
+                    peerCount.textContent = `${peers} ${peers === 1 ? 'peer' : 'peers'} connected`;
                     
-                    if (hasHost && hasPeer) {
-                        // Combine photos (simplified - in a real app you'd upload to a server)
-                        const hostPhoto = photoKeys.find(key => photos[key].userId === 'host');
-                        const peerPhoto = photoKeys.find(key => photos[key].userId === 'peer');
+                    // Check if we have both photos
+                    if (photoKeys.length >= 2) {
+                        const photoUrls = [];
+                        for (const key in photos) {
+                            photoUrls.push(photos[key].photoData);
+                        }
                         
-                        // For demo purposes, we'll just show the latest photo
-                        // In a real app, you'd merge these server-side
-                        showToast('Both photos captured!');
+                        // Combine the photos
+                        combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
+                            // Display combined photo
+                            combinedResult.src = combinedUrl;
+                            combinedResult.style.display = 'block';
+                            photoResult.style.display = 'none';
+                            cameraFeed.style.display = 'none';
+                            
+                            // Store combined photo URL for download
+                            combinedPhotoUrl = combinedUrl;
+                            
+                            // Show download button
+                            downloadBtn.classList.remove('hidden');
+                            
+                            // Notify users
+                            showToast('Photos combined! Ready to download.');
+                        });
                     }
                 }
             });
@@ -318,12 +420,6 @@
                 if (snapshot.exists()) {
                     statusText.textContent = 'Connected';
                     connectionStatus.className = 'w-3 h-3 rounded-full bg-green-500 mr-2';
-                    
-                    // Count peers (simplified - in a real app you'd track users properly)
-                    const photos = snapshot.child('photos').val() || {};
-                    const uniqueUsers = new Set(Object.values(photos).map(p => p.userId));
-                    peers = uniqueUsers.size;
-                    peerCount.textContent = `${peers} ${peers === 1 ? 'peer' : 'peers'} connected`;
                 } else {
                     statusText.textContent = 'Disconnected';
                     connectionStatus.className = 'w-3 h-3 rounded-full bg-red-500 mr-2';
@@ -340,6 +436,7 @@
         // Leave current session
         function leaveSession() {
             if (currentSessionId) {
+                database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
                 database.ref(`sessions/${currentSessionId}`).off();
                 
                 if (isSessionOwner) {
@@ -353,13 +450,27 @@
                 sessionSetup.classList.remove('hidden');
                 cameraSection.classList.add('hidden');
                 photoResult.style.display = 'none';
+                combinedResult.style.display = 'none';
                 cameraFeed.style.display = 'block';
+                downloadBtn.classList.add('hidden');
                 
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
                     countdownOverlay.classList.add('hidden');
                 }
             }
+        }
+        
+        // Download combined photo
+        function downloadPhoto() {
+            if (!combinedPhotoUrl) return;
+            
+            const link = document.createElement('a');
+            link.href = combinedPhotoUrl;
+            link.download = `pixpair_${currentSessionId}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
         
         // Copy session ID to clipboard
@@ -392,12 +503,21 @@
         });
         
         captureBtn.addEventListener('click', () => {
-            if (isSessionOwner) {
-                capturePhoto();
-            }
+            // Schedule capture 4 seconds from now (3 second countdown + 1 second for "Capture!")
+            const captureTime = Date.now() + 4000;
+            
+            // Set the capture time in Firebase
+            database.ref(`sessions/${currentSessionId}/capture`).set({
+                captureTime: captureTime
+            });
+            
+            // Start countdown on this device
+            startCountdown(captureTime);
         });
         
         newSessionBtn.addEventListener('click', leaveSession);
+        
+        downloadBtn.addEventListener('click', downloadPhoto);
         
         // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
