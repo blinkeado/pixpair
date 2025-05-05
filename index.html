@@ -170,13 +170,18 @@
             color: #CCF381;
             border: 1px solid #CCF381;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10;
         }
+        /* keep the icon comfortably inside the circle */
+.camera-switch-icon{
+    width:50px;   /* about half of the button’s diameter looks good */
+    height:50px;
+}
         /* Updated gallery styles for scroll-snap */
         .scroll-container {
             height: 100vh;
@@ -320,13 +325,19 @@
                         <div id="combinedResultContainer" class="combined-result-container">
                             <img id="combinedResult" class="combined-result" alt="Combined photo">
                         </div>
-                        <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
-                            <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                        </button>
+                       <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
+  <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- camera body -->
+    <path d="M21 7h-3.17l-1.84-2.46A2 2 0 0 0 14.42 3H9.58a2 2 0 0 0-1.57.78L6.17 7H3
+             a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+    <!-- lens -->
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+</button>
+
+
                     </div>
                     
                     <div class="flex justify-between items-center mb-4">
@@ -346,9 +357,7 @@
                         </button>
                     </div>
                     
-                    <button id="downloadBtn" class="w-full download-btn px-4 py-3 rounded-lg font-medium transition hidden">
-                        Download Combined Photo
-                    </button>
+            
                     <div id="imageQualityInfo" class="image-quality-info hidden">
                         Image quality: <span id="imageSize">0</span> KB
                     </div>
