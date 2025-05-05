@@ -1007,13 +1007,33 @@
         }
         
         // Add touch event listeners for swipe detection on mobile
-        let touchStartY = 0;
-        let touchEndY = 0;
-        
-        document.addEventListener('touchstart', (e) => {
-            touchStartY = e.changedTouches[0].screenY;
-        }, {passive: true});
-        
+let touchStartY = 0;
+let touchEndY   = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+/* --- NEW touchmove handler -------------------------------------------- */
+document.addEventListener('touchmove', (e) => {
+    if (window.innerWidth >= 768) return;          // mobile only
+    if (!currentSessionId) return;                 // only during a session
+
+    const gallerySlide    = document.querySelector('.gallery-slide');
+    if (!gallerySlide) return;
+
+    const atTopOfGallery  = gallerySlide.scrollTop === 0;
+    const currentY        = e.changedTouches[0].screenY;
+    const deltaY          = currentY - touchStartY; // >0 → finger pulling down
+
+    // If finger is pulling down while gallery is at top, snap back to camera
+    if (atTopOfGallery && deltaY > 40) {           // 40 px threshold
+        e.preventDefault();                        // stop rubber‑band glow
+        scrollToCamera();
+    }
+}, { passive: false });
+/* ---------------------------------------------------------------------- */
+
       document.addEventListener('touchend', (e) => {
     if (window.innerWidth >= 768) return;
     if (!currentSessionId) return;
