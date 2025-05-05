@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PixPair - Synchronized Photo Capture</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4831D4',
+                        secondary: '#CCF381',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -12,6 +24,7 @@
             height: 100%;
             overflow: hidden;
             touch-action: manipulation;
+            background-color: #4831D4;
         }
         .camera-container {
             position: relative;
@@ -21,6 +34,7 @@
             overflow: hidden;
             background-color: #000;
             border-radius: 16px;
+            border: 3px solid #CCF381;
         }
         .camera-feed {
             position: absolute;
@@ -35,6 +49,7 @@
             width: 100%;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 3px solid #CCF381;
         }
         .combined-result-container {
             display: none;
@@ -46,6 +61,7 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             margin-bottom: 16px;
             background-color: #000;
+            border: 3px solid #CCF381;
         }
         .combined-result {
             width: 100%;
@@ -73,24 +89,26 @@
         }
         .session-id-badge {
             background-color: rgba(0, 0, 0, 0.5);
-            color: white;
+            color: #CCF381;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 14px;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
+            border: 1px solid #CCF381;
         }
         .copy-icon {
             margin-left: 6px;
             cursor: pointer;
         }
         .download-btn {
-            background-color: #4CAF50;
-            color: white;
+            background-color: #CCF381;
+            color: #4831D4;
+            font-weight: bold;
         }
         .download-btn:hover {
-            background-color: #45a049;
+            background-color: #b8e06d;
         }
         .debug-console {
             position: fixed;
@@ -99,7 +117,7 @@
             right: 0;
             height: 100px;
             background-color: rgba(0, 0, 0, 0.7);
-            color: white;
+            color: #CCF381;
             font-family: monospace;
             font-size: 12px;
             padding: 8px;
@@ -112,8 +130,8 @@
             bottom: 110px;
             right: 10px;
             background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
+            color: #CCF381;
+            border: 1px solid #CCF381;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -126,21 +144,21 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(72, 49, 212, 0.9);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 999;
         }
         .countdown-text {
-            color: white;
+            color: #CCF381;
             font-size: 120px;
             font-weight: bold;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            text-shadow: 0 0 20px rgba(204, 243, 129, 0.5);
         }
         .image-quality-info {
             font-size: 12px;
-            color: #666;
+            color: #CCF381;
             text-align: center;
             margin-top: 8px;
         }
@@ -148,9 +166,9 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
+            background-color: rgba(72, 49, 212, 0.7);
+            color: #CCF381;
+            border: 1px solid #CCF381;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -158,10 +176,6 @@
             align-items: center;
             justify-content: center;
             z-index: 10;
-        }
-        .camera-switch-icon {
-            width: 24px;
-            height: 24px;
         }
         /* Updated gallery styles for scroll-snap */
         .scroll-container {
@@ -178,22 +192,24 @@
             flex-direction: column;
             padding: 16px;
             box-sizing: border-box;
+            background-color: #4831D4;
         }
         .gallery-slide {
-    height: 100vh;
-    scroll-snap-align: start;
-    padding: 16px;
-    box-sizing: border-box;
-    overflow-y: auto;          /* already there */
-    overscroll-behavior-y: contain;  /* ← NEW LINE */
-}
-
+            height: 100vh;
+            scroll-snap-align: start;
+            padding: 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            background-color: #4831D4;
+        }
         .gallery-item {
             width: 100%;
             margin-bottom: 16px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             position: relative;
+            border: 2px solid #CCF381;
         }
         .gallery-item img {
             width: 100%;
@@ -204,9 +220,9 @@
             position: absolute;
             bottom: 12px;
             right: 12px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
+            background-color: rgba(72, 49, 212, 0.7);
+            color: #CCF381;
+            border: 1px solid #CCF381;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -231,23 +247,54 @@
                 overflow-y: auto;
             }
         }
+        /* Custom button styles */
+        .btn-primary {
+            background-color: #CCF381;
+            color: #4831D4;
+            font-weight: bold;
+        }
+        .btn-primary:hover {
+            background-color: #b8e06d;
+        }
+        .btn-secondary {
+            background-color: rgba(204, 243, 129, 0.2);
+            color: #CCF381;
+            border: 1px solid #CCF381;
+        }
+        .btn-secondary:hover {
+            background-color: rgba(204, 243, 129, 0.3);
+        }
+        .status-connected {
+            background-color: #CCF381;
+        }
+        .status-disconnected {
+            background-color: #FF6B6B;
+        }
+        .status-connecting {
+            background-color: #FFD166;
+        }
+        .toast {
+            background-color: #CCF381;
+            color: #4831D4;
+            font-weight: bold;
+        }
     </style>
 </head>
-<body class="bg-gray-100 h-full">
-    <div class="max-w-md w-full h-full mx-auto bg-white flex flex-col">
+<body class="h-full">
+    <div class="max-w-md w-full h-full mx-auto flex flex-col">
         <div id="sessionSetup" class="flex-1 flex flex-col items-center justify-center p-6">
-            <h1 class="text-3xl font-bold text-center text-indigo-600 mb-2">PixPair</h1>
-            <p class="text-gray-500 text-center mb-6">Capture moments together in perfect sync</p>
+            <h1 class="text-3xl font-bold text-center text-secondary mb-2">PixPair</h1>
+            <p class="text-secondary text-center mb-6">Capture moments together in perfect sync</p>
             
             <div class="flex items-center mb-4 w-full">
                 <input type="text" id="sessionId" placeholder="Enter session ID" 
-                       class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <button id="joinSession" class="bg-indigo-600 text-white px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition">
+                       class="flex-1 px-4 py-2 border border-secondary rounded-l-lg focus:outline-none focus:ring-2 focus:ring-secondary bg-primary text-secondary placeholder-secondary/70">
+                <button id="joinSession" class="btn-primary px-4 py-2 rounded-r-lg transition">
                     Join
                 </button>
             </div>
-            <p class="text-center text-gray-500 mb-4">or</p>
-            <button id="createSession" class="w-full bg-indigo-100 text-indigo-700 px-4 py-3 rounded-lg font-medium hover:bg-indigo-200 transition">
+            <p class="text-center text-secondary mb-4">or</p>
+            <button id="createSession" class="w-full btn-secondary px-4 py-3 rounded-lg font-medium transition">
                 Start New Session
             </button>
         </div>
@@ -257,7 +304,7 @@
             <div class="scroll-container">
                 <div class="camera-slide">
                     <div class="flex items-center justify-center mb-2">
-                        <h1 class="text-2xl font-bold text-center text-indigo-600 mr-2">PixPair</h1>
+                        <h1 class="text-2xl font-bold text-center text-secondary mr-2">PixPair</h1>
                         <div class="session-id-badge" id="sessionIdBadge">
                             <span id="displaySessionId"></span>
                             <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -284,17 +331,17 @@
                     
                     <div class="flex justify-between items-center mb-4">
                         <div id="statusIndicator" class="flex items-center">
-                            <div id="connectionStatus" class="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
-                            <span id="statusText" class="text-sm text-gray-500">Disconnected</span>
+                            <div id="connectionStatus" class="w-3 h-3 rounded-full status-disconnected mr-2"></div>
+                            <span id="statusText" class="text-sm text-secondary">Disconnected</span>
                         </div>
-                        <div id="peerCount" class="text-sm text-gray-500">0 peers connected</div>
+                        <div id="peerCount" class="text-sm text-secondary">0 peers connected</div>
                     </div>
                     
                     <div class="flex space-x-4 mb-4">
-                        <button id="captureBtn" class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50" disabled>
+                        <button id="captureBtn" class="flex-1 btn-primary px-4 py-3 rounded-lg font-medium transition disabled:opacity-50" disabled>
                             Capture
                         </button>
-                        <button id="newSessionBtn" class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-300 transition">
+                        <button id="newSessionBtn" class="flex-1 btn-secondary px-4 py-3 rounded-lg font-medium transition">
                             New Session
                         </button>
                     </div>
@@ -309,7 +356,7 @@
                 
                 <!-- Gallery slide -->
                 <div class="gallery-slide">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Your Gallery</h3>
+                    <h3 class="text-lg font-semibold text-secondary mb-2">Your Gallery</h3>
                     <div id="galleryItems"></div>
                 </div>
             </div>
@@ -320,7 +367,7 @@
         </div>
     </div>
     
-    <div id="toast" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg"></div>
+    <div id="toast" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 toast px-4 py-2 rounded-lg shadow-lg"></div>
     
     <button id="debugToggle" class="debug-toggle">DBG</button>
     <div id="debugConsole" class="debug-console"></div>
@@ -758,7 +805,7 @@
             // Update UI
             captureBtn.disabled = false;
             statusText.textContent = 'Connecting...';
-            connectionStatus.className = 'w-3 h-3 rounded-full bg-yellow-500 mr-2';
+            connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
             
             // Listen for session changes
             const sessionRef = database.ref(`sessions/${sessionId}`);
@@ -840,11 +887,11 @@
             sessionRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     statusText.textContent = 'Connected';
-                    connectionStatus.className = 'w-3 h-3 rounded-full bg-green-500 mr-2';
+                    connectionStatus.className = 'w-3 h-3 rounded-full status-connected mr-2';
                     debugLog("Connected to Firebase session");
                 } else {
                     statusText.textContent = 'Disconnected';
-                    connectionStatus.className = 'w-3 h-3 rounded-full bg-red-500 mr-2';
+                    connectionStatus.className = 'w-3 h-3 rounded-full status-disconnected mr-2';
                     debugLog("Disconnected from Firebase session");
                 }
             });
@@ -1007,54 +1054,51 @@
         }
         
         // Add touch event listeners for swipe detection on mobile
-let touchStartY = 0;
-let touchEndY   = 0;
+        let touchStartY = 0;
+        let touchEndY   = 0;
 
-document.addEventListener('touchstart', (e) => {
-    touchStartY = e.changedTouches[0].screenY;
-}, { passive: true });
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
 
-/* --- NEW touchmove handler -------------------------------------------- */
-document.addEventListener('touchmove', (e) => {
-    if (window.innerWidth >= 768) return;          // mobile only
-    if (!currentSessionId) return;                 // only during a session
+        document.addEventListener('touchmove', (e) => {
+            if (window.innerWidth >= 768) return;          // mobile only
+            if (!currentSessionId) return;                 // only during a session
 
-    const gallerySlide    = document.querySelector('.gallery-slide');
-    if (!gallerySlide) return;
+            const gallerySlide    = document.querySelector('.gallery-slide');
+            if (!gallerySlide) return;
 
-    const atTopOfGallery  = gallerySlide.scrollTop === 0;
-    const currentY        = e.changedTouches[0].screenY;
-    const deltaY          = currentY - touchStartY; // >0 → finger pulling down
+            const atTopOfGallery  = gallerySlide.scrollTop === 0;
+            const currentY        = e.changedTouches[0].screenY;
+            const deltaY          = currentY - touchStartY; // >0 → finger pulling down
 
-    // If finger is pulling down while gallery is at top, snap back to camera
-    if (atTopOfGallery && deltaY > 40) {           // 40 px threshold
-        e.preventDefault();                        // stop rubber‑band glow
-        scrollToCamera();
-    }
-}, { passive: false });
-/* ---------------------------------------------------------------------- */
+            // If finger is pulling down while gallery is at top, snap back to camera
+            if (atTopOfGallery && deltaY > 40) {           // 40 px threshold
+                e.preventDefault();                        // stop rubber‑band glow
+                scrollToCamera();
+            }
+        }, { passive: false });
 
-      document.addEventListener('touchend', (e) => {
-    if (window.innerWidth >= 768) return;
-    if (!currentSessionId) return;
+        document.addEventListener('touchend', (e) => {
+            if (window.innerWidth >= 768) return;
+            if (!currentSessionId) return;
 
-    touchEndY = e.changedTouches[0].screenY;
-    const threshold = 50; // Minimum swipe distance
+            touchEndY = e.changedTouches[0].screenY;
+            const threshold = 50; // Minimum swipe distance
 
-    const gallerySlide = document.querySelector('.gallery-slide');
-    const atTopOfGallery = gallerySlide && gallerySlide.scrollTop === 0;
+            const gallerySlide = document.querySelector('.gallery-slide');
+            const atTopOfGallery = gallerySlide && gallerySlide.scrollTop === 0;
 
-    // Swipe up – go to gallery
-    if (touchStartY - touchEndY > threshold) {
-        scrollToGallery();
-    }
-    // Swipe down – go to camera only when at the very top of gallery
-    else if (touchEndY - touchStartY > threshold && atTopOfGallery) {
-        scrollToCamera();
-    }
-}, {passive: true});
+            // Swipe up – go to gallery
+            if (touchStartY - touchEndY > threshold) {
+                scrollToGallery();
+            }
+            // Swipe down – go to camera only when at the very top of gallery
+            else if (touchEndY - touchStartY > threshold && atTopOfGallery) {
+                scrollToCamera();
+            }
+        }, {passive: true});
 
-        
         debugLog("PixPair app initialized");
     </script>
 </body>
