@@ -136,7 +136,7 @@
             width: 40px;
             height: 40px;
             font-size: 12px;
-            z-index: 1001;
+            z-index: 101;
         }
         .countdown-overlay {
             position: fixed;
@@ -288,19 +288,37 @@
     <div class="max-w-md w-full h-full mx-auto flex flex-col">
         <div id="sessionSetup" class="flex-1 flex flex-col items-center justify-center p-6">
             <h1 class="text-3xl font-bold text-center text-secondary mb-2">PixPair</h1>
-            <p class="text-secondary text-center mb-6">Capture moments together in perfect sync</p>
+            <p class="text-secondary text-center mb-6">Pix together in perfect sync</p>
             
-            <div class="flex items-center mb-4 w-full">
-                <input type="text" id="sessionId" placeholder="Enter session ID" 
-                       class="flex-1 px-4 py-2 border border-secondary rounded-l-lg focus:outline-none focus:ring-2 focus:ring-secondary bg-primary text-secondary placeholder-secondary/70">
-                <button id="joinSession" class="btn-primary px-4 py-2 rounded-r-lg transition">
-                    Join
+            <div class="w-full space-y-4">
+                <!-- input + Join -->
+                <div class="flex w-full">
+                    <input
+                        type="text"
+                        id="sessionId"
+                        placeholder="Enter session ID"
+                        class="flex-1 h-12 px-4 border border-secondary rounded-l-lg
+                               bg-primary text-secondary placeholder-secondary/70
+                               focus:outline-none focus:ring-2 focus:ring-secondary"
+                    />
+                    <button
+                        id="joinSession"
+                        class="btn-primary h-12 px-6 border border-secondary border-l-0
+                               rounded-r-lg transition"
+                    >
+                        Join
+                    </button>
+                </div>
+
+                <p class="text-center text-secondary">or</p>
+
+                <button
+                    id="createSession"
+                    class="w-full h-12 btn-secondary rounded-lg font-medium transition"
+                >
+                    Start New Session
                 </button>
             </div>
-            <p class="text-center text-secondary mb-4">or</p>
-            <button id="createSession" class="w-full btn-secondary px-4 py-3 rounded-lg font-medium transition">
-                Start New Session
-            </button>
         </div>
         
         <!-- Updated camera section with scroll-snap containers -->
@@ -450,6 +468,8 @@
         let usingFrontCamera = true;
         let galleryPhotos = [];
         let isScrolling = false;
+        let participantRef = null;
+        let participantsRef = null;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -813,6 +833,35 @@
             // Listen for session changes
             const sessionRef = database.ref(`sessions/${sessionId}`);
             
+            // Set up participant presence tracking
+            participantsRef = database.ref(`sessions/${sessionId}/participants`);
+            participantRef = participantsRef.child(userId);
+            
+            // Set participant as active
+            participantRef.set({
+                active: true,
+                lastActive: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            // Remove participant when they disconnect
+            participantRef.onDisconnect().remove();
+            
+            // Listen for participant changes to update peer count
+            participantsRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const participants = snapshot.val();
+                    const participantCount = Object.keys(participants).length;
+                    
+                    // Update peer count (subtract 1 to exclude self)
+                    const otherPeers = Math.max(0, participantCount - 1);
+                    peerCount.textContent = `${otherPeers} ${otherPeers === 1 ? 'peer' : 'peers'} connected`;
+                    debugLog(`Participant count updated: ${otherPeers} other peers`);
+                } else {
+                    peerCount.textContent = '0 peers connected';
+                    debugLog("No participants in session");
+                }
+            });
+            
             // Listen for capture command
             sessionRef.child('capture').on('value', (snapshot) => {
                 if (snapshot.exists()) {
@@ -832,11 +881,6 @@
                 if (snapshot.exists()) {
                     const photos = snapshot.val();
                     const photoKeys = Object.keys(photos);
-                    
-                    // Update peer count
-                    peers = photoKeys.length;
-                    peerCount.textContent = `${peers} ${peers === 1 ? 'peer' : 'peers'} connected`;
-                    debugLog(`Peer count updated: ${peers}`);
                     
                     // Check if we have both photos
                     if (photoKeys.length >= 2) {
@@ -899,12 +943,6 @@
                 }
             });
             
-            // Only clean up when the entire session is removed (not just child nodes)
-            sessionRef.on('child_removed', (snapshot) => {
-                // We now ignore individual child removals (like photos being cleared)
-                debugLog(`Child removed: ${snapshot.key} (ignoring unless it's the session itself)`);
-            });
-            
             // Listen for session being completely removed
             sessionRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
@@ -919,7 +957,19 @@
         function leaveSession() {
             debugLog("Leaving current session...");
             if (currentSessionId) {
+                // Remove participant from participants list
+                if (participantRef) {
+                    participantRef.remove();
+                }
+                
+                // Remove photo data
                 database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
+                
+                // Clean up all listeners
+                if (participantsRef) {
+                    participantsRef.off();
+                }
+                
                 database.ref(`sessions/${currentSessionId}`).off();
                 
                 if (isSessionOwner) {
@@ -987,12 +1037,17 @@
         
         createSessionBtn.addEventListener('click', () => {
             const sessionId = generateSessionId();
-            sessionIdInput.value = sessionId;
             debugLog(`Creating new session: ${sessionId}`);
+            
+            // First set the session data
             database.ref(`sessions/${sessionId}`).set({
                 created: Date.now()
             }).then(() => {
+                // Then join the session as owner
                 joinSession(sessionId, true);
+                // Update the session ID input field
+                sessionIdInput.value = sessionId;
+                showToast('New session created!');
             }).catch(err => {
                 debugLog(`Session creation failed: ${err.message}`);
                 showToast('Failed to create session');
