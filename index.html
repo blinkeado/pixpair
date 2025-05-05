@@ -170,18 +170,13 @@
             color: #CCF381;
             border: 1px solid #CCF381;
             border-radius: 50%;
-            width: 70px;
-            height: 70px;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10;
         }
-        /* keep the icon comfortably inside the circle */
-.camera-switch-icon{
-    width:50px;   /* about half of the button’s diameter looks good */
-    height:50px;
-}
         /* Updated gallery styles for scroll-snap */
         .scroll-container {
             height: 100vh;
@@ -325,19 +320,13 @@
                         <div id="combinedResultContainer" class="combined-result-container">
                             <img id="combinedResult" class="combined-result" alt="Combined photo">
                         </div>
-                       <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
-  <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg"
-       viewBox="0 0 24 24" fill="none" stroke="currentColor"
-       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <!-- camera body -->
-    <path d="M21 7h-3.17l-1.84-2.46A2 2 0 0 0 14.42 3H9.58a2 2 0 0 0-1.57.78L6.17 7H3
-             a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-    <!-- lens -->
-    <circle cx="12" cy="13" r="4"/>
-  </svg>
-</button>
-
-
+                        <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
+                            <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
                     </div>
                     
                     <div class="flex justify-between items-center mb-4">
@@ -357,7 +346,9 @@
                         </button>
                     </div>
                     
-            
+                    <button id="downloadBtn" class="w-full download-btn px-4 py-3 rounded-lg font-medium transition hidden">
+                        Download Combined Photo
+                    </button>
                     <div id="imageQualityInfo" class="image-quality-info hidden">
                         Image quality: <span id="imageSize">0</span> KB
                     </div>
@@ -388,10 +379,10 @@
             const timestamp = now.toLocaleTimeString() + '.' + now.getMilliseconds().toString().padStart(3, '0');
             const debugConsole = document.getElementById('debugConsole');
             const logEntry = document.createElement('div');
-            logEntry.textContent = `[${timestamp}] ${message}`;
+            logEntry.textContent = [${timestamp}] ${message};
             debugConsole.appendChild(logEntry);
             debugConsole.scrollTop = debugConsole.scrollHeight;
-            console.log(`[PixPair] ${message}`);
+            console.log([PixPair] ${message});
         }
 
         // Toggle debug console
@@ -468,7 +459,7 @@
         
         // Show toast message
         function showToast(message) {
-            debugLog(`Toast: ${message}`);
+            debugLog(Toast: ${message});
             toast.textContent = message;
             toast.classList.remove('hidden');
             setTimeout(() => {
@@ -508,7 +499,7 @@
                 
                 debugLog("Camera initialized successfully");
             } catch (err) {
-                debugLog(`Camera error: ${err.message}`);
+                debugLog(Camera error: ${err.message});
                 showToast('Could not access camera. Please allow camera permissions.');
             }
         }
@@ -525,14 +516,14 @@
         
         // Switch between front and rear cameras
         async function switchCamera() {
-            debugLog(`Switching to ${usingFrontCamera ? 'rear' : 'front'} camera`);
+            debugLog(Switching to ${usingFrontCamera ? 'rear' : 'front'} camera);
             usingFrontCamera = !usingFrontCamera;
             await initCamera();
         }
         
         // Start synchronized countdown
         function startCountdown(captureTime) {
-            debugLog(`Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
+            debugLog(Starting countdown for capture at ${new Date(captureTime).toISOString()});
             
             const now = Date.now();
             const timeUntilCapture = captureTime - now;
@@ -557,7 +548,7 @@
             let currentCount = countdownSteps;
             
             countdownText.textContent = currentCount;
-            debugLog(`Countdown started: ${currentCount} seconds remaining`);
+            debugLog(Countdown started: ${currentCount} seconds remaining);
             
             // Update countdown every second
             countdownInterval = setInterval(() => {
@@ -565,7 +556,7 @@
                 
                 if (currentCount > 0) {
                     countdownText.textContent = currentCount;
-                    debugLog(`Countdown: ${currentCount}`);
+                    debugLog(Countdown: ${currentCount});
                 } else {
                     // When countdown reaches 0, show "Capture!" for the last second
                     countdownText.textContent = "Capture!";
@@ -648,14 +639,14 @@
         // Upload photo to Firebase
         function uploadPhoto(photoData) {
             debugLog("Uploading photo to Firebase...");
-            const photoRef = database.ref(`sessions/${currentSessionId}/photos/${userId}`);
+            const photoRef = database.ref(sessions/${currentSessionId}/photos/${userId});
             photoRef.set({
                 photoData: photoData,
                 timestamp: Date.now()
             }).then(() => {
                 debugLog("Photo uploaded successfully");
             }).catch(err => {
-                debugLog(`Photo upload failed: ${err.message}`);
+                debugLog(Photo upload failed: ${err.message});
             });
         }
         
@@ -670,7 +661,7 @@
                     // Check if both images are loaded
                     if (!img1.complete || !img2.complete) return;
                     
-                    debugLog(`Combining photos with dimensions: ${img1.width}x${img1.height} and ${img2.width}x${img2.height}`);
+                    debugLog(Combining photos with dimensions: ${img1.width}x${img1.height} and ${img2.width}x${img2.height});
                     
                     // Target size for individual photos (1080x960)
                     const individualWidth = 1080;
@@ -710,7 +701,7 @@
                             // Calculate and display image size
                             const sizeInKB = Math.round(blob.size / 1024);
                             imageSizeSpan.textContent = sizeInKB;
-                            debugLog(`Combined image size: ${sizeInKB} KB`);
+                            debugLog(Combined image size: ${sizeInKB} KB);
                             
                             resolve(combinedUrl);
                         };
@@ -740,13 +731,13 @@
             
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'gallery-download-btn';
-            downloadBtn.innerHTML = `
+            downloadBtn.innerHTML = 
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-            `;
+            ;
             
             downloadBtn.addEventListener('click', () => {
                 downloadPhoto(photoUrl);
@@ -791,7 +782,7 @@
         
         // Join a session
         function joinSession(sessionId, isOwner = false) {
-            debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
+            debugLog(Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'});
             currentSessionId = sessionId;
             isSessionOwner = isOwner;
             userId = generateUserId();
@@ -817,7 +808,7 @@
             connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
             
             // Listen for session changes
-            const sessionRef = database.ref(`sessions/${sessionId}`);
+            const sessionRef = database.ref(sessions/${sessionId});
             
             // Listen for capture command
             sessionRef.child('capture').on('value', (snapshot) => {
@@ -825,7 +816,7 @@
                     const captureData = snapshot.val();
                     if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
                         lastCaptureTime = captureData.captureTime;
-                        debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
+                        debugLog(Received capture command for time: ${new Date(captureData.captureTime).toISOString()});
                         
                         // Start synchronized countdown
                         startCountdown(captureData.captureTime);
@@ -841,8 +832,8 @@
                     
                     // Update peer count
                     peers = photoKeys.length;
-                    peerCount.textContent = `${peers} ${peers === 1 ? 'peer' : 'peers'} connected`;
-                    debugLog(`Peer count updated: ${peers}`);
+                    peerCount.textContent = ${peers} ${peers === 1 ? 'peer' : 'peers'} connected;
+                    debugLog(Peer count updated: ${peers});
                     
                     // Check if we have both photos
                     if (photoKeys.length >= 2) {
@@ -851,7 +842,7 @@
                             photoUrls.push(photos[key].photoData);
                         }
                         
-                        debugLog(`Both photos received, combining...`);
+                        debugLog(Both photos received, combining...);
                         
                         // Combine the photos
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
@@ -908,7 +899,7 @@
             // Only clean up when the entire session is removed (not just child nodes)
             sessionRef.on('child_removed', (snapshot) => {
                 // We now ignore individual child removals (like photos being cleared)
-                debugLog(`Child removed: ${snapshot.key} (ignoring unless it's the session itself)`);
+                debugLog(Child removed: ${snapshot.key} (ignoring unless it's the session itself));
             });
             
             // Listen for session being completely removed
@@ -925,12 +916,12 @@
         function leaveSession() {
             debugLog("Leaving current session...");
             if (currentSessionId) {
-                database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
-                database.ref(`sessions/${currentSessionId}`).off();
+                database.ref(sessions/${currentSessionId}/photos/${userId}).remove();
+                database.ref(sessions/${currentSessionId}).off();
                 
                 if (isSessionOwner) {
                     debugLog("Removing session from Firebase (owner)");
-                    database.ref(`sessions/${currentSessionId}`).remove();
+                    database.ref(sessions/${currentSessionId}).remove();
                 }
                 
                 currentSessionId = null;
@@ -963,7 +954,7 @@
             debugLog("Downloading photo...");
             const link = document.createElement('a');
             link.href = urlToDownload;
-            link.download = `pixpair_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
+            link.download = pixpair_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -976,7 +967,7 @@
                 showToast('Session ID copied!');
                 debugLog("Session ID copied to clipboard");
             }).catch(err => {
-                debugLog(`Could not copy session ID: ${err.message}`);
+                debugLog(Could not copy session ID: ${err.message});
             });
         });
         
@@ -994,13 +985,13 @@
         createSessionBtn.addEventListener('click', () => {
             const sessionId = generateSessionId();
             sessionIdInput.value = sessionId;
-            debugLog(`Creating new session: ${sessionId}`);
-            database.ref(`sessions/${sessionId}`).set({
+            debugLog(Creating new session: ${sessionId});
+            database.ref(sessions/${sessionId}).set({
                 created: Date.now()
             }).then(() => {
                 joinSession(sessionId, true);
             }).catch(err => {
-                debugLog(`Session creation failed: ${err.message}`);
+                debugLog(Session creation failed: ${err.message});
                 showToast('Failed to create session');
             });
         });
@@ -1018,15 +1009,15 @@
             const captureTime = Date.now() + 4000;
             lastCaptureTime = captureTime;
             
-            debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
+            debugLog(Initiating capture sequence for ${new Date(captureTime).toISOString()});
             
             // Set the capture time in Firebase
-            database.ref(`sessions/${currentSessionId}/capture`).set({
+            database.ref(sessions/${currentSessionId}/capture).set({
                 captureTime: captureTime
             }).then(() => {
                 debugLog("Capture command sent to Firebase");
             }).catch(err => {
-                debugLog(`Failed to send capture command: ${err.message}`);
+                debugLog(Failed to send capture command: ${err.message});
             });
             
             // Start countdown on this device
