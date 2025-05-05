@@ -163,11 +163,28 @@
             width: 24px;
             height: 24px;
         }
-        .gallery-container {
-            margin-top: 16px;
-            max-height: 50vh;
+        /* Updated gallery styles for scroll-snap */
+        .scroll-container {
+            height: 100vh;
+            width: 100%;
             overflow-y: auto;
-            padding-bottom: 16px;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        .camera-slide {
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        .gallery-slide {
+            height: 100vh;
+            scroll-snap-align: start;
+            padding: 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
         }
         .gallery-item {
             width: 100%;
@@ -196,6 +213,22 @@
             justify-content: center;
             z-index: 10;
         }
+        /* Desktop-specific styles */
+        @media (min-width: 768px) {
+            .scroll-container {
+                overflow-y: visible;
+                height: auto;
+                scroll-snap-type: none;
+            }
+            .camera-slide, .gallery-slide {
+                height: auto;
+                scroll-snap-align: none;
+            }
+            .gallery-slide {
+                max-height: 50vh;
+                overflow-y: auto;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-full">
@@ -217,62 +250,66 @@
             </button>
         </div>
         
-        <div id="cameraSection" class="hidden flex-1 flex flex-col p-6">
-            <div class="flex items-center justify-center mb-2">
-                <h1 class="text-2xl font-bold text-center text-indigo-600 mr-2">PixPair</h1>
-                <div class="session-id-badge" id="sessionIdBadge">
-                    <span id="displaySessionId"></span>
-                    <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
+        <!-- Updated camera section with scroll-snap containers -->
+        <div id="cameraSection" class="hidden w-full h-full">
+            <div class="scroll-container">
+                <div class="camera-slide">
+                    <div class="flex items-center justify-center mb-2">
+                        <h1 class="text-2xl font-bold text-center text-indigo-600 mr-2">PixPair</h1>
+                        <div class="session-id-badge" id="sessionIdBadge">
+                            <span id="displaySessionId"></span>
+                            <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-container mb-4">
+                        <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
+                        <img id="photoResult" class="photo-result" alt="Captured photo">
+                        <div id="combinedResultContainer" class="combined-result-container">
+                            <img id="combinedResult" class="combined-result" alt="Combined photo">
+                        </div>
+                        <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
+                            <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-4">
+                        <div id="statusIndicator" class="flex items-center">
+                            <div id="connectionStatus" class="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
+                            <span id="statusText" class="text-sm text-gray-500">Disconnected</span>
+                        </div>
+                        <div id="peerCount" class="text-sm text-gray-500">0 peers connected</div>
+                    </div>
+                    
+                    <div class="flex space-x-4 mb-4">
+                        <button id="captureBtn" class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50" disabled>
+                            Capture
+                        </button>
+                        <button id="newSessionBtn" class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-300 transition">
+                            New Session
+                        </button>
+                    </div>
+                    
+                    <button id="downloadBtn" class="w-full download-btn px-4 py-3 rounded-lg font-medium transition hidden">
+                        Download Combined Photo
+                    </button>
+                    <div id="imageQualityInfo" class="image-quality-info hidden">
+                        Image quality: <span id="imageSize">0</span> KB
+                    </div>
                 </div>
-            </div>
-            
-            <div class="camera-container mb-4">
-                <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
-                <img id="photoResult" class="photo-result" alt="Captured photo">
-                <div id="combinedResultContainer" class="combined-result-container">
-                    <img id="combinedResult" class="combined-result" alt="Combined photo">
+                
+                <!-- Gallery slide -->
+                <div class="gallery-slide">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Your Gallery</h3>
+                    <div id="galleryItems"></div>
                 </div>
-                <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
-                    <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 20h7a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7M5 16h7a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M18 8h1a2 2 0 0 1 2 2v1"></path>
-                        <path d="M6 16H5a2 2 0 0 1-2-2v-1"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <div class="flex justify-between items-center mb-4">
-                <div id="statusIndicator" class="flex items-center">
-                    <div id="connectionStatus" class="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
-                    <span id="statusText" class="text-sm text-gray-500">Disconnected</span>
-                </div>
-                <div id="peerCount" class="text-sm text-gray-500">0 peers connected</div>
-            </div>
-            
-            <div class="flex space-x-4 mb-4">
-                <button id="captureBtn" class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50" disabled>
-                    Capture
-                </button>
-                <button id="newSessionBtn" class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium hover:bg-gray-300 transition">
-                    New Session
-                </button>
-            </div>
-            
-            <button id="downloadBtn" class="w-full download-btn px-4 py-3 rounded-lg font-medium transition hidden">
-                Download Combined Photo
-            </button>
-            <div id="imageQualityInfo" class="image-quality-info hidden">
-                Image quality: <span id="imageSize">0</span> KB
-            </div>
-            
-            <!-- Gallery section -->
-            <div id="galleryContainer" class="gallery-container hidden">
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Your Gallery</h3>
-                <div id="galleryItems"></div>
             </div>
         </div>
         
@@ -345,8 +382,8 @@
         const imageQualityInfo = document.getElementById('imageQualityInfo');
         const imageSizeSpan = document.getElementById('imageSize');
         const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
-        const galleryContainer = document.getElementById('galleryContainer');
         const galleryItems = document.getElementById('galleryItems');
+        const scrollContainer = document.querySelector('.scroll-container');
         
         // App state
         let currentSessionId = null;
@@ -359,6 +396,7 @@
         let lastCaptureTime = 0;
         let usingFrontCamera = true;
         let galleryPhotos = [];
+        let isScrolling = false;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -660,13 +698,37 @@
             galleryItem.appendChild(downloadBtn);
             galleryItems.appendChild(galleryItem);
             
-            // Show gallery if it's hidden
-            galleryContainer.classList.remove('hidden');
-            
-            // Scroll to bottom of gallery
-            galleryContainer.scrollTop = galleryContainer.scrollHeight;
+            // On mobile, scroll to gallery after adding a new photo
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    scrollToGallery();
+                }, 500);
+            }
             
             debugLog("Photo added to gallery");
+        }
+        
+        // Scroll to gallery (mobile only)
+        function scrollToGallery() {
+            if (window.innerWidth >= 768) return;
+            
+            debugLog("Scrolling to gallery");
+            const gallerySlide = document.querySelector('.gallery-slide');
+            scrollContainer.scrollTo({
+                top: gallerySlide.offsetTop,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Scroll to camera (mobile only)
+        function scrollToCamera() {
+            if (window.innerWidth >= 768) return;
+            
+            debugLog("Scrolling to camera");
+            scrollContainer.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
         
         // Join a session
@@ -825,7 +887,6 @@
                 downloadBtn.classList.add('hidden');
                 imageQualityInfo.classList.add('hidden');
                 cameraSwitchBtn.classList.add('hidden');
-                galleryContainer.classList.add('hidden');
                 
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
@@ -942,6 +1003,31 @@
             localStorage.setItem('pixpair_visited', 'true');
             debugLog("First-time user welcome message shown");
         }
+        
+        // Add touch event listeners for swipe detection on mobile
+        let touchStartY = 0;
+        let touchEndY = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
+        
+        document.addEventListener('touchend', (e) => {
+            if (window.innerWidth >= 768) return;
+            if (!currentSessionId) return;
+            
+            touchEndY = e.changedTouches[0].screenY;
+            const threshold = 50; // Minimum swipe distance
+            
+            // Swipe up - go to gallery
+            if (touchStartY - touchEndY > threshold) {
+                scrollToGallery();
+            }
+            // Swipe down - go to camera
+            else if (touchEndY - touchStartY > threshold) {
+                scrollToCamera();
+            }
+        }, {passive: true});
         
         debugLog("PixPair app initialized");
     </script>
