@@ -1014,22 +1014,26 @@
             touchStartY = e.changedTouches[0].screenY;
         }, {passive: true});
         
-        document.addEventListener('touchend', (e) => {
-            if (window.innerWidth >= 768) return;
-            if (!currentSessionId) return;
-            
-            touchEndY = e.changedTouches[0].screenY;
-            const threshold = 50; // Minimum swipe distance
-            
-            // Swipe up - go to gallery
-            if (touchStartY - touchEndY > threshold) {
-                scrollToGallery();
-            }
-            // Swipe down - go to camera
-            else if (touchEndY - touchStartY > threshold) {
-                scrollToCamera();
-            }
-        }, {passive: true});
+      document.addEventListener('touchend', (e) => {
+    if (window.innerWidth >= 768) return;
+    if (!currentSessionId) return;
+
+    touchEndY = e.changedTouches[0].screenY;
+    const threshold = 50; // Minimum swipe distance
+
+    const gallerySlide = document.querySelector('.gallery-slide');
+    const atTopOfGallery = gallerySlide && gallerySlide.scrollTop === 0;
+
+    // Swipe up – go to gallery
+    if (touchStartY - touchEndY > threshold) {
+        scrollToGallery();
+    }
+    // Swipe down – go to camera only when at the very top of gallery
+    else if (touchEndY - touchStartY > threshold && atTopOfGallery) {
+        scrollToCamera();
+    }
+}, {passive: true});
+
         
         debugLog("PixPair app initialized");
     </script>
