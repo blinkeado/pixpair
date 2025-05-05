@@ -651,23 +651,53 @@
                         
                         // Combine the photos
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
-                            // Display combined photo automatically
-                            combinedResult.src = combinedUrl;
-                            combinedResultContainer.style.display = 'block';
-                            photoResult.style.display = 'none';
-                            cameraFeed.style.display = 'none';
-                            
-                            // Store combined photo URL for download
+                            // Store the original combined URL for download
                             combinedPhotoUrl = combinedUrl;
                             
-                            // Show download button and quality info
-                            downloadBtn.classList.remove('hidden');
-                            imageQualityInfo.classList.remove('hidden');
-                            
-                            debugLog("Combined photo displayed");
-                            
-                            // Notify users
-                            showToast('Photos combined! Ready to download.');
+                            // Create a preview that fits the container perfectly
+                            const previewImg = new Image();
+                            previewImg.onload = function() {
+                                // Get container dimensions
+                                const containerRect = combinedResultContainer.getBoundingClientRect();
+                                const containerWidth = containerRect.width;
+                                const containerHeight = containerRect.height;
+                                
+                                // Calculate scale to fit container
+                                const scale = Math.min(
+                                    containerWidth / previewImg.width,
+                                    containerHeight / previewImg.height
+                                );
+                                
+                                // Create canvas at container size
+                                const canvas = document.createElement('canvas');
+                                canvas.width = containerWidth;
+                                canvas.height = containerHeight;
+                                const ctx = canvas.getContext('2d');
+                                
+                                // Draw image centered and scaled to fit
+                                const scaledWidth = previewImg.width * scale;
+                                const scaledHeight = previewImg.height * scale;
+                                const offsetX = (containerWidth - scaledWidth) / 2;
+                                const offsetY = (containerHeight - scaledHeight) / 2;
+                                
+                                ctx.drawImage(
+                                    previewImg,
+                                    0, 0, previewImg.width, previewImg.height,
+                                    offsetX, offsetY, scaledWidth, scaledHeight
+                                );
+                                
+                                // Set the preview image source
+                                combinedResult.src = canvas.toDataURL('image/jpeg', 0.9);
+                                combinedResultContainer.style.display = 'block';
+                                
+                                // Show download button and quality info
+                                downloadBtn.classList.remove('hidden');
+                                imageQualityInfo.classList.remove('hidden');
+                                
+                                debugLog("Preview image created to fit container");
+                                showToast('Photos combined! Ready to download.');
+                            };
+                            previewImg.src = combinedUrl;
                         });
                     }
                 }
