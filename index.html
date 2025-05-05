@@ -180,12 +180,14 @@
             box-sizing: border-box;
         }
         .gallery-slide {
-            height: 100vh;
-            scroll-snap-align: start;
-            padding: 16px;
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
+    height: 100vh;
+    scroll-snap-align: start;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow-y: auto;          /* already there */
+    overscroll-behavior-y: contain;  /* ← NEW LINE */
+}
+
         .gallery-item {
             width: 100%;
             margin-bottom: 16px;
