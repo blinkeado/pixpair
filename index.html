@@ -195,7 +195,7 @@
             bottom: 15px;
             right: 15px;
             color: white;
-            font-size: 14px;
+            font-size: 28px;
             font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
             background-color: rgba(72, 49, 212, 0.7);
@@ -223,29 +223,44 @@
         .gallery-slide {
             height: 100vh;
             scroll-snap-align: start;
-            padding: 16px;
+            padding: 0;
             box-sizing: border-box;
             overflow-y: auto;
             overscroll-behavior-y: contain;
             background-color: #4831D4;
+            position: relative;
+        }
+        .gallery-items-container {
+            height: 100%;
+            width: 100%;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
         }
         .gallery-item {
             width: 100%;
-            margin-bottom: 16px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            height: 100vh;
+            height: calc(100vh - env(safe-area-inset-bottom));
+            scroll-snap-align: start;
             position: relative;
-            border: 2px solid #CCF381;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
         }
         .gallery-item img {
             width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             border-radius: 12px;
             display: block;
+            border: 2px solid #CCF381;
         }
         .gallery-download-btn {
             position: absolute;
-            bottom: 12px;
-            right: 12px;
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            right: 16px;
             background-color: rgba(72, 49, 212, 0.7);
             color: #CCF381;
             border: 1px solid #CCF381;
@@ -256,6 +271,26 @@
             align-items: center;
             justify-content: center;
             z-index: 10;
+        }
+        .gallery-hint {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #CCF381;
+            font-size: 18px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+            padding: 8px 16px;
+            background-color: rgba(72, 49, 212, 0.7);
+            border-radius: 20px;
+            margin: 0 auto;
+            width: fit-content;
+            max-width: 80%;
         }
         /* Desktop-specific styles */
         @media (min-width: 768px) {
@@ -271,6 +306,14 @@
             .gallery-slide {
                 max-height: 50vh;
                 overflow-y: auto;
+            }
+            .gallery-items-container {
+                scroll-snap-type: none;
+            }
+            .gallery-item {
+                height: auto;
+                margin-bottom: 16px;
+                scroll-snap-align: none;
             }
         }
         /* Custom button styles */
@@ -401,8 +444,8 @@
                 
                 <!-- Gallery slide -->
                 <div class="gallery-slide">
-                    <h3 class="text-lg font-semibold text-secondary mb-2">Your Gallery</h3>
-                    <div id="galleryItems"></div>
+                    <div class="gallery-hint" id="galleryHint">Your Gallery</div>
+                    <div class="gallery-items-container" id="galleryItems"></div>
                 </div>
             </div>
         </div>
@@ -480,6 +523,7 @@
         const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
         const galleryItems = document.getElementById('galleryItems');
         const scrollContainer = document.querySelector('.scroll-container');
+        const galleryHint = document.getElementById('galleryHint');
         
         // App state
         let currentSessionId = null;
@@ -495,6 +539,7 @@
         let isScrolling = false;
         let participantRef = null;
         let participantsRef = null;
+        let hasShownGalleryHint = false;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -514,6 +559,17 @@
             setTimeout(() => {
                 toast.classList.add('hidden');
             }, 3000);
+        }
+        
+        // Show gallery hint
+        function showGalleryHint() {
+            if (hasShownGalleryHint) return;
+            
+            galleryHint.style.opacity = '1';
+            setTimeout(() => {
+                galleryHint.style.opacity = '0';
+                hasShownGalleryHint = true;
+            }, 2000);
         }
         
         // Initialize camera
@@ -828,6 +884,9 @@
                 top: gallerySlide.offsetTop,
                 behavior: 'smooth'
             });
+            
+            // Show gallery hint on first scroll to gallery
+            showGalleryHint();
         }
         
         // Scroll to camera (mobile only)
@@ -852,6 +911,7 @@
             // Clear gallery
             galleryPhotos = [];
             galleryItems.innerHTML = '';
+            hasShownGalleryHint = false;
             
             // Display session ID
             displaySessionId.textContent = sessionId;
