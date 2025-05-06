@@ -158,7 +158,7 @@
         }
         .capture-text {
             color: #CCF381;
-            font-size: 60px; /* Reduced from 80px to prevent overflow */
+            font-size: 60px;
             font-weight: bold;
             text-shadow: 0 0 20px rgba(204, 243, 129, 0.5);
             text-align: center;
@@ -195,15 +195,14 @@
             bottom: 15px;
             right: 15px;
             color: white;
-            font-size: 56px; /* Doubled from 28px */
+            font-size: 56px;
             font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
             background-color: rgba(72, 49, 212, 0.7);
-            padding: 8px 16px; /* Increased padding */
+            padding: 8px 16px;
             border-radius: 4px;
             z-index: 10;
         }
-        /* Updated gallery styles for scroll-snap */
         .scroll-container {
             height: 100vh;
             width: 100%;
@@ -239,17 +238,16 @@
             scroll-padding-bottom: env(safe-area-inset-bottom);
         }
         .gallery-item {
-    width: 100%;
-    height: calc(100vh - env(safe-area-inset-bottom));
-    scroll-snap-align: start;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+            width: 100%;
+            height: calc(100vh - env(safe-area-inset-bottom));
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            box-sizing: border-box;
+        }
         .gallery-item img {
             width: 100%;
             max-height: 100%;
@@ -293,7 +291,6 @@
             width: fit-content;
             max-width: 80%;
         }
-        /* Desktop-specific styles */
         @media (min-width: 768px) {
             .scroll-container {
                 overflow-y: visible;
@@ -317,7 +314,6 @@
                 scroll-snap-align: none;
             }
         }
-        /* Custom button styles */
         .btn-primary {
             background-color: #CCF381;
             color: #4831D4;
@@ -348,41 +344,35 @@
             color: #4831D4;
             font-weight: bold;
         }
-    /* Fix for iPhone notch + home bar cut-off */
-@media (max-width: 767px) {
-  .gallery-item {
-    padding: 0;
-    height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  }
-
-  .gallery-items-container {
-    scroll-padding-bottom: env(safe-area-inset-bottom);
-    scroll-padding-top: env(safe-area-inset-top);
-  }
-}
-
-    /* New styles for top-right download button */
-    .combined-download-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background-color: rgba(72, 49, 212, 0.7);
-        color: #CCF381;
-        border: 1px solid #CCF381;
-        border-radius: 50%;
-        width: 80px; /* Doubled from 40px */
-        height: 80px; /* Doubled from 40px */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-    }
-    
-    .combined-download-btn svg {
-        width: 40px; /* Doubled from 20px */
-        height: 40px; /* Doubled from 20px */
-    }
-
+        @media (max-width: 767px) {
+            .gallery-item {
+                padding: 0;
+                height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+            }
+            .gallery-items-container {
+                scroll-padding-bottom: env(safe-area-inset-bottom);
+                scroll-padding-top: env(safe-area-inset-top);
+            }
+        }
+        .combined-download-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(72, 49, 212, 0.7);
+            color: #CCF381;
+            border: 1px solid #CCF381;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .combined-download-btn svg {
+            width: 40px;
+            height: 40px;
+        }
     </style>
 </head>
 <body class="h-full">
@@ -392,7 +382,6 @@
             <p class="text-secondary text-center mb-6">Pix together in perfect sync</p>
             
             <div class="w-full space-y-4">
-                <!-- input + Join -->
                 <div class="flex w-full">
                     <input
                         type="text"
@@ -422,7 +411,6 @@
             </div>
         </div>
         
-        <!-- Updated camera section with scroll-snap containers -->
         <div id="cameraSection" class="hidden w-full h-full">
             <div class="scroll-container">
                 <div class="camera-slide">
@@ -485,7 +473,6 @@
                     </div>
                 </div>
                 
-                <!-- Gallery slide -->
                 <div class="gallery-slide">
                     <div class="gallery-hint" id="galleryHint">Your Gallery</div>
                     <div class="gallery-items-container" id="galleryItems"></div>
@@ -619,7 +606,7 @@
             const options = {
                 root: null,
                 rootMargin: '0px',
-                threshold: 0.5 // Trigger when 50% visible
+                threshold: 0.5
             };
             
             galleryObserver = new IntersectionObserver((entries) => {
@@ -631,7 +618,6 @@
                 });
             }, options);
             
-            // Observe the gallery slide or first gallery item
             const target = gallerySlide || galleryItems.firstElementChild;
             if (target) {
                 galleryObserver.observe(target);
@@ -657,7 +643,6 @@
             try {
                 debugLog("Initializing camera...");
                 
-                // Stop any existing stream
                 if (stream) {
                     stopCamera();
                 }
@@ -667,7 +652,7 @@
                         facingMode: usingFrontCamera ? 'user' : { exact: 'environment' },
                         width: { ideal: 2560 },
                         height: { ideal: 1440 },
-                        aspectRatio: 0.75 // 3:4 ratio
+                        aspectRatio: 0.75
                     },
                     audio: false
                 };
@@ -675,7 +660,6 @@
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
                 cameraFeed.srcObject = stream;
                 
-                // Show camera switch button if device has multiple cameras
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(device => device.kind === 'videoinput');
                 if (videoDevices.length > 1) {
@@ -719,25 +703,21 @@
                 return;
             }
             
-            // Clear any existing countdown
             if (countdownInterval) {
                 clearInterval(countdownInterval);
             }
             
-            // Show countdown overlay
             countdownOverlay.classList.remove('hidden');
             countdownText.classList.remove('hidden');
             captureText.classList.add('hidden');
             debugLog("Countdown overlay shown");
             
-            // Calculate countdown steps
             const countdownSteps = Math.floor(timeUntilCapture / 1000);
             let currentCount = countdownSteps;
             
             countdownText.textContent = currentCount;
             debugLog(`Countdown started: ${currentCount} seconds remaining`);
             
-            // Update countdown every second
             countdownInterval = setInterval(() => {
                 currentCount--;
                 
@@ -745,14 +725,12 @@
                     countdownText.textContent = currentCount;
                     debugLog(`Countdown: ${currentCount}`);
                 } else {
-                    // When countdown reaches 0, show "Capture!" for the last second
                     countdownText.classList.add('hidden');
                     captureText.classList.remove('hidden');
                     debugLog("Countdown: Capture!");
                 }
             }, 1000);
             
-            // Schedule the actual photo capture
             setTimeout(() => {
                 debugLog("Countdown complete, taking photo...");
                 clearInterval(countdownInterval);
@@ -771,7 +749,6 @@
             debugLog("Taking photo...");
             
             const canvas = document.createElement('canvas');
-            // Target size for individual photos (2160x1920 - 9:8 aspect ratio)
             const targetWidth = 2160;
             const targetHeight = 1920;
             
@@ -780,42 +757,35 @@
             
             const ctx = canvas.getContext('2d');
             
-            // Calculate center crop
             const sourceAspect = cameraFeed.videoWidth / cameraFeed.videoHeight;
             const targetAspect = targetWidth / targetHeight;
             
             let sourceWidth, sourceHeight, sourceX, sourceY;
             
             if (sourceAspect > targetAspect) {
-                // Source is wider than target, crop horizontally
                 sourceHeight = cameraFeed.videoHeight;
                 sourceWidth = sourceHeight * targetAspect;
                 sourceX = (cameraFeed.videoWidth - sourceWidth) / 2;
                 sourceY = 0;
             } else {
-                // Source is taller than target, crop vertically
                 sourceWidth = cameraFeed.videoWidth;
                 sourceHeight = sourceWidth / targetAspect;
                 sourceX = 0;
                 sourceY = (cameraFeed.videoHeight - sourceHeight) / 2;
             }
             
-            // Draw cropped image
             ctx.drawImage(
                 cameraFeed, 
                 sourceX, sourceY, sourceWidth, sourceHeight,
                 0, 0, targetWidth, targetHeight
             );
             
-            // Show the photo
             photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
             photoResult.style.display = 'block';
             cameraFeed.style.display = 'none';
             
-            // Hide download button when taking a new photo
             downloadBtn.classList.add('hidden');
             
-            // Add shutter effect
             cameraSection.classList.add('shutter-effect');
             setTimeout(() => {
                 cameraSection.classList.remove('shutter-effect');
@@ -823,7 +793,6 @@
             
             debugLog("Photo taken and displayed");
             
-            // Upload photo to Firebase
             uploadPhoto(canvas.toDataURL('image/jpeg', 0.95));
         }
         
@@ -849,54 +818,45 @@
                 const img2 = new Image();
                 
                 img1.onload = img2.onload = function() {
-                    // Check if both images are loaded
                     if (!img1.complete || !img2.complete) return;
                     
                     debugLog(`Combining photos with dimensions: ${img1.width}x${img1.height} and ${img2.width}x${img2.height}`);
                     
-                    // Target size for individual photos (2160x1920)
                     const individualWidth = 2160;
                     const individualHeight = 1920;
                     
-                    // Final combined image size (2160x3840)
                     const combinedWidth = 2160;
                     const combinedHeight = 3840;
                     
-                    // Create canvas for combined image
                     const canvas = document.createElement('canvas');
                     canvas.width = combinedWidth;
                     canvas.height = combinedHeight;
                     const ctx = canvas.getContext('2d');
                     
-                    // Draw first photo (top half)
                     ctx.drawImage(
                         img1, 
                         0, 0, img1.width, img1.height,
                         0, 0, individualWidth, individualHeight
                     );
                     
-                    // Draw second photo (bottom half)
                     ctx.drawImage(
                         img2, 
                         0, 0, img2.width, img2.height,
                         0, individualHeight, individualWidth, individualHeight
                     );
                     
-                    // Add watermark
                     ctx.font = 'bold 48px Arial';
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'bottom';
                     ctx.fillText('PixCrab', combinedWidth - 40, combinedHeight - 40);
                     
-                    // Convert to data URL with high quality
                     canvas.toBlob((blob) => {
                         const reader = new FileReader();
                         reader.onload = () => {
                             const combinedUrl = reader.result;
                             debugLog("Photos combined successfully");
                             
-                            // Calculate and display image size
                             const sizeInKB = Math.round(blob.size / 1024);
                             imageSizeSpan.textContent = sizeInKB;
                             debugLog(`Combined image size: ${sizeInKB} KB`);
@@ -916,10 +876,8 @@
         function addToGallery(photoUrl) {
             debugLog("Adding photo to gallery");
             
-            // Add to gallery array
             galleryPhotos.push(photoUrl);
             
-            // Create gallery item
             const galleryItem = document.createElement('div');
             galleryItem.className = 'gallery-item';
             
@@ -944,10 +902,8 @@
             galleryItem.appendChild(downloadBtn);
             galleryItems.appendChild(galleryItem);
             
-            // Setup observer for new gallery items
             setupGalleryObserver();
             
-            // On mobile, scroll to gallery after adding a new photo
             if (window.innerWidth < 768) {
                 setTimeout(() => {
                     scrollToGallery();
@@ -988,52 +944,40 @@
             userId = generateUserId();
             lastCaptureTime = 0;
             
-            // Clear gallery
             galleryPhotos = [];
             galleryItems.innerHTML = '';
             hasShownGalleryHint = false;
             
-            // Display session ID
             displaySessionId.textContent = sessionId;
             
-            // Initialize camera
             initCamera();
             
-            // Show camera section
             sessionSetup.classList.add('hidden');
             cameraSection.classList.remove('hidden');
             
-            // Update UI
             captureBtn.disabled = false;
             statusText.textContent = 'Connecting...';
             connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
             
-            // Hide download button when joining a new session
             downloadBtn.classList.add('hidden');
             
-            // Listen for session changes
             const sessionRef = database.ref(`sessions/${sessionId}`);
             
-            // Set up participant presence tracking
             participantsRef = database.ref(`sessions/${sessionId}/participants`);
             participantRef = participantsRef.child(userId);
             
-            // Set participant as active
             participantRef.set({
                 active: true,
                 lastActive: firebase.database.ServerValue.TIMESTAMP
             });
             
-            // Remove participant when they disconnect
             participantRef.onDisconnect().remove();
             
-            // Listen for participant changes to update peer count
-            participantsRef.on('value', (snapshot) {
+            participantsRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const participants = snapshot.val();
                     const participantCount = Object.keys(participants).length;
                     
-                    // Update peer count (subtract 1 to exclude self)
                     const otherPeers = Math.max(0, participantCount - 1);
                     peerCount.textContent = `${otherPeers} ${otherPeers === 1 ? 'peer' : 'peers'} connected`;
                     debugLog(`Participant count updated: ${otherPeers} other peers`);
@@ -1043,27 +987,22 @@
                 }
             });
             
-            // Listen for capture command
             sessionRef.child('capture').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const captureData = snapshot.val();
                     if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
                         lastCaptureTime = captureData.captureTime;
                         debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
-                        
-                        // Start synchronized countdown
                         startCountdown(captureData.captureTime);
                     }
                 }
             });
             
-            // Listen for photo updates
             sessionRef.child('photos').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const photos = snapshot.val();
                     const photoKeys = Object.keys(photos);
                     
-                    // Check if we have both photos
                     if (photoKeys.length >= 2) {
                         const photoUrls = [];
                         for (const key in photos) {
@@ -1072,41 +1011,32 @@
                         
                         debugLog("Both photos received, combining...");
                         
-                        // Combine the photos
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
-                            // Display combined photo automatically
                             combinedResult.src = combinedUrl;
                             combinedResultContainer.style.display = 'block';
                             photoResult.style.display = 'none';
                             cameraFeed.style.display = 'none';
                             
-                            // Store combined photo URL for download
                             combinedPhotoUrl = combinedUrl;
                             
-                            // Show download button and quality info
                             downloadBtn.classList.remove('hidden');
                             imageQualityInfo.classList.remove('hidden');
                             
-                            // Add to gallery
                             addToGallery(combinedUrl);
                             
                             debugLog("Combined photo displayed and added to gallery");
                             
-                            // Restart camera for next capture
                             setTimeout(() => {
                                 debugLog("Restarting camera for next capture");
                                 combinedResultContainer.style.display = 'none';
                                 cameraFeed.style.display = 'block';
                                 initCamera();
                                 
-                                // Hide download button after restarting camera
                                 downloadBtn.classList.add('hidden');
                             }, 2000);
                             
-                            // Notify users
                             showToast('Photos combined! Ready to download.');
                             
-                            // Clear photos from Firebase to prepare for next capture
                             debugLog("Clearing photos from Firebase for next capture");
                             sessionRef.child('photos').remove();
                         });
@@ -1114,7 +1044,6 @@
                 }
             });
             
-            // Update connection status
             sessionRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     statusText.textContent = 'Connected';
@@ -1127,7 +1056,6 @@
                 }
             });
             
-            // Listen for session being completely removed
             sessionRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
                     debugLog("Session ended by owner");
@@ -1141,15 +1069,12 @@
         function leaveSession() {
             debugLog("Leaning current session...");
             if (currentSessionId) {
-                // Remove participant from participants list
                 if (participantRef) {
                     participantRef.remove();
                 }
                 
-                // Remove photo data
                 database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
                 
-                // Clean up all listeners
                 if (participantsRef) {
                     participantsRef.off();
                 }
@@ -1164,7 +1089,6 @@
                 currentSessionId = null;
                 stopCamera();
                 
-                // Reset UI
                 sessionSetup.classList.remove('hidden');
                 cameraSection.classList.add('hidden');
                 photoResult.style.display = 'none';
@@ -1179,7 +1103,6 @@
                     countdownOverlay.classList.add('hidden');
                 }
                 
-                // Clean up gallery observer
                 if (galleryObserver) {
                     galleryObserver.disconnect();
                     galleryObserver = null;
@@ -1229,13 +1152,17 @@
             const sessionId = generateSessionId();
             debugLog(`Creating new session: ${sessionId}`);
             
-            // First set the session data
+            // Initialize the session with a participants node
             database.ref(`sessions/${sessionId}`).set({
-                created: Date.now()
+                created: Date.now(),
+                participants: {
+                    [generateUserId()]: {
+                        active: true,
+                        lastActive: firebase.database.ServerValue.TIMESTAMP
+                    }
+                }
             }).then(() => {
-                // Then join the session as owner
                 joinSession(sessionId, true);
-                // Update the session ID input field
                 sessionIdInput.value = sessionId;
                 showToast('New session created!');
             }).catch(err => {
@@ -1245,7 +1172,6 @@
         });
         
         captureBtn.addEventListener('click', () => {
-            // Prevent rapid multiple captures
             const now = Date.now();
             if (now - lastCaptureTime < 5000) {
                 debugLog("Capture too soon after last capture");
@@ -1253,13 +1179,11 @@
                 return;
             }
             
-            // Schedule capture 4 seconds from now (3 second countdown + 1 second for "Capture!")
             const captureTime = Date.now() + 4000;
             lastCaptureTime = captureTime;
             
             debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
             
-            // Set the capture time in Firebase
             database.ref(`sessions/${currentSessionId}/capture`).set({
                 captureTime: captureTime
             }).then(() => {
@@ -1268,7 +1192,6 @@
                 debugLog(`Failed to send capture command: ${err.message}`);
             });
             
-            // Start countdown on this device
             startCountdown(captureTime);
         });
         
@@ -1276,13 +1199,10 @@
         
         downloadBtn.addEventListener('click', () => downloadPhoto());
         
-        // Combined photo download button
         combinedDownloadBtn.addEventListener('click', () => downloadPhoto());
         
-        // Camera switch button
         cameraSwitchBtn.addEventListener('click', switchCamera);
         
-        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 debugLog("Page hidden, pausing camera");
@@ -1297,19 +1217,17 @@
             }
         });
         
-        // Touch event handlers for swipe detection
         document.addEventListener('touchstart', (e) => {
             touchStartY = e.changedTouches[0].screenY;
         }, { passive: true });
         
         document.addEventListener('touchmove', (e) => {
-            if (window.innerWidth >= 768) return;          // mobile only
-            if (!currentSessionId) return;                 // only during a session
+            if (window.innerWidth >= 768) return;
+            if (!currentSessionId) return;
             
             const currentY = e.changedTouches[0].screenY;
-            const deltaY = currentY - touchStartY; // >0 → finger pulling down
+            const deltaY = currentY - touchStartY;
             
-            // Only prevent default when we're at the top of the gallery and pulling down
             if (isGalleryVisible && deltaY > 0 && galleryItems.scrollTop === 0) {
                 e.preventDefault();
             }
@@ -1320,19 +1238,16 @@
             if (!currentSessionId) return;
             
             touchEndY = e.changedTouches[0].screenY;
-            const threshold = 50; // Minimum swipe distance
+            const threshold = 50;
             
-            // Only allow swipe down to return to camera when at the very top of gallery
             if (isGalleryVisible && touchEndY - touchStartY > threshold && galleryItems.scrollTop === 0) {
                 scrollToCamera();
             }
-            // Swipe up - go to gallery from camera
             else if (!isGalleryVisible && touchStartY - touchEndY > threshold) {
                 scrollToGallery();
             }
         }, { passive: true });
         
-        // Show instructions for first-time users
         if (!localStorage.getItem('pixcrab_visited')) {
             showToast('Share the session ID with a friend to sync photos!');
             localStorage.setItem('pixcrab_visited', 'true');
