@@ -236,6 +236,7 @@
             overflow-y: auto;
             scroll-snap-type: y mandatory;
             -webkit-overflow-scrolling: touch;
+            scroll-padding-bottom: env(safe-area-inset-bottom);
         }
         .gallery-item {
             width: 100%;
@@ -524,6 +525,7 @@
         const galleryItems = document.getElementById('galleryItems');
         const scrollContainer = document.querySelector('.scroll-container');
         const galleryHint = document.getElementById('galleryHint');
+        const gallerySlide = document.querySelector('.gallery-slide');
         
         // App state
         let currentSessionId = null;
@@ -540,6 +542,10 @@
         let participantRef = null;
         let participantsRef = null;
         let hasShownGalleryHint = false;
+        let galleryObserver = null;
+        let touchStartY = 0;
+        let touchEndY = 0;
+        let isGalleryVisible = false;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -561,6 +567,35 @@
             }, 3000);
         }
         
+        // Setup IntersectionObserver for gallery visibility
+        function setupGalleryObserver() {
+            if (galleryObserver) {
+                galleryObserver.disconnect();
+            }
+            
+            const options = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.5 // Trigger when 50% visible
+            };
+            
+            galleryObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    isGalleryVisible = entry.isIntersecting;
+                    if (isGalleryVisible && !hasShownGalleryHint) {
+                        showGalleryHint();
+                    }
+                });
+            }, options);
+            
+            // Observe the gallery slide or first gallery item
+            const target = gallerySlide || galleryItems.firstElementChild;
+            if (target) {
+                galleryObserver.observe(target);
+                debugLog("Gallery observer set up");
+            }
+        }
+        
         // Show gallery hint
         function showGalleryHint() {
             if (hasShownGalleryHint) return;
@@ -570,6 +605,8 @@
                 galleryHint.style.opacity = '0';
                 hasShownGalleryHint = true;
             }, 2000);
+            
+            debugLog("Gallery hint shown");
         }
         
         // Initialize camera
@@ -864,6 +901,9 @@
             galleryItem.appendChild(downloadBtn);
             galleryItems.appendChild(galleryItem);
             
+            // Setup observer for new gallery items
+            setupGalleryObserver();
+            
             // On mobile, scroll to gallery after adding a new photo
             if (window.innerWidth < 768) {
                 setTimeout(() => {
@@ -884,9 +924,6 @@
                 top: gallerySlide.offsetTop,
                 behavior: 'smooth'
             });
-            
-            // Show gallery hint on first scroll to gallery
-            showGalleryHint();
         }
         
         // Scroll to camera (mobile only)
@@ -1099,6 +1136,12 @@
                     countdownOverlay.classList.add('hidden');
                 }
                 
+                // Clean up gallery observer
+                if (galleryObserver) {
+                    galleryObserver.disconnect();
+                    galleryObserver = null;
+                }
+                
                 debugLog("Session left successfully");
             }
         }
@@ -1208,6 +1251,41 @@
             }
         });
         
+        // Touch event handlers for swipe detection
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (window.innerWidth >= 768) return;          // mobile only
+            if (!currentSessionId) return;                 // only during a session
+            
+            const currentY = e.changedTouches[0].screenY;
+            const deltaY = currentY - touchStartY; // >0 → finger pulling down
+            
+            // Only prevent default when we're at the top of the gallery and pulling down
+            if (isGalleryVisible && deltaY > 0 && galleryItems.scrollTop === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', (e) => {
+            if (window.innerWidth >= 768) return;
+            if (!currentSessionId) return;
+            
+            touchEndY = e.changedTouches[0].screenY;
+            const threshold = 50; // Minimum swipe distance
+            
+            // Only allow swipe down to return to camera when at the very top of gallery
+            if (isGalleryVisible && touchEndY - touchStartY > threshold && galleryItems.scrollTop === 0) {
+                scrollToCamera();
+            }
+            // Swipe up - go to gallery from camera
+            else if (!isGalleryVisible && touchStartY - touchEndY > threshold) {
+                scrollToGallery();
+            }
+        }, { passive: true });
+        
         // Show instructions for first-time users
         if (!localStorage.getItem('pixcrab_visited')) {
             showToast('Share the session ID with a friend to sync photos!');
@@ -1215,52 +1293,6 @@
             debugLog("First-time user welcome message shown");
         }
         
-        // Add touch event listeners for swipe detection on mobile
-        let touchStartY = 0;
-        let touchEndY = 0;
-
-        document.addEventListener('touchstart', (e) => {
-            touchStartY = e.changedTouches[0].screenY;
-        }, { passive: true });
-
-        document.addEventListener('touchmove', (e) => {
-            if (window.innerWidth >= 768) return;          // mobile only
-            if (!currentSessionId) return;                 // only during a session
-
-            const gallerySlide = document.querySelector('.gallery-slide');
-            if (!gallerySlide) return;
-
-            const atTopOfGallery = gallerySlide.scrollTop === 0;
-            const currentY = e.changedTouches[0].screenY;
-            const deltaY = currentY - touchStartY; // >0 → finger pulling down
-
-            // If finger is pulling down while gallery is at top, snap back to camera
-            if (atTopOfGallery && deltaY > 40) {           // 40 px threshold
-                e.preventDefault();                        // stop rubber‑band glow
-                scrollToCamera();
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchend', (e) => {
-            if (window.innerWidth >= 768) return;
-            if (!currentSessionId) return;
-
-            touchEndY = e.changedTouches[0].screenY;
-            const threshold = 50; // Minimum swipe distance
-
-            const gallerySlide = document.querySelector('.gallery-slide');
-            const atTopOfGallery = gallerySlide && gallerySlide.scrollTop === 0;
-
-            // Swipe up – go to gallery
-            if (touchStartY - touchEndY > threshold) {
-                scrollToGallery();
-            }
-            // Swipe down – go to camera only when at the very top of gallery
-            else if (touchEndY - touchStartY > threshold && atTopOfGallery) {
-                scrollToCamera();
-            }
-        }, {passive: true});
-
         debugLog("PixCrab app initialized");
     </script>
 </body>
