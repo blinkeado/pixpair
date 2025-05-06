@@ -220,35 +220,45 @@
             box-sizing: border-box;
             background-color: #4831D4;
         }
-        .gallery-slide {
-            height: 100vh;
-            scroll-snap-align: start;
-            padding: 0;
-            box-sizing: border-box;
-            overflow-y: auto;
-            overscroll-behavior-y: contain;
-            background-color: #4831D4;
-            position: relative;
-        }
-        .gallery-items-container {
-            height: 100%;
-            width: 100%;
-            overflow-y: auto;
-            scroll-snap-type: y mandatory;
-            -webkit-overflow-scrolling: touch;
-            scroll-padding-bottom: env(safe-area-inset-bottom);
-        }
-        .gallery-item {
-    width: 100%;
-    height: calc(100vh - env(safe-area-inset-bottom));
-    scroll-snap-align: start;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    box-sizing: border-box;
+.gallery-slide {
+  /* full safe viewport minus top+bottom notches */
+  height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+
+  scroll-snap-align: start;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+
+  background-color: #4831D4;
+  position: relative;
 }
+
+.gallery-items-container {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  /* keep first and last items fully above the notches */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  scroll-padding-top: env(safe-area-inset-top);
+  scroll-padding-bottom: env(safe-area-inset-bottom);
+}
+
+.gallery-item {
+  width: 100%;
+  height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  scroll-snap-align: start;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 
         .gallery-item img {
             width: 100%;
@@ -256,7 +266,8 @@
             object-fit: contain;
             border-radius: 12px;
             display: block;
-            border: 5px solid #CCF381;
+            border: 10px solid #CCF381;
+            box-sizing: border-box;
         }
         .gallery-download-btn {
             position: absolute;
