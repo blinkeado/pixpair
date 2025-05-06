@@ -195,11 +195,11 @@
             bottom: 15px;
             right: 15px;
             color: white;
-            font-size: 28px;
+            font-size: 56px; /* Doubled from 28px */
             font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
             background-color: rgba(72, 49, 212, 0.7);
-            padding: 4px 8px;
+            padding: 8px 16px; /* Increased padding */
             border-radius: 4px;
             z-index: 10;
         }
@@ -220,45 +220,35 @@
             box-sizing: border-box;
             background-color: #4831D4;
         }
-.gallery-slide {
-  /* full safe viewport minus top+bottom notches */
-  height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-
-  scroll-snap-align: start;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-
-  background-color: #4831D4;
-  position: relative;
+        .gallery-slide {
+            height: 100vh;
+            scroll-snap-align: start;
+            padding: 0;
+            box-sizing: border-box;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            background-color: #4831D4;
+            position: relative;
+        }
+        .gallery-items-container {
+            height: 100%;
+            width: 100%;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            scroll-padding-bottom: env(safe-area-inset-bottom);
+        }
+        .gallery-item {
+    width: 100%;
+    height: calc(100vh - env(safe-area-inset-bottom));
+    scroll-snap-align: start;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-sizing: border-box;
 }
-
-.gallery-items-container {
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  scroll-snap-type: y mandatory;
-  -webkit-overflow-scrolling: touch;
-
-  /* keep first and last items fully above the notches */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  scroll-padding-top: env(safe-area-inset-top);
-  scroll-padding-bottom: env(safe-area-inset-bottom);
-}
-
-.gallery-item {
-  width: 100%;
-  height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  scroll-snap-align: start;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 
         .gallery-item img {
             width: 100%;
@@ -267,7 +257,6 @@
             border-radius: 12px;
             display: block;
             border: 10px solid #CCF381;
-            box-sizing: border-box;
         }
         .gallery-download-btn {
             position: absolute;
@@ -372,6 +361,28 @@
   }
 }
 
+    /* New styles for top-right download button */
+    .combined-download-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: rgba(72, 49, 212, 0.7);
+        color: #CCF381;
+        border: 1px solid #CCF381;
+        border-radius: 50%;
+        width: 80px; /* Doubled from 40px */
+        height: 80px; /* Doubled from 40px */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    
+    .combined-download-btn svg {
+        width: 40px; /* Doubled from 20px */
+        height: 40px; /* Doubled from 20px */
+    }
+
     </style>
 </head>
 <body class="h-full">
@@ -432,6 +443,13 @@
                         <div id="combinedResultContainer" class="combined-result-container">
                             <img id="combinedResult" class="combined-result" alt="Combined photo">
                             <div class="watermark">PixCrab</div>
+                            <button id="combinedDownloadBtn" class="combined-download-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </button>
                         </div>
                         <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
                             <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -550,6 +568,7 @@
         const scrollContainer = document.querySelector('.scroll-container');
         const galleryHint = document.getElementById('galleryHint');
         const gallerySlide = document.querySelector('.gallery-slide');
+        const combinedDownloadBtn = document.getElementById('combinedDownloadBtn');
         
         // App state
         let currentSessionId = null;
@@ -1009,7 +1028,7 @@
             participantRef.onDisconnect().remove();
             
             // Listen for participant changes to update peer count
-            participantsRef.on('value', (snapshot) => {
+            participantsRef.on('value', (snapshot) {
                 if (snapshot.exists()) {
                     const participants = snapshot.val();
                     const participantCount = Object.keys(participants).length;
@@ -1120,7 +1139,7 @@
         
         // Leave current session
         function leaveSession() {
-            debugLog("Leaving current session...");
+            debugLog("Leaning current session...");
             if (currentSessionId) {
                 // Remove participant from participants list
                 if (participantRef) {
@@ -1256,6 +1275,9 @@
         newSessionBtn.addEventListener('click', leaveSession);
         
         downloadBtn.addEventListener('click', () => downloadPhoto());
+        
+        // Combined photo download button
+        combinedDownloadBtn.addEventListener('click', () => downloadPhoto());
         
         // Camera switch button
         cameraSwitchBtn.addEventListener('click', switchCamera);
