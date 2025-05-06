@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PixPair - Synchronized Photo Capture</title>
+    <title>PixCrab - Synchronized Photo Capture</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -156,6 +156,15 @@
             font-weight: bold;
             text-shadow: 0 0 20px rgba(204, 243, 129, 0.5);
         }
+        .capture-text {
+            color: #CCF381;
+            font-size: 60px; /* Reduced from 80px to prevent overflow */
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(204, 243, 129, 0.5);
+            text-align: center;
+            padding: 0 20px;
+            word-break: break-word;
+        }
         .image-quality-info {
             font-size: 12px;
             color: #CCF381;
@@ -180,6 +189,19 @@
         .camera-switch-icon {
             width: 50px;
             height: 50px;
+        }
+        .watermark {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+            background-color: rgba(72, 49, 212, 0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            z-index: 10;
         }
         /* Updated gallery styles for scroll-snap */
         .scroll-container {
@@ -287,7 +309,7 @@
 <body class="h-full">
     <div class="max-w-md w-full h-full mx-auto flex flex-col">
         <div id="sessionSetup" class="flex-1 flex flex-col items-center justify-center p-6">
-            <h1 class="text-3xl font-bold text-center text-secondary mb-2">PixPair</h1>
+            <h1 class="text-3xl font-bold text-center text-secondary mb-2">PixCrab</h1>
             <p class="text-secondary text-center mb-6">Pix together in perfect sync</p>
             
             <div class="w-full space-y-4">
@@ -326,7 +348,7 @@
             <div class="scroll-container">
                 <div class="camera-slide">
                     <div class="flex items-center justify-center mb-2">
-                        <h1 class="text-2xl font-bold text-center text-secondary mr-2">PixPair</h1>
+                        <h1 class="text-2xl font-bold text-center text-secondary mr-2">PixCrab</h1>
                         <div class="session-id-badge" id="sessionIdBadge">
                             <span id="displaySessionId"></span>
                             <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -341,6 +363,7 @@
                         <img id="photoResult" class="photo-result" alt="Captured photo">
                         <div id="combinedResultContainer" class="combined-result-container">
                             <img id="combinedResult" class="combined-result" alt="Combined photo">
+                            <div class="watermark">PixCrab</div>
                         </div>
                         <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
                             <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -386,6 +409,7 @@
         
         <div id="countdownOverlay" class="countdown-overlay hidden">
             <div class="countdown-text pulse" id="countdownText">3</div>
+            <div class="capture-text pulse hidden" id="captureText">Capture!</div>
         </div>
     </div>
     
@@ -404,7 +428,7 @@
             logEntry.textContent = `[${timestamp}] ${message}`;
             debugConsole.appendChild(logEntry);
             debugConsole.scrollTop = debugConsole.scrollHeight;
-            console.log(`[PixPair] ${message}`);
+            console.log(`[PixCrab] ${message}`);
         }
 
         // Toggle debug console
@@ -447,6 +471,7 @@
         const peerCount = document.getElementById('peerCount');
         const countdownOverlay = document.getElementById('countdownOverlay');
         const countdownText = document.getElementById('countdownText');
+        const captureText = document.getElementById('captureText');
         const toast = document.getElementById('toast');
         const displaySessionId = document.getElementById('displaySessionId');
         const sessionIdBadge = document.getElementById('sessionIdBadge');
@@ -504,8 +529,8 @@
                 const constraints = {
                     video: { 
                         facingMode: usingFrontCamera ? 'user' : { exact: 'environment' },
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 },
+                        width: { ideal: 2560 },
+                        height: { ideal: 1440 },
                         aspectRatio: 0.75 // 3:4 ratio
                     },
                     audio: false
@@ -565,6 +590,8 @@
             
             // Show countdown overlay
             countdownOverlay.classList.remove('hidden');
+            countdownText.classList.remove('hidden');
+            captureText.classList.add('hidden');
             debugLog("Countdown overlay shown");
             
             // Calculate countdown steps
@@ -583,7 +610,8 @@
                     debugLog(`Countdown: ${currentCount}`);
                 } else {
                     // When countdown reaches 0, show "Capture!" for the last second
-                    countdownText.textContent = "Capture!";
+                    countdownText.classList.add('hidden');
+                    captureText.classList.remove('hidden');
                     debugLog("Countdown: Capture!");
                 }
             }, 1000);
@@ -607,9 +635,9 @@
             debugLog("Taking photo...");
             
             const canvas = document.createElement('canvas');
-            // Target size for individual photos (1080x960 - 9:8 aspect ratio)
-            const targetWidth = 1080;
-            const targetHeight = 960;
+            // Target size for individual photos (2160x1920 - 9:8 aspect ratio)
+            const targetWidth = 2160;
+            const targetHeight = 1920;
             
             canvas.width = targetWidth;
             canvas.height = targetHeight;
@@ -648,6 +676,9 @@
             photoResult.style.display = 'block';
             cameraFeed.style.display = 'none';
             
+            // Hide download button when taking a new photo
+            downloadBtn.classList.add('hidden');
+            
             // Add shutter effect
             cameraSection.classList.add('shutter-effect');
             setTimeout(() => {
@@ -674,7 +705,7 @@
             });
         }
         
-        // Combine photos vertically with consistent size (1080x1920 - 9:16 aspect ratio)
+        // Combine photos vertically with consistent size (2160x3840 - 9:16 aspect ratio)
         function combinePhotos(photo1, photo2) {
             debugLog("Starting photo combination...");
             return new Promise((resolve) => {
@@ -687,13 +718,13 @@
                     
                     debugLog(`Combining photos with dimensions: ${img1.width}x${img1.height} and ${img2.width}x${img2.height}`);
                     
-                    // Target size for individual photos (1080x960)
-                    const individualWidth = 1080;
-                    const individualHeight = 960;
+                    // Target size for individual photos (2160x1920)
+                    const individualWidth = 2160;
+                    const individualHeight = 1920;
                     
-                    // Final combined image size (1080x1920)
-                    const combinedWidth = 1080;
-                    const combinedHeight = 1920;
+                    // Final combined image size (2160x3840)
+                    const combinedWidth = 2160;
+                    const combinedHeight = 3840;
                     
                     // Create canvas for combined image
                     const canvas = document.createElement('canvas');
@@ -714,6 +745,13 @@
                         0, 0, img2.width, img2.height,
                         0, individualHeight, individualWidth, individualHeight
                     );
+                    
+                    // Add watermark
+                    ctx.font = 'bold 48px Arial';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('PixCrab', combinedWidth - 40, combinedHeight - 40);
                     
                     // Convert to data URL with high quality
                     canvas.toBlob((blob) => {
@@ -830,6 +868,9 @@
             statusText.textContent = 'Connecting...';
             connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
             
+            // Hide download button when joining a new session
+            downloadBtn.classList.add('hidden');
+            
             // Listen for session changes
             const sessionRef = database.ref(`sessions/${sessionId}`);
             
@@ -917,6 +958,9 @@
                                 combinedResultContainer.style.display = 'none';
                                 cameraFeed.style.display = 'block';
                                 initCamera();
+                                
+                                // Hide download button after restarting camera
+                                downloadBtn.classList.add('hidden');
                             }, 2000);
                             
                             // Notify users
@@ -1007,7 +1051,7 @@
             debugLog("Downloading photo...");
             const link = document.createElement('a');
             link.href = urlToDownload;
-            link.download = `pixpair_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
+            link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1105,9 +1149,9 @@
         });
         
         // Show instructions for first-time users
-        if (!localStorage.getItem('pixpair_visited')) {
+        if (!localStorage.getItem('pixcrab_visited')) {
             showToast('Share the session ID with a friend to sync photos!');
-            localStorage.setItem('pixpair_visited', 'true');
+            localStorage.setItem('pixcrab_visited', 'true');
             debugLog("First-time user welcome message shown");
         }
         
@@ -1157,7 +1201,7 @@
             }
         }, {passive: true});
 
-        debugLog("PixPair app initialized");
+        debugLog("PixCrab app initialized");
     </script>
 </body>
 </html>
