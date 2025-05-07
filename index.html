@@ -26,70 +26,30 @@
             touch-action: manipulation;
             background-color: #4831D4;
         }
-
-.camera-container {
-  position: relative;
-  width: 100%;
-  padding-bottom: 133.33%;   /* aspecto 3:4 */
-  overflow: hidden;
-  border-radius: 0px;
-  background-color: #000;    /* fondo negro interior */
-  
-  /* custom-property inicial */
-  --angle: 0deg;
-  
-  /* borde de 3px pintado con degradado cónico animable */
-  border: 10px solid transparent;
-  border-image-source: conic-gradient(
-    from var(--angle),
-    #FF3B30, #FF9500, #FFCC00,
-    #34C759, #5AC8FA, #5856D6,
-    #FF2D55, #FF3B30
-  );
-  border-image-slice: 3;
-  /* animación del ángulo */
-  animation: rotate 4s linear infinite;
-}
-.camera-feed {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 2;
-}
-
-
-
-
-
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 133.33%; /* 3:4 aspect ratio */
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 16px;
+            border: 3px solid #CCF381;
+        }
+        .camera-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
         .photo-result {
             display: none;
             width: 100%;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             border: 3px solid #CCF381;
-        }
-        .combined-result-container {
-            display: none;
-            width: 100%;
-            height: 90vh;
-            overflow: hidden;
-            position: relative;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            margin-bottom: 16px;
-            background-color: #000;
-            border: 3px solid #CCF381;
-        }
-        .combined-result {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            object-position: top;
-            display: block;
-            margin: 0 auto;
         }
         .pulse {
             animation: pulse 1.5s infinite;
@@ -223,117 +183,6 @@
             border-radius: 4px;
             z-index: 10;
         }
-        .scroll-container {
-            height: 100vh;
-            width: 100%;
-            overflow-y: auto;
-            scroll-snap-type: y mandatory;
-            -webkit-overflow-scrolling: touch;
-        }
-        .camera-slide {
-            height: 100vh;
-            scroll-snap-align: start;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            box-sizing: border-box;
-            background-color: #4831D4;
-        }
-        .gallery-slide {
-            height: 100vh;
-            scroll-snap-align: start;
-            padding: 0;
-            box-sizing: border-box;
-            overflow-y: auto;
-            overscroll-behavior-y: contain;
-            background-color: #4831D4;
-            position: relative;
-        }
-        .gallery-items-container {
-            height: 100%;
-            width: 100%;
-            overflow-y: auto;
-            scroll-snap-type: y mandatory;
-            -webkit-overflow-scrolling: touch;
-            scroll-padding-bottom: env(safe-area-inset-bottom);
-        }
-        .gallery-item {
-            width: 100%;
-            height: calc(100vh - env(safe-area-inset-bottom));
-            scroll-snap-align: start;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        .gallery-item img {
-            width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 12px;
-            display: block;
-            border: 10px solid #CCF381;
-        }
-        .gallery-download-btn {
-            position: absolute;
-            bottom: calc(16px + env(safe-area-inset-bottom));
-            right: 16px;
-            background-color: rgba(72, 49, 212, 0.7);
-            color: #CCF381;
-            border: 1px solid #CCF381;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        .gallery-hint {
-            position: fixed;
-            top: 20px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            color: #CCF381;
-            font-size: 18px;
-            font-weight: 600;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            z-index: 10;
-            padding: 8px 16px;
-            background-color: rgba(72, 49, 212, 0.7);
-            border-radius: 20px;
-            margin: 0 auto;
-            width: fit-content;
-            max-width: 80%;
-        }
-        @media (min-width: 768px) {
-            .scroll-container {
-                overflow-y: visible;
-                height: auto;
-                scroll-snap-type: none;
-            }
-            .camera-slide, .gallery-slide {
-                height: auto;
-                scroll-snap-align: none;
-            }
-            .gallery-slide {
-                max-height: 50vh;
-                overflow-y: auto;
-            }
-            .gallery-items-container {
-                scroll-snap-type: none;
-            }
-            .gallery-item {
-                height: auto;
-                margin-bottom: 16px;
-                scroll-snap-align: none;
-            }
-        }
         .btn-primary {
             background-color: #CCF381;
             color: #4831D4;
@@ -364,44 +213,96 @@
             color: #4831D4;
             font-weight: bold;
         }
-        @media (max-width: 767px) {
-            .gallery-item {
-                padding: 0;
-                height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-            }
-            .gallery-items-container {
-                scroll-padding-bottom: env(safe-area-inset-bottom);
-                scroll-padding-top: env(safe-area-inset-top);
-            }
+        .slide-container {
+            height: 100vh;
+            width: 100%;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
         }
-        .combined-download-btn {
+        .slide {
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            box-sizing: border-box;
+            background-color: #4831D4;
+            position: relative;
+        }
+        .photo-slide {
+            height: 100vh;
+            scroll-snap-align: start;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #4831D4;
+            position: relative;
+        }
+        .photo-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background-color: #000;
+        }
+        .photo-download-btn {
             position: absolute;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             background-color: rgba(72, 49, 212, 0.7);
             color: #CCF381;
             border: 1px solid #CCF381;
             border-radius: 50%;
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10;
         }
-        .combined-download-btn svg {
+        .photo-download-btn svg {
             width: 40px;
             height: 40px;
         }
-
-        /* New styles for the rotating gradient button */
+        .photo-watermark {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            color: white;
+            font-size: 56px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+            background-color: rgba(72, 49, 212, 0.7);
+            padding: 8px 16px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .hint-text {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #CCF381;
+            font-size: 18px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+            padding: 8px 16px;
+            background-color: rgba(72, 49, 212, 0.7);
+            border-radius: 20px;
+            margin: 0 auto;
+            width: fit-content;
+            max-width: 80%;
+        }
         .rainbow-button {
             position: relative;
             width: 100%;
             height: 48px;
             border-radius: 12px;
             outline: none;
-            background: rgba(72,49,212,0.6); /* 60% opacity of #4831D4 */
+            background: #4831D4;
             color: #CCF381;
             cursor: pointer;
             font-weight: bold;
@@ -413,7 +314,6 @@
             z-index: 1;
             border: none;
         }
-
         .rainbow-button::before {
             content: '';
             position: absolute;
@@ -436,7 +336,6 @@
             z-index: -1;
             animation: rotate 4s linear infinite;
         }
-
         .rainbow-button::after {
             content: '';
             position: absolute;
@@ -448,18 +347,16 @@
             border-radius: 10px;
             z-index: -1;
         }
-
-      @keyframes rotate {
-  to { --angle: 360deg; }
-}
-
+        @keyframes rotate {
+            to {
+                --angle: 360deg;
+            }
+        }
         @property --angle {
             syntax: '<angle>';
             initial-value: 0deg;
             inherits: false;
         }
-
-        /* Fallback for browsers that don't support @property */
         @supports not (background: conic-gradient(from 0deg, red, red)) {
             .rainbow-button::before {
                 background: linear-gradient(90deg, 
@@ -468,15 +365,11 @@
                 background-size: 800% 800%;
                 animation: fallback-rotate 4s linear infinite;
             }
-  
         }
-
         @keyframes fallback-rotate {
             0% { background-position: 0% 50%; }
             100% { background-position: 100% 50%; }
         }
-
-        /* Button press effect */
         .rainbow-button:active {
             transform: translateY(2px);
         }
@@ -519,8 +412,8 @@
         </div>
         
         <div id="cameraSection" class="hidden w-full h-full">
-            <div class="scroll-container">
-                <div class="camera-slide">
+            <div class="slide-container" id="slideContainer">
+                <div class="slide">
                     <div class="flex items-center justify-center mb-2">
                         <h1 class="text-2xl font-bold text-center text-secondary mr-2">PixCrab</h1>
                         <div class="session-id-badge" id="sessionIdBadge">
@@ -535,17 +428,6 @@
                     <div class="camera-container mb-4">
                         <video id="cameraFeed" class="camera-feed" autoplay playsinline></video>
                         <img id="photoResult" class="photo-result" alt="Captured photo">
-                        <div id="combinedResultContainer" class="combined-result-container">
-                            <img id="combinedResult" class="combined-result" alt="Combined photo">
-                            <div class="watermark">PixCrab</div>
-                            <button id="combinedDownloadBtn" class="combined-download-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                </button>
-                        </div>
                         <button id="cameraSwitchBtn" class="camera-switch-btn hidden">
                             <svg class="camera-switch-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 7h-3.17l-1.84-2.46A2 2 0 0 0 14.42 3H9.58a2 2 0 0 0-1.57.78L6.17 7H3a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
@@ -556,8 +438,8 @@
                     
                     <div class="flex justify-between items-center mb-4">
                         <div id="statusIndicator" class="flex items-center">
-                            <div id="connectionStatus" class="w-3 h-3 rounded-full status-connecting mr-2"></div>
-                            <span id="statusText" class="text-sm text-secondary">Connecting...</span>
+                            <div id="connectionStatus" class="w-3 h-3 rounded-full status-disconnected mr-2"></div>
+                            <span id="statusText" class="text-sm text-secondary">Disconnected</span>
                         </div>
                         <div id="peerCount" class="text-sm text-secondary">0 peers connected</div>
                     </div>
@@ -571,18 +453,9 @@
                         </button>
                     </div>
                     
-                    <button id="downloadBtn" class="hidden w-full btn-primary px-4 py-3 rounded-lg font-medium transition mb-4">
-                        Download Combined Photo
-                    </button>
-            
                     <div id="imageQualityInfo" class="image-quality-info hidden">
                         Image quality: <span id="imageSize">0</span> KB
                     </div>
-                </div>
-                
-                <div class="gallery-slide">
-                    <div class="gallery-hint" id="galleryHint">Your Gallery</div>
-                    <div class="gallery-items-container" id="galleryItems"></div>
                 </div>
             </div>
         </div>
@@ -591,6 +464,7 @@
             <div class="countdown-text pulse" id="countdownText">3</div>
             <div class="capture-text pulse hidden" id="captureText">Capture!</div>
         </div>
+        <div id="hintText" class="hint-text">Swipe up to view your photos</div>
     </div>
 
     <div id="toast" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 toast px-4 py-2 rounded-lg shadow-lg"></div>
@@ -641,11 +515,8 @@
         const createSessionBtn = document.getElementById('createSession');
         const captureBtn = document.getElementById('captureBtn');
         const newSessionBtn = document.getElementById('newSessionBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
         const cameraFeed = document.getElementById('cameraFeed');
         const photoResult = document.getElementById('photoResult');
-        const combinedResultContainer = document.getElementById('combinedResultContainer');
-        const combinedResult = document.getElementById('combinedResult');
         const connectionStatus = document.getElementById('connectionStatus');
         const statusText = document.getElementById('statusText');
         const peerCount = document.getElementById('peerCount');
@@ -658,11 +529,8 @@
         const imageQualityInfo = document.getElementById('imageQualityInfo');
         const imageSizeSpan = document.getElementById('imageSize');
         const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
-        const galleryItems = document.getElementById('galleryItems');
-        const scrollContainer = document.querySelector('.scroll-container');
-        const galleryHint = document.getElementById('galleryHint');
-        const gallerySlide = document.querySelector('.gallery-slide');
-        const combinedDownloadBtn = document.getElementById('combinedDownloadBtn');
+        const slideContainer = document.getElementById('slideContainer');
+        const hintText = document.getElementById('hintText');
         
         // App state
         let currentSessionId = null;
@@ -671,18 +539,13 @@
         let peers = 0;
         let countdownInterval = null;
         let userId = null;
-        let combinedPhotoUrl = null;
         let lastCaptureTime = 0;
         let usingFrontCamera = true;
-        let galleryPhotos = [];
-        let isScrolling = false;
         let participantRef = null;
         let participantsRef = null;
-        let hasShownGalleryHint = false;
-        let galleryObserver = null;
+        let hasShownHint = false;
         let touchStartY = 0;
         let touchEndY = 0;
-        let isGalleryVisible = false;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -704,45 +567,17 @@
             }, 3000);
         }
         
-        // Setup IntersectionObserver for gallery visibility
-        function setupGalleryObserver() {
-            if (galleryObserver) {
-                galleryObserver.disconnect();
-            }
+        // Show hint message
+        function showHint() {
+            if (hasShownHint) return;
             
-            const options = {
-                root: null,
-                rootMargin: '0px',
-                threshold: 0.5
-            };
-            
-            galleryObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    isGalleryVisible = entry.isIntersecting;
-                    if (isGalleryVisible && !hasShownGalleryHint) {
-                        showGalleryHint();
-                    }
-                });
-            }, options);
-            
-            const target = gallerySlide || galleryItems.firstElementChild;
-            if (target) {
-                galleryObserver.observe(target);
-                debugLog("Gallery observer set up");
-            }
-        }
-        
-        // Show gallery hint
-        function showGalleryHint() {
-            if (hasShownGalleryHint) return;
-            
-            galleryHint.style.opacity = '1';
+            hintText.style.opacity = '1';
             setTimeout(() => {
-                galleryHint.style.opacity = '0';
-                hasShownGalleryHint = true;
+                hintText.style.opacity = '0';
+                hasShownHint = true;
             }, 2000);
             
-            debugLog("Gallery hint shown");
+            debugLog("Hint shown");
         }
         
         // Initialize camera
@@ -891,8 +726,6 @@
             photoResult.style.display = 'block';
             cameraFeed.style.display = 'none';
             
-            downloadBtn.classList.add('hidden');
-            
             cameraSection.classList.add('shutter-effect');
             setTimeout(() => {
                 cameraSection.classList.remove('shutter-effect');
@@ -979,23 +812,21 @@
             });
         }
         
-        // Add photo to gallery
-        function addToGallery(photoUrl) {
-            debugLog("Adding photo to gallery");
+        // Add photo slide to the container
+        function addPhotoSlide(photoUrl) {
+            debugLog("Adding photo slide...");
             
-            galleryPhotos.push(photoUrl);
-            
-            const galleryItem = document.createElement('div');
-            galleryItem.className = 'gallery-item';
+            const photoSlide = document.createElement('div');
+            photoSlide.className = 'photo-slide';
             
             const img = document.createElement('img');
             img.src = photoUrl;
             img.alt = 'Combined photo';
             
             const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'gallery-download-btn';
+            downloadBtn.className = 'photo-download-btn';
             downloadBtn.innerHTML = 
-                `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -1005,42 +836,38 @@
                 downloadPhoto(photoUrl);
             });
             
-            galleryItem.appendChild(img);
-            galleryItem.appendChild(downloadBtn);
-            galleryItems.appendChild(galleryItem);
+            const watermark = document.createElement('div');
+            watermark.className = 'photo-watermark';
+            watermark.textContent = 'PixCrab';
             
-            setupGalleryObserver();
+            photoSlide.appendChild(img);
+            photoSlide.appendChild(downloadBtn);
+            photoSlide.appendChild(watermark);
             
-            if (window.innerWidth < 768) {
-                setTimeout(() => {
-                    scrollToGallery();
-                }, 500);
-            }
+            slideContainer.appendChild(photoSlide);
             
-            debugLog("Photo added to gallery");
+            showHint();
+            
+            // Scroll to the new photo slide
+            setTimeout(() => {
+                photoSlide.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+            
+            debugLog("Photo slide added");
         }
         
-        // Scroll to gallery (mobile only)
-        function scrollToGallery() {
-            if (window.innerWidth >= 768) return;
+        // Download photo
+        function downloadPhoto(photoUrl) {
+            if (!photoUrl) return;
             
-            debugLog("Scrolling to gallery");
-            const gallerySlide = document.querySelector('.gallery-slide');
-            scrollContainer.scrollTo({
-                top: gallerySlide.offsetTop,
-                behavior: 'smooth'
-            });
-        }
-        
-        // Scroll to camera (mobile only)
-        function scrollToCamera() {
-            if (window.innerWidth >= 768) return;
-            
-            debugLog("Scrolling to camera");
-            scrollContainer.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            debugLog("Downloading photo...");
+            const link = document.createElement('a');
+            link.href = photoUrl;
+            link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            debugLog("Download initiated");
         }
         
         // Join a session
@@ -1050,10 +877,6 @@
             isSessionOwner = isOwner;
             userId = generateUserId();
             lastCaptureTime = 0;
-            
-            galleryPhotos = [];
-            galleryItems.innerHTML = '';
-            hasShownGalleryHint = false;
             
             displaySessionId.textContent = sessionId;
             
@@ -1065,8 +888,6 @@
             captureBtn.disabled = false;
             statusText.textContent = 'Connecting...';
             connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
-            
-            downloadBtn.classList.add('hidden');
             
             const sessionRef = database.ref(`sessions/${sessionId}`);
             
@@ -1119,29 +940,16 @@
                         debugLog("Both photos received, combining...");
                         
                         combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
-                            combinedResult.src = combinedUrl;
-                            combinedResultContainer.style.display = 'block';
                             photoResult.style.display = 'none';
-                            cameraFeed.style.display = 'none';
+                            cameraFeed.style.display = 'block';
                             
-                            combinedPhotoUrl = combinedUrl;
+                            addPhotoSlide(combinedUrl);
                             
-                            downloadBtn.classList.remove('hidden');
                             imageQualityInfo.classList.remove('hidden');
                             
-                            addToGallery(combinedUrl);
+                            debugLog("Combined photo displayed in new slide");
                             
-                            debugLog("Combined photo displayed and added to gallery");
-                                            setTimeout(() => {
-                                debugLog("Restarting camera for next capture");
-                                combinedResultContainer.style.display = 'none';
-                                cameraFeed.style.display = 'block';
-                                initCamera();
-                                
-                                downloadBtn.classList.add('hidden');
-                            }, 2000);
-                            
-                            showToast('Photos combined! Ready to download.');
+                            showToast('Photos combined! Swipe up to view.');
                             
                             debugLog("Clearing photos from Firebase for next capture");
                             sessionRef.child('photos').remove();
@@ -1198,39 +1006,22 @@
                 sessionSetup.classList.remove('hidden');
                 cameraSection.classList.add('hidden');
                 photoResult.style.display = 'none';
-                combinedResultContainer.style.display = 'none';
                 cameraFeed.style.display = 'block';
-                downloadBtn.classList.add('hidden');
                 imageQualityInfo.classList.add('hidden');
                 cameraSwitchBtn.classList.add('hidden');
+                
+                // Remove all photo slides except the first one (camera view)
+                while (slideContainer.children.length > 1) {
+                    slideContainer.removeChild(slideContainer.lastChild);
+                }
                 
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
                     countdownOverlay.classList.add('hidden');
                 }
                 
-                if (galleryObserver) {
-                    galleryObserver.disconnect();
-                    galleryObserver = null;
-                }
-                
                 debugLog("Session left successfully");
             }
-        }
-        
-        // Download photo
-        function downloadPhoto(photoUrl = null) {
-            const urlToDownload = photoUrl || combinedPhotoUrl;
-            if (!urlToDownload) return;
-            
-            debugLog("Downloading photo...");
-            const link = document.createElement('a');
-            link.href = urlToDownload;
-            link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            debugLog("Download initiated");
         }
         
         // Copy session ID to clipboard
@@ -1254,7 +1045,6 @@
             }
         });
         
-        // Fixed create session button functionality
         createSessionBtn.addEventListener('click', () => {
             debugLog("Create session button clicked");
             
@@ -1313,10 +1103,6 @@
         
         newSessionBtn.addEventListener('click', leaveSession);
         
-        downloadBtn.addEventListener('click', () => downloadPhoto());
-        
-        combinedDownloadBtn.addEventListener('click', () => downloadPhoto());
-        
         cameraSwitchBtn.addEventListener('click', switchCamera);
         
         document.addEventListener('visibilitychange', () => {
@@ -1333,34 +1119,38 @@
             }
         });
         
+        // Touch events for swipe navigation
         document.addEventListener('touchstart', (e) => {
             touchStartY = e.changedTouches[0].screenY;
         }, { passive: true });
         
-        document.addEventListener('touchmove', (e) => {
-            if (window.innerWidth >= 768) return;
-            if (!currentSessionId) return;
-            
-            const currentY = e.changedTouches[0].screenY;
-            const deltaY = currentY - touchStartY;
-            
-            if (isGalleryVisible && deltaY > 0 && galleryItems.scrollTop === 0) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-        
         document.addEventListener('touchend', (e) => {
-            if (window.innerWidth >= 768) return;
-            if (!currentSessionId) return;
-            
             touchEndY = e.changedTouches[0].screenY;
             const threshold = 50;
             
-            if (isGalleryVisible && touchEndY - touchStartY > threshold && galleryItems.scrollTop === 0) {
-                scrollToCamera();
-            }
-            else if (!isGalleryVisible && touchStartY - touchEndY > threshold) {
-                scrollToGallery();
+            // Only allow swipe navigation if we're in the camera section
+            if (!cameraSection.classList.contains('hidden')) {
+                if (touchStartY - touchEndY > threshold) {
+                    // Swipe up - scroll to next photo slide if available
+                    const currentSlide = document.elementFromPoint(
+                        window.innerWidth / 2, 
+                        window.innerHeight / 2
+                    ).closest('.slide, .photo-slide');
+                    
+                    if (currentSlide && currentSlide.nextElementSibling) {
+                        currentSlide.nextElementSibling.scrollIntoView({ behavior: 'smooth' });
+                    }
+                } else if (touchEndY - touchStartY > threshold) {
+                    // Swipe down - scroll to previous slide (usually back to camera)
+                    const currentSlide = document.elementFromPoint(
+                        window.innerWidth / 2, 
+                        window.innerHeight / 2
+                    ).closest('.slide, .photo-slide');
+                    
+                    if (currentSlide && currentSlide.previousElementSibling) {
+                        currentSlide.previousElementSibling.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
             }
         }, { passive: true });
         
