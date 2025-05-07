@@ -26,17 +26,16 @@
             touch-action: manipulation;
             background-color: #4831D4;
         }
-  .camera-container {
-    position: relative;
-    width: 100%;
-    height: 0;
-    padding-bottom: 133.33%; /* 3:4 aspect ratio */
-    overflow: hidden;
--   background-color: #000;
-+   background-color: transparent;
-    border-radius: 16px;
-    border: 3px solid #CCF381;
-}
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 133.33%; /* 3:4 aspect ratio */
+            overflow: hidden;
+            background-color: transparent;
+            border-radius: 16px;
+            border: 3px solid #CCF381;
+        }
 
         .camera-feed {
             position: absolute;
@@ -46,19 +45,19 @@
             height: 100%;
             object-fit: cover;
         }
-.photo-result {
-    display: none;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    border: 3px solid #CCF381;
-    z-index: 2;
-}
+        .photo-result {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 3px solid #CCF381;
+            z-index: 2;
+        }
 
         .pulse {
             animation: pulse 1.5s infinite;
@@ -235,20 +234,30 @@
             background-color: #4831D4;
             position: relative;
         }
-.photo-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: top center;   /* ← added */
-    /* background-color removed so no more black letterbox */
+        .photo-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .photo-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: top center;
+            position: relative;
+        }
+
+.photo-download-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
 }
 
-       .photo-download-btn {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-            background-color: rgba(72, 49, 212, 0.7);
+
+        .photo-download-btn {
+            background-color: rgba(72,49,212,0.7);
             color: #CCF381;
             border: 1px solid #CCF381;
             border-radius: 50%;
@@ -257,8 +266,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10;
         }
+
         .photo-download-btn svg {
             width: 40px;
             height: 40px;
@@ -469,8 +478,8 @@
 
     <div id="toast" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 toast px-4 py-2 rounded-lg shadow-lg"></div>
 
-    <button id="debugToggle" class="debug-toggle">DBG</button>
-    <div id="debugConsole" class="debug-console"></div>
+    <button id="debugToggle", class="debug-toggle">DBG</button>
+    <div id="debugConsole", class="debug-console"></div>
 
     <script>
         // Debugging function
@@ -722,18 +731,15 @@
                 0, 0, targetWidth, targetHeight
             );
             
-photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
-// espera a que la img esté lista
-photoResult.onload = () => {
-  photoResult.style.display = 'block';
-  cameraFeed.style.display = 'none';
-  cameraSection.classList.add('shutter-effect');
-  setTimeout(() => {
-    cameraSection.classList.remove('shutter-effect');
-  }, 500);
-};
-
-  
+            photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
+            photoResult.onload = () => {
+                photoResult.style.display = 'block';
+                cameraFeed.style.display = 'none';
+                cameraSection.classList.add('shutter-effect');
+                setTimeout(() => {
+                    cameraSection.classList.remove('shutter-effect');
+                }, 500);
+            };
             
             debugLog("Photo taken and displayed");
             
@@ -823,30 +829,33 @@ photoResult.onload = () => {
             const photoSlide = document.createElement('div');
             photoSlide.className = 'photo-slide';
             
+            const photoWrapper = document.createElement('div');
+            photoWrapper.className = 'photo-wrapper';
+            
             const img = document.createElement('img');
             img.src = photoUrl;
             img.alt = 'Combined photo';
             
+            const downloadContainer = document.createElement('div');
+            downloadContainer.className = 'photo-download-container';
+            
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'photo-download-btn';
-            downloadBtn.innerHTML = 
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            downloadBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>`;
             
-            downloadBtn.addEventListener('click', () => {
-                downloadPhoto(photoUrl);
-            });
+            downloadBtn.addEventListener('click', () => downloadPhoto(photoUrl));
             
-      
-            
-            photoSlide.appendChild(img);
-            photoSlide.appendChild(downloadBtn);     
+            downloadContainer.appendChild(downloadBtn);
+            photoWrapper.appendChild(img);
+            photoWrapper.appendChild(downloadContainer);
+            photoSlide.appendChild(photoWrapper);
             slideContainer.appendChild(photoSlide);
-            
-            showHint();
             
             // Scroll to the new photo slide
             setTimeout(() => {
@@ -981,7 +990,7 @@ photoResult.onload = () => {
         
         // Leave current session
         function leaveSession() {
-            debugLog("Leaning current session...");
+            debugLog("Leaving current session...");
             if (currentSessionId) {
                 if (participantRef) {
                     participantRef.remove();
@@ -1160,5 +1169,5 @@ photoResult.onload = () => {
             debugLog("First-time user welcome message shown");
         }
     </script>
-</
+</body>
 </html>
