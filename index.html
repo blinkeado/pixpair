@@ -26,24 +26,45 @@
             touch-action: manipulation;
             background-color: #4831D4;
         }
-        .camera-container {
-            position: relative;
-            width: 100%;
-            height: 0;
-            padding-bottom: 133.33%; /* 3:4 aspect ratio */
-            overflow: hidden;
-            background-color: #000;
-            border-radius: 16px;
-            border: 3px solid #CCF381;
-        }
-        .camera-feed {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+
+.camera-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 133.33%;   /* aspecto 3:4 */
+  overflow: hidden;
+  border-radius: 16px;
+  background-color: #000;    /* fondo negro interior */
+  
+  /* custom-property inicial */
+  --angle: 0deg;
+  
+  /* borde de 3px pintado con degradado cónico animable */
+  border: 3px solid transparent;
+  border-image-source: conic-gradient(
+    from var(--angle),
+    #FF3B30, #FF9500, #FFCC00,
+    #34C759, #5AC8FA, #5856D6,
+    #FF2D55, #FF3B30
+  );
+  border-image-slice: 1;
+  
+  /* animación del ángulo */
+  animation: rotate 4s linear infinite;
+}
+.camera-feed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+}
+
+
+
+
+
         .photo-result {
             display: none;
             width: 100%;
@@ -381,7 +402,7 @@
             height: 48px;
             border-radius: 12px;
             outline: none;
-            background: #4831D4;
+            background: rgba(72,49,212,0.6); /* 60% opacity of #4831D4 */
             color: #CCF381;
             cursor: pointer;
             font-weight: bold;
@@ -429,11 +450,9 @@
             z-index: -1;
         }
 
-        @keyframes rotate {
-            to {
-                --angle: 360deg;
-            }
-        }
+      @keyframes rotate {
+  to { --angle: 360deg; }
+}
 
         @property --angle {
             syntax: '<angle>';
@@ -450,6 +469,7 @@
                 background-size: 800% 800%;
                 animation: fallback-rotate 4s linear infinite;
             }
+  
         }
 
         @keyframes fallback-rotate {
@@ -537,8 +557,8 @@
                     
                     <div class="flex justify-between items-center mb-4">
                         <div id="statusIndicator" class="flex items-center">
-                            <div id="connectionStatus" class="w-3 h-3 rounded-full status-disconnected mr-2"></div>
-                            <span id="statusText" class="text-sm text-secondary">Disconnected</span>
+                            <div id="connectionStatus" class="w-3 h-3 rounded-full status-connecting mr-2"></div>
+                            <span id="statusText" class="text-sm text-secondary">Connecting...</span>
                         </div>
                         <div id="peerCount" class="text-sm text-secondary">0 peers connected</div>
                     </div>
@@ -945,412 +965,411 @@
                             const combinedUrl = reader.result;
                             debugLog("Photos combined successfully");
                             
-                    const sizeInKB = Math.round(blob.size / 1024);
-                    imageSizeSpan.textContent = sizeInKB;
-                    debugLog(`Combined image size: ${sizeInKB} KB`);
-                    
-                    resolve(combinedUrl);
+                            const sizeInKB = Math.round(blob.size / 1024);
+                            imageSizeSpan.textContent = sizeInKB;
+                            debugLog(`Combined image size: ${sizeInKB} KB`);
+                            
+                            resolve(combinedUrl);
+                        };
+                        reader.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.95);
                 };
-                reader.readAsDataURL(blob);
-            }, 'image/jpeg', 0.95);
-        };
-        
-        img1.src = photo1;
-        img2.src = photo2;
-    });
-}
-
-// Add photo to gallery
-function addToGallery(photoUrl) {
-    debugLog("Adding photo to gallery");
-    
-    galleryPhotos.push(photoUrl);
-    
-    const galleryItem = document.createElement('div');
-    galleryItem.className = 'gallery-item';
-    
-    const img = document.createElement('img');
-    img.src = photoUrl;
-    img.alt = 'Combined photo';
-    
-    const downloadBtn = document.createElement('button');
-    downloadBtn.className = 'gallery-download-btn';
-    downloadBtn.innerHTML = 
-        `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>`;
-    
-    downloadBtn.addEventListener('click', () => {
-        downloadPhoto(photoUrl);
-    });
-    
-    galleryItem.appendChild(img);
-    galleryItem.appendChild(downloadBtn);
-    galleryItems.appendChild(galleryItem);
-    
-    setupGalleryObserver();
-    
-    if (window.innerWidth < 768) {
-        setTimeout(() => {
-            scrollToGallery();
-        }, 500);
-    }
-    
-    debugLog("Photo added to gallery");
-}
-
-// Scroll to gallery (mobile only)
-function scrollToGallery() {
-    if (window.innerWidth >= 768) return;
-    
-    debugLog("Scrolling to gallery");
-    const gallerySlide = document.querySelector('.gallery-slide');
-    scrollContainer.scrollTo({
-        top: gallerySlide.offsetTop,
-        behavior: 'smooth'
-    });
-}
-
-// Scroll to camera (mobile only)
-function scrollToCamera() {
-    if (window.innerWidth >= 768) return;
-    
-    debugLog("Scrolling to camera");
-    scrollContainer.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
-
-// Join a session
-function joinSession(sessionId, isOwner = false) {
-    debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
-    currentSessionId = sessionId;
-    isSessionOwner = isOwner;
-    userId = generateUserId();
-    lastCaptureTime = 0;
-    
-    galleryPhotos = [];
-    galleryItems.innerHTML = '';
-    hasShownGalleryHint = false;
-    
-    displaySessionId.textContent = sessionId;
-    
-    initCamera();
-    
-    sessionSetup.classList.add('hidden');
-    cameraSection.classList.remove('hidden');
-    
-    captureBtn.disabled = false;
-    statusText.textContent = 'Connecting...';
-    connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
-    
-    downloadBtn.classList.add('hidden');
-    
-    const sessionRef = database.ref(`sessions/${sessionId}`);
-    
-    participantsRef = database.ref(`sessions/${sessionId}/participants`);
-    participantRef = participantsRef.child(userId);
-    
-    participantRef.set({
-        active: true,
-        lastActive: firebase.database.ServerValue.TIMESTAMP
-    });
-    
-    participantRef.onDisconnect().remove();
-    
-    participantsRef.on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const participants = snapshot.val();
-            const participantCount = Object.keys(participants).length;
-            
-            const otherPeers = Math.max(0, participantCount - 1);
-            peerCount.textContent = `${otherPeers} ${otherPeers === 1 ? 'peer' : 'peers'} connected`;
-            debugLog(`Participant count updated: ${otherPeers} other peers`);
-        } else {
-            peerCount.textContent = '0 peers connected';
-            debugLog("No participants in session");
-        }
-    });
-    
-    sessionRef.child('capture').on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const captureData = snapshot.val();
-            if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
-                lastCaptureTime = captureData.captureTime;
-                debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
-                startCountdown(captureData.captureTime);
-            }
-        }
-    });
-    
-    sessionRef.child('photos').on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const photos = snapshot.val();
-            const photoKeys = Object.keys(photos);
-            
-            if (photoKeys.length >= 2) {
-                const photoUrls = [];
-                for (const key in photos) {
-                    photoUrls.push(photos[key].photoData);
-                }
                 
-                debugLog("Both photos received, combining...");
-                
-                combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
-                    combinedResult.src = combinedUrl;
-                    combinedResultContainer.style.display = 'block';
-                    photoResult.style.display = 'none';
-                    cameraFeed.style.display = 'none';
-                    
-                    combinedPhotoUrl = combinedUrl;
-                    
-                    downloadBtn.classList.remove('hidden');
-                    imageQualityInfo.classList.remove('hidden');
-                    
-                    addToGallery(combinedUrl);
-                    
-                    debugLog("Combined photo displayed and added to gallery");
-                    
-                    setTimeout(() => {
-                        debugLog("Restarting camera for next capture");
-                        combinedResultContainer.style.display = 'none';
-                        cameraFeed.style.display = 'block';
-                        initCamera();
-                        
-                        downloadBtn.classList.add('hidden');
-                    }, 2000);
-                    
-                    showToast('Photos combined! Ready to download.');
-                    
-                    debugLog("Clearing photos from Firebase for next capture");
-                    sessionRef.child('photos').remove();
-                });
+                img1.src = photo1;
+                img2.src = photo2;
+            });
+        }
+        
+        // Add photo to gallery
+        function addToGallery(photoUrl) {
+            debugLog("Adding photo to gallery");
+            
+            galleryPhotos.push(photoUrl);
+            
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            
+            const img = document.createElement('img');
+            img.src = photoUrl;
+            img.alt = 'Combined photo';
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'gallery-download-btn';
+            downloadBtn.innerHTML = 
+                `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>`;
+            
+            downloadBtn.addEventListener('click', () => {
+                downloadPhoto(photoUrl);
+            });
+            
+            galleryItem.appendChild(img);
+            galleryItem.appendChild(downloadBtn);
+            galleryItems.appendChild(galleryItem);
+            
+            setupGalleryObserver();
+            
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    scrollToGallery();
+                }, 500);
             }
-        }
-    });
-    
-    sessionRef.on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            statusText.textContent = 'Connected';
-            connectionStatus.className = 'w-3 h-3 rounded-full status-connected mr-2';
-            debugLog("Connected to Firebase session");
-        } else {
-            statusText.textContent = 'Disconnected';
-            connectionStatus.className = 'w-3 h-3 rounded-full status-disconnected mr-2';
-            debugLog("Disconnected from Firebase session");
-        }
-    });
-    
-    sessionRef.on('value', (snapshot) => {
-        if (!snapshot.exists()) {
-            debugLog("Session ended by owner");
-            showToast('Session ended');
-            leaveSession();
-        }
-    });
-}
-
-// Leave current session
-function leaveSession() {
-    debugLog("Leaning current session...");
-    if (currentSessionId) {
-        if (participantRef) {
-            participantRef.remove();
+            
+            debugLog("Photo added to gallery");
         }
         
-        database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
-        
-        if (participantsRef) {
-            participantsRef.off();
+        // Scroll to gallery (mobile only)
+        function scrollToGallery() {
+            if (window.innerWidth >= 768) return;
+            
+            debugLog("Scrolling to gallery");
+            const gallerySlide = document.querySelector('.gallery-slide');
+            scrollContainer.scrollTo({
+                top: gallerySlide.offsetTop,
+                behavior: 'smooth'
+            });
         }
         
-        database.ref(`sessions/${currentSessionId}`).off();
-        
-        if (isSessionOwner) {
-            debugLog("Removing session from Firebase (owner)");
-            database.ref(`sessions/${currentSessionId}`).remove();
+        // Scroll to camera (mobile only)
+        function scrollToCamera() {
+            if (window.innerWidth >= 768) return;
+            
+            debugLog("Scrolling to camera");
+            scrollContainer.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
         
-        currentSessionId = null;
-        stopCamera();
-        
-        sessionSetup.classList.remove('hidden');
-        cameraSection.classList.add('hidden');
-        photoResult.style.display = 'none';
-        combinedResultContainer.style.display = 'none';
-        cameraFeed.style.display = 'block';
-        downloadBtn.classList.add('hidden');
-        imageQualityInfo.classList.add('hidden');
-        cameraSwitchBtn.classList.add('hidden');
-        
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownOverlay.classList.add('hidden');
-        }
-        
-        if (galleryObserver) {
-            galleryObserver.disconnect();
-            galleryObserver = null;
-        }
-        
-        debugLog("Session left successfully");
-    }
-}
-
-// Download photo
-function downloadPhoto(photoUrl = null) {
-    const urlToDownload = photoUrl || combinedPhotoUrl;
-    if (!urlToDownload) return;
-    
-    debugLog("Downloading photo...");
-    const link = document.createElement('a');
-    link.href = urlToDownload;
-    link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    debugLog("Download initiated");
-}
-
-// Copy session ID to clipboard
-sessionIdBadge.addEventListener('click', () => {
-    navigator.clipboard.writeText(currentSessionId).then(() => {
-        showToast('Session ID copied!');
-        debugLog("Session ID copied to clipboard");
-    }).catch(err => {
-        debugLog(`Could not copy session ID: ${err.message}`);
-    });
-});
-
-// Event listeners
-joinSessionBtn.addEventListener('click', () => {
-    const sessionId = sessionIdInput.value.trim();
-    if (sessionId.length >= 4) {
-        joinSession(sessionId, false);
-    } else {
-        showToast('Please enter a valid session ID');
-        debugLog("Invalid session ID entered");
-    }
-});
-
-// Fixed create session button functionality
-createSessionBtn.addEventListener('click', () => {
-    debugLog("Create session button clicked");
-    
-    // Add button press effect
-    createSessionBtn.classList.add('active');
-    setTimeout(() => {
-        createSessionBtn.classList.remove('active');
-    }, 100);
-    
-    const sessionId = generateSessionId();
-    debugLog(`Creating new session: ${sessionId}`);
-    
-    // Initialize the session with a participants node
-    database.ref(`sessions/${sessionId}`).set({
-        created: Date.now(),
-        participants: {
-            [generateUserId()]: {
+        // Join a session
+        function joinSession(sessionId, isOwner = false) {
+            debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
+            currentSessionId = sessionId;
+            isSessionOwner = isOwner;
+            userId = generateUserId();
+            lastCaptureTime = 0;
+            
+            galleryPhotos = [];
+            galleryItems.innerHTML = '';
+            hasShownGalleryHint = false;
+            
+            displaySessionId.textContent = sessionId;
+            
+            initCamera();
+            
+            sessionSetup.classList.add('hidden');
+            cameraSection.classList.remove('hidden');
+            
+            captureBtn.disabled = false;
+            statusText.textContent = 'Connecting...';
+            connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
+            
+            downloadBtn.classList.add('hidden');
+            
+            const sessionRef = database.ref(`sessions/${sessionId}`);
+            
+            participantsRef = database.ref(`sessions/${sessionId}/participants`);
+            participantRef = participantsRef.child(userId);
+            
+            participantRef.set({
                 active: true,
                 lastActive: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            participantRef.onDisconnect().remove();
+            
+            participantsRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const participants = snapshot.val();
+                    const participantCount = Object.keys(participants).length;
+                    
+                    const otherPeers = Math.max(0, participantCount - 1);
+                    peerCount.textContent = `${otherPeers} ${otherPeers === 1 ? 'peer' : 'peers'} connected`;
+                    debugLog(`Participant count updated: ${otherPeers} other peers`);
+                } else {
+                    peerCount.textContent = '0 peers connected';
+                    debugLog("No participants in session");
+                }
+            });
+            
+            sessionRef.child('capture').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const captureData = snapshot.val();
+                    if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
+                        lastCaptureTime = captureData.captureTime;
+                        debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
+                        startCountdown(captureData.captureTime);
+                    }
+                }
+            });
+            
+            sessionRef.child('photos').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const photos = snapshot.val();
+                    const photoKeys = Object.keys(photos);
+                    
+                    if (photoKeys.length >= 2) {
+                        const photoUrls = [];
+                        for (const key in photos) {
+                            photoUrls.push(photos[key].photoData);
+                        }
+                        
+                        debugLog("Both photos received, combining...");
+                        
+                        combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
+                            combinedResult.src = combinedUrl;
+                            combinedResultContainer.style.display = 'block';
+                            photoResult.style.display = 'none';
+                            cameraFeed.style.display = 'none';
+                            
+                            combinedPhotoUrl = combinedUrl;
+                            
+                            downloadBtn.classList.remove('hidden');
+                            imageQualityInfo.classList.remove('hidden');
+                            
+                            addToGallery(combinedUrl);
+                            
+                            debugLog("Combined photo displayed and added to gallery");
+                                            setTimeout(() => {
+                                debugLog("Restarting camera for next capture");
+                                combinedResultContainer.style.display = 'none';
+                                cameraFeed.style.display = 'block';
+                                initCamera();
+                                
+                                downloadBtn.classList.add('hidden');
+                            }, 2000);
+                            
+                            showToast('Photos combined! Ready to download.');
+                            
+                            debugLog("Clearing photos from Firebase for next capture");
+                            sessionRef.child('photos').remove();
+                        });
+                    }
+                }
+            });
+            
+            sessionRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    statusText.textContent = 'Connected';
+                    connectionStatus.className = 'w-3 h-3 rounded-full status-connected mr-2';
+                    debugLog("Connected to Firebase session");
+                } else {
+                    statusText.textContent = 'Disconnected';
+                    connectionStatus.className = 'w-3 h-3 rounded-full status-disconnected mr-2';
+                    debugLog("Disconnected from Firebase session");
+                }
+            });
+            
+            sessionRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    debugLog("Session ended by owner");
+                    showToast('Session ended');
+                    leaveSession();
+                }
+            });
+        }
+        
+        // Leave current session
+        function leaveSession() {
+            debugLog("Leaning current session...");
+            if (currentSessionId) {
+                if (participantRef) {
+                    participantRef.remove();
+                }
+                
+                database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
+                
+                if (participantsRef) {
+                    participantsRef.off();
+                }
+                
+                database.ref(`sessions/${currentSessionId}`).off();
+                
+                if (isSessionOwner) {
+                    debugLog("Removing session from Firebase (owner)");
+                    database.ref(`sessions/${currentSessionId}`).remove();
+                }
+                
+                currentSessionId = null;
+                stopCamera();
+                
+                sessionSetup.classList.remove('hidden');
+                cameraSection.classList.add('hidden');
+                photoResult.style.display = 'none';
+                combinedResultContainer.style.display = 'none';
+                cameraFeed.style.display = 'block';
+                downloadBtn.classList.add('hidden');
+                imageQualityInfo.classList.add('hidden');
+                cameraSwitchBtn.classList.add('hidden');
+                
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownOverlay.classList.add('hidden');
+                }
+                
+                if (galleryObserver) {
+                    galleryObserver.disconnect();
+                    galleryObserver = null;
+                }
+                
+                debugLog("Session left successfully");
             }
         }
-    }).then(() => {
-        debugLog("Session created in Firebase");
-        joinSession(sessionId, true);
-        sessionIdInput.value = sessionId;
-        showToast('New session created!');
-    }).catch(err => {
-        debugLog(`Session creation failed: ${err.message}`);
-        showToast('Failed to create session');
-    });
-});
-
-captureBtn.addEventListener('click', () => {
-    const now = Date.now();
-    if (now - lastCaptureTime < 5000) {
-        debugLog("Capture too soon after last capture");
-        showToast('Please wait before capturing again');
-        return;
-    }
-    
-    const captureTime = Date.now() + 4000;
-    lastCaptureTime = captureTime;
-    
-    debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
-    
-    database.ref(`sessions/${currentSessionId}/capture`).set({
-        captureTime: captureTime
-    }).then(() => {
-        debugLog("Capture command sent to Firebase");
-    }).catch(err => {
-        debugLog(`Failed to send capture command: ${err.message}`);
-    });
-    
-    startCountdown(captureTime);
-});
-
-newSessionBtn.addEventListener('click', leaveSession);
-
-downloadBtn.addEventListener('click', () => downloadPhoto());
-
-combinedDownloadBtn.addEventListener('click', () => downloadPhoto());
-
-cameraSwitchBtn.addEventListener('click', switchCamera);
-
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        debugLog("Page hidden, pausing camera");
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
+        
+        // Download photo
+        function downloadPhoto(photoUrl = null) {
+            const urlToDownload = photoUrl || combinedPhotoUrl;
+            if (!urlToDownload) return;
+            
+            debugLog("Downloading photo...");
+            const link = document.createElement('a');
+            link.href = urlToDownload;
+            link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            debugLog("Download initiated");
         }
-    } else {
-        if (currentSessionId && !stream) {
-            debugLog("Page visible again, resuming camera");
-            initCamera();
+        
+        // Copy session ID to clipboard
+        sessionIdBadge.addEventListener('click', () => {
+            navigator.clipboard.writeText(currentSessionId).then(() => {
+                showToast('Session ID copied!');
+                debugLog("Session ID copied to clipboard");
+            }).catch(err => {
+                debugLog(`Could not copy session ID: ${err.message}`);
+            });
+        });
+        
+        // Event listeners
+        joinSessionBtn.addEventListener('click', () => {
+            const sessionId = sessionIdInput.value.trim();
+            if (sessionId.length >= 4) {
+                joinSession(sessionId, false);
+            } else {
+                showToast('Please enter a valid session ID');
+                debugLog("Invalid session ID entered");
+            }
+        });
+        
+        // Fixed create session button functionality
+        createSessionBtn.addEventListener('click', () => {
+            debugLog("Create session button clicked");
+            
+            // Add button press effect
+            createSessionBtn.classList.add('active');
+            setTimeout(() => {
+                createSessionBtn.classList.remove('active');
+            }, 100);
+            
+            const sessionId = generateSessionId();
+            debugLog(`Creating new session: ${sessionId}`);
+            
+            // Initialize the session with a participants node
+            database.ref(`sessions/${sessionId}`).set({
+                created: Date.now(),
+                participants: {
+                    [generateUserId()]: {
+                        active: true,
+                        lastActive: firebase.database.ServerValue.TIMESTAMP
+                    }
+                }
+            }).then(() => {
+                debugLog("Session created in Firebase");
+                joinSession(sessionId, true);
+                sessionIdInput.value = sessionId;
+                showToast('New session created!');
+            }).catch(err => {
+                debugLog(`Session creation failed: ${err.message}`);
+                showToast('Failed to create session');
+            });
+        });
+        
+        captureBtn.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastCaptureTime < 5000) {
+                debugLog("Capture too soon after last capture");
+                showToast('Please wait before capturing again');
+                return;
+            }
+            
+            const captureTime = Date.now() + 4000;
+            lastCaptureTime = captureTime;
+            
+            debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
+            
+            database.ref(`sessions/${currentSessionId}/capture`).set({
+                captureTime: captureTime
+            }).then(() => {
+                debugLog("Capture command sent to Firebase");
+            }).catch(err => {
+                debugLog(`Failed to send capture command: ${err.message}`);
+            });
+            
+            startCountdown(captureTime);
+        });
+        
+        newSessionBtn.addEventListener('click', leaveSession);
+        
+        downloadBtn.addEventListener('click', () => downloadPhoto());
+        
+        combinedDownloadBtn.addEventListener('click', () => downloadPhoto());
+        
+        cameraSwitchBtn.addEventListener('click', switchCamera);
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                debugLog("Page hidden, pausing camera");
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            } else {
+                if (currentSessionId && !stream) {
+                    debugLog("Page visible again, resuming camera");
+                    initCamera();
+                }
+            }
+        });
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (window.innerWidth >= 768) return;
+            if (!currentSessionId) return;
+            
+            const currentY = e.changedTouches[0].screenY;
+            const deltaY = currentY - touchStartY;
+            
+            if (isGalleryVisible && deltaY > 0 && galleryItems.scrollTop === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', (e) => {
+            if (window.innerWidth >= 768) return;
+            if (!currentSessionId) return;
+            
+            touchEndY = e.changedTouches[0].screenY;
+            const threshold = 50;
+            
+            if (isGalleryVisible && touchEndY - touchStartY > threshold && galleryItems.scrollTop === 0) {
+                scrollToCamera();
+            }
+            else if (!isGalleryVisible && touchStartY - touchEndY > threshold) {
+                scrollToGallery();
+            }
+        }, { passive: true });
+        
+        if (!localStorage.getItem('pixcrab_visited')) {
+            showToast('Share the session ID with a friend to sync photos!');
+            localStorage.setItem('pixcrab_visited', 'true');
+            debugLog("First-time user welcome message shown");
         }
-    }
-});
-
-document.addEventListener('touchstart', (e) => {
-    touchStartY = e.changedTouches[0].screenY;
-}, { passive: true });
-
-document.addEventListener('touchmove', (e) => {
-    if (window.innerWidth >= 768) return;
-    if (!currentSessionId) return;
-    
-    const currentY = e.changedTouches[0].screenY;
-    const deltaY = currentY - touchStartY;
-    
-    if (isGalleryVisible && deltaY > 0 && galleryItems.scrollTop === 0) {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-document.addEventListener('touchend', (e) => {
-    if (window.innerWidth >= 768) return;
-    if (!currentSessionId) return;
-    
-    touchEndY = e.changedTouches[0].screenY;
-    const threshold = 50;
-    
-    if (isGalleryVisible && touchEndY - touchStartY > threshold && galleryItems.scrollTop === 0) {
-        scrollToCamera();
-    }
-    else if (!isGalleryVisible && touchStartY - touchEndY > threshold) {
-        scrollToGallery();
-    }
-}, { passive: true });
-
-if (!localStorage.getItem('pixcrab_visited')) {
-    showToast('Share the session ID with a friend to sync photos!');
-    localStorage.setItem('pixcrab_visited', 'true');
-    debugLog("First-time user welcome message shown");
-}
-</script>
+    </script>
 </body>
 </html>
