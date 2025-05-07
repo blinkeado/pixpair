@@ -32,22 +32,21 @@
   width: 100%;
   padding-bottom: 133.33%;   /* aspecto 3:4 */
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 0px;
   background-color: #000;    /* fondo negro interior */
   
   /* custom-property inicial */
   --angle: 0deg;
   
   /* borde de 3px pintado con degradado cónico animable */
-  border: 3px solid transparent;
+  border: 10px solid transparent;
   border-image-source: conic-gradient(
     from var(--angle),
     #FF3B30, #FF9500, #FFCC00,
     #34C759, #5AC8FA, #5856D6,
     #FF2D55, #FF3B30
   );
-  border-image-slice: 1;
-  
+  border-image-slice: 3;
   /* animación del ángulo */
   animation: rotate 4s linear infinite;
 }
