@@ -26,16 +26,18 @@
             touch-action: manipulation;
             background-color: #4831D4;
         }
-        .camera-container {
-            position: relative;
-            width: 100%;
-            height: 0;
-            padding-bottom: 133.33%; /* 3:4 aspect ratio */
-            overflow: hidden;
-            background-color: #000;
-            border-radius: 16px;
-            border: 3px solid #CCF381;
-        }
+  .camera-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 133.33%; /* 3:4 aspect ratio */
+    overflow: hidden;
+-   background-color: #000;
++   background-color: transparent;
+    border-radius: 16px;
+    border: 3px solid #CCF381;
+}
+
         .camera-feed {
             position: absolute;
             top: 0;
@@ -44,13 +46,20 @@
             height: 100%;
             object-fit: cover;
         }
-        .photo-result {
-            display: none;
-            width: 100%;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border: 3px solid #CCF381;
-        }
+.photo-result {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border: 3px solid #CCF381;
+    z-index: 2;
+}
+
         .pulse {
             animation: pulse 1.5s infinite;
         }
@@ -170,19 +179,7 @@
             width: 50px;
             height: 50px;
         }
-        .watermark {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            color: white;
-            font-size: 56px;
-            font-weight: bold;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-            background-color: rgba(72, 49, 212, 0.7);
-            padding: 8px 16px;
-            border-radius: 4px;
-            z-index: 10;
-        }
+
         .btn-primary {
             background-color: #CCF381;
             color: #4831D4;
@@ -246,10 +243,11 @@
     /* background-color removed so no more black letterbox */
 }
 
-        .photo-download-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
+       .photo-download-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
             background-color: rgba(72, 49, 212, 0.7);
             color: #CCF381;
             border: 1px solid #CCF381;
@@ -724,14 +722,18 @@
                 0, 0, targetWidth, targetHeight
             );
             
-            photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
-            photoResult.style.display = 'block';
-            cameraFeed.style.display = 'none';
-            
-            cameraSection.classList.add('shutter-effect');
-            setTimeout(() => {
-                cameraSection.classList.remove('shutter-effect');
-            }, 500);
+photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
+// espera a que la img esté lista
+photoResult.onload = () => {
+  photoResult.style.display = 'block';
+  cameraFeed.style.display = 'none';
+  cameraSection.classList.add('shutter-effect');
+  setTimeout(() => {
+    cameraSection.classList.remove('shutter-effect');
+  }, 500);
+};
+
+  
             
             debugLog("Photo taken and displayed");
             
@@ -838,14 +840,10 @@
                 downloadPhoto(photoUrl);
             });
             
-            const watermark = document.createElement('div');
-            watermark.className = 'photo-watermark';
-            watermark.textContent = 'PixCrab';
+      
             
             photoSlide.appendChild(img);
-            photoSlide.appendChild(downloadBtn);
-            photoSlide.appendChild(watermark);
-            
+            photoSlide.appendChild(downloadBtn);     
             slideContainer.appendChild(photoSlide);
             
             showHint();
