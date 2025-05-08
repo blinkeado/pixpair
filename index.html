@@ -60,18 +60,28 @@
         }
               
         /* Fixed mobile dimensions */
-        .camera-container {
-            position: relative;
-            width: 100%;
-            max-width: 480px;
-            height: 0;
-            padding-bottom: 133.33%; /* 3:4 aspect ratio */
-            overflow: hidden;
-            background-color: transparent;
-            border-radius: 16px;
-            border: 3px solid #CCF381;
-            margin: 0 auto;
-        }
+.camera-container {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: 0;
+    padding-bottom: 133.33%; /* 3:4 aspect ratio */
+    overflow: hidden;
+    border-radius: 16px;
+    background-color: #000; /* negro como en el original */
+    --angle: 0deg;
+    border: 10px solid transparent;
+    border-image-source: conic-gradient(
+        from var(--angle),
+        #FF3B30, #FF9500, #FFCC00,
+        #34C759, #5AC8FA, #5856D6,
+        #FF2D55, #FF3B30
+    );
+    border-image-slice: 1;
+    animation: rotate 4s linear infinite;
+    margin: 0 auto;
+}
+
 
         .camera-feed {
             position: absolute;
@@ -202,6 +212,94 @@
             padding: 0 20px;
             word-break: break-word;
         }
+.subtitle-muted {
+  color: rgba(204, 243, 129, 0.6); /* secondary suavizado */
+  font-size: 1rem;
+  font-weight: 500;
+}
+/* El filtro de resplandor (drop-shadow) aplicado al propio SVG */
+.logo-glow {
+  filter:
+    drop-shadow(0 0 12px rgba(204,243,129,0.8))
+    drop-shadow(0 0 24px rgba(204,243,129,0.4));
+  border-radius: 50%;
+}
+@keyframes glowSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.glow-ring {
+  background: radial-gradient(circle, rgba(204, 243, 129, 0.4) 30%, transparent 70%);
+  filter: drop-shadow(0 0 12px rgba(204, 243, 129, 0.6)) drop-shadow(0 0 24px rgba(204, 243, 129, 0.4));
+}
+
+
+.animate-glow-spin {
+  animation: glowSpin 4s linear infinite;
+}
+
+
+@keyframes glowRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.logo-glow:hover {
+  transform: scale(1.05);
+}
+/* contenedor del logo */
+.crab-ring {
+  display: inline-block;
+  position: relative;    /* para posicionar el pseudo-elemento */
+  padding: 8px;          /* espacio alrededor del SVG */
+  border-radius: 50%;
+}
+
+/* pseudo-elemento que dibuja y anima solo el borde */
+.crab-ring::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 50%;
+  padding: 4px;          /* grosor del "borde" */
+  background: conic-gradient(
+      #FF3B30, #FF9500, #FFCC00,
+      #34C759, #5AC8FA, #5856D6,
+      #FF2D55, #FF3B30
+    );
+  mask:
+    radial-gradient(
+      farthest-side,
+      transparent calc(100% - 4px),
+      black calc(100% - 4px)
+    ) content-box;
+  animation: glowRotate 4s linear infinite;
+  z-index: 0;
+}
+
+/* asegúrate de que el SVG quede por encima */
+.crab-ring .logo-glow {
+  position: relative;
+  z-index: 1;
+}
+
+/* keyframes para rotar solo el pseudo-elemento */
+@keyframes glowRotate {
+  to { transform: rotate(360deg); }
+}
+
+
+
+
         .image-quality-info {
             font-size: 12px;
             color: #CCF381;
@@ -228,14 +326,22 @@
             height: 50px;
         }
 
-        .btn-primary {
-            background-color: #CCF381;
-            color: #4831D4;
-            font-weight: bold;
-        }
-        .btn-primary:hover {
-            background-color: #b8e06d;
-        }
+   .btn-primary {
+    position: relative;
+    background: linear-gradient(135deg, #CCF381, #dfff87);
+    color: #4831D4;
+    font-weight: bold;
+    border: none;
+    box-shadow: 0 0 12px rgba(204, 243, 129, 0.7), 0 0 24px rgba(204, 243, 129, 0.5);
+    animation: pulse-glow 2s infinite;
+    transition: transform 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 16px rgba(204, 243, 129, 0.8), 0 0 32px rgba(204, 243, 129, 0.6);
+}
+
         .btn-secondary {
             background-color: rgba(204, 243, 129, 0.2);
             color: #CCF381;
@@ -470,8 +576,24 @@
 <body class="h-full">
     <div class="mobile-container">
         <div id="sessionSetup" class="flex-1 flex flex-col items-center justify-center p-6">
-            <h1 class="text-3xl font-bold text-center text-secondary mb-2">PixCrab</h1>
-            <p class="text-secondary text-center mb-6">Pix together in perfect sync</p>
+            <!-- Crab Logo with Glow -->
+<div class="flex justify-center mb-2">
+<div class="crab-ring">
+  <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/crab_1.svg?alt=media&token=d5cd431f-9f0c-490e-be19-f6465249b47d"
+       alt="PixCrab logo"
+       class="logo-glow w-32 h-32" />
+</div>
+
+
+
+
+
+</div>
+<h1 class="text-3xl font-bold text-center text-secondary mb-2">PixCrab</h1>
+
+           <p class="subtitle-muted text-center mb-6">Pix together in perfect sync</p>
+           
+
             
             <div class="w-full space-y-4">
                 <div class="flex w-full">
@@ -1153,25 +1275,30 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
             participantRef.onDisconnect().remove();
             
             // Watch for participants to hide QR when someone joins
-            participantsRef.on('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    const participants = snapshot.val();
-                    const participantCount = Object.keys(participants).length;
-                    
-                    const otherPeers = Math.max(0, participantCount - 1);
-                    peerCount.textContent = `${otherPeers} ${otherPeers === 1 ? 'peer' : 'peers'} connected`;
-                    debugLog(`Participant count updated: ${otherPeers} other peers`);
-                    
-                    // Hide QR overlay when someone joins
-                    if (participantCount > 1) {
-                        qrContainer.classList.add('hidden');
-                        debugLog("Second participant joined, hiding QR overlay");
-                    }
-                } else {
-                    peerCount.textContent = '0 peers connected';
-                    debugLog("No participants in session");
-                }
-            });
+     participantsRef.on('value', (snapshot) => {
+    if (snapshot.exists()) {
+        const participants = snapshot.val();
+        const participantCount = Object.keys(participants).length;
+
+        // ✅ Incluye al creador de la sesión como peer
+        peerCount.textContent = `${participantCount} ${participantCount === 1 ? 'peer' : 'peers'} connected`;
+        debugLog(`Participant count updated: ${participantCount} total peers`);
+
+        // 🔁 Cambio dinámico de color
+        if (participantCount > 1) {
+            peerCount.style.color = '#CCF381'; // Color fuerte cuando hay más de 1
+            qrContainer.classList.add('hidden');
+            debugLog("Second participant joined, hiding QR overlay");
+        } else {
+            peerCount.style.color = '#999999'; // Color apagado cuando solo hay uno
+        }
+    } else {
+        peerCount.textContent = '0 peers connected';
+        peerCount.style.color = '#999999';
+        debugLog("No participants in session");
+    }
+});
+
             
             sessionRef.child('capture').on('value', (snapshot) => {
                 if (snapshot.exists()) {
