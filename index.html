@@ -305,15 +305,17 @@
             position: relative;
         }
 
-        .photo-download-container {
+        .photo-actions-container {
           position: absolute;
           bottom: 20px;
           left: 50%;
           transform: translateX(-50%);
           z-index: 20;
+          display: flex;
+          gap: 20px;
         }
 
-        .photo-download-btn {
+        .photo-action-btn {
             background-color: rgba(72,49,212,0.7);
             color: #CCF381;
             border: 1px solid #CCF381;
@@ -325,7 +327,7 @@
             justify-content: center;
         }
 
-        .photo-download-btn svg {
+        .photo-action-btn svg {
             width: 40px;
             height: 40px;
         }
@@ -354,13 +356,12 @@
             opacity: 0;
             transition: opacity 0.3s ease;
             pointer-events: none;
-            z-index: 10;
-            padding: 8px 16px;
-            background-color: rgba(72, 49, 212, 0.7);
-            border-radius: 20px;
-            margin: 0 auto;
-            width: fit-content;
-            max-width: 80%;
+          padding: 8px 16px;
+          background-color: rgba(72, 49, 212, 0.7);
+          border-radius: 20px;
+          margin: 0 auto;
+          width: fit-content;
+          max-width: 80%;
         }
         .rainbow-button {
             position: relative;
@@ -569,8 +570,9 @@
     <div id="debugConsole" class="debug-console"></div>
 
     <script>
-        // App configuration - centralized base URL
-        const APP_BASE_URL = 'https://pixcrab.netlify.app';
+        // App configuration - centralized base URL at https://pixcrab.netlify.app
+        const APP_BASE_URL = 'https://pixcrab.netlify.app'; // usa tu dominio real aquí
+
 
         // Debugging function
         function debugLog(message) {
@@ -590,7 +592,7 @@
             consoleElem.style.display = consoleElem.style.display === 'none' ? 'block' : 'none';
         });
 
-        // Firebase configuration - preserved exactly as is
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
             authDomain: "pixpair.firebaseapp.com",
@@ -603,7 +605,9 @@
         };
         
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const database = firebase.database();
 
         // DOM elements
@@ -735,8 +739,10 @@
             qrContainer.innerHTML = '';
             qrFallback.classList.add('hidden');
             
-            // Use the centralized base URL
-            const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
+            // Use the current page URL as base,
+const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
+
+            
             debugLog(`QR will encode: ${sessionUrl}`);
 
             try {
@@ -993,6 +999,57 @@
             });
         }
         
+        // Share photo using Web Share API if available, fallback to copying link
+        function sharePhoto(photoUrl) {
+            debugLog("Attempting to share photo...");
+            
+            if (navigator.share) {
+                // Convert data URL to blob for sharing
+                fetch(photoUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const file = new File([blob], 'pixcrab_photo.jpg', { type: 'image/jpeg' });
+                        navigator.share({
+                            title: 'Check out our PixCrab photo!',
+                            text: 'We captured this moment together with PixCrab',
+                            files: [file]
+                        }).then(() => {
+                            debugLog("Share successful");
+                        }).catch(err => {
+                            debugLog(`Share failed: ${err.message}`);
+                            fallbackShare(photoUrl);
+                        });
+                    })
+                    .catch(err => {
+                        debugLog(`Error converting photo for sharing: ${err.message}`);
+                        fallbackShare(photoUrl);
+                    });
+            } else {
+                fallbackShare(photoUrl);
+            }
+        }
+        
+        // Fallback share method when Web Share API isn't available
+        function fallbackShare(photoUrl) {
+            debugLog("Using fallback share method");
+            
+            // Copy the photo URL to clipboard (data URL might be too large)
+            try {
+                navigator.clipboard.writeText("Check out our PixCrab photo! Download it here: " + photoUrl)
+                    .then(() => {
+                        showToast('Photo link copied to clipboard!');
+                        debugLog("Photo URL copied to clipboard");
+                    })
+                    .catch(err => {
+                        debugLog(`Failed to copy photo URL: ${err.message}`);
+                        showToast('Could not share photo. Try downloading it first.');
+                    });
+            } catch (err) {
+                debugLog(`Clipboard API not available: ${err.message}`);
+                showToast('Sharing not supported. Try downloading the photo first.');
+            }
+        }
+        
         // Add photo slide to the container
         function addPhotoSlide(photoUrl) {
             debugLog("Adding photo slide...");
@@ -1007,11 +1064,11 @@
             img.src = photoUrl;
             img.alt = 'Combined photo';
             
-            const downloadContainer = document.createElement('div');
-            downloadContainer.className = 'photo-download-container';
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'photo-actions-container';
             
             const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'photo-download-btn';
+            downloadBtn.className = 'photo-action-btn';
             downloadBtn.innerHTML = 
                 `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1020,11 +1077,25 @@
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>`;
             
-            downloadBtn.addEventListener('click', () => downloadPhoto(photoUrl));
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'photo-action-btn';
+            shareBtn.innerHTML = 
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>`;
             
-            downloadContainer.appendChild(downloadBtn);
+            downloadBtn.addEventListener('click', () => downloadPhoto(photoUrl));
+            shareBtn.addEventListener('click', () => sharePhoto(photoUrl));
+            
+            actionsContainer.appendChild(downloadBtn);
+            actionsContainer.appendChild(shareBtn);
             photoWrapper.appendChild(img);
-            photoWrapper.appendChild(downloadContainer);
+            photoWrapper.appendChild(actionsContainer);
             photoSlide.appendChild(photoWrapper);
             slideContainer.appendChild(photoSlide);
             
