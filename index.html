@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PixCrab - Synchronized Photo Capture</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -438,6 +439,31 @@
         .rainbow-button:active {
             transform: translateY(2px);
         }
+        .qr-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background: #fff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            padding: 8px;
+        }
+        .qr-fallback {
+            color: #4831D4;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            word-break: break-all;
+        }
+        #cameraSection {
+            position: relative;
+        }
     </style>
 </head>
 <body class="h-full">
@@ -501,6 +527,11 @@
                         </button>
                     </div>
                     
+                    <!-- QR Code Overlay -->
+                    <div id="qrcode" class="qr-overlay hidden" aria-label="Session QR code">
+                        <div id="qrFallback" class="qr-fallback hidden"></div>
+                    </div>
+                    
                     <div class="flex justify-between items-center mb-4">
                         <div id="statusIndicator" class="flex items-center">
                             <div id="connectionStatus" class="w-3 h-3 rounded-full status-disconnected mr-2"></div>
@@ -538,6 +569,9 @@
     <div id="debugConsole" class="debug-console"></div>
 
     <script>
+        // App configuration - centralized base URL
+        const APP_BASE_URL = 'https://cornhuskerdepot.com';
+
         // Debugging function
         function debugLog(message) {
             const now = new Date();
@@ -546,7 +580,7 @@
             const logEntry = document.createElement('div');
             logEntry.textContent = `[${timestamp}] ${message}`;
             debugConsole.appendChild(logEntry);
-            debugConsole.scrollTop = debugConsole.scrollHeight;
+            debugConsole.scrollTop = debugConsole.scrollTop = debugConsole.scrollHeight;
             console.log(`[PixCrab] ${message}`);
         }
 
@@ -556,7 +590,7 @@
             consoleElem.style.display = consoleElem.style.display === 'none' ? 'block' : 'none';
         });
 
-        // Firebase configuration
+        // Firebase configuration - preserved exactly as is
         const firebaseConfig = {
             apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
             authDomain: "pixpair.firebaseapp.com",
@@ -571,7 +605,7 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        
+
         // DOM elements
         const sessionSetup = document.getElementById('sessionSetup');
         const cameraSection = document.getElementById('cameraSection');
@@ -596,6 +630,8 @@
         const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
         const slideContainer = document.getElementById('slideContainer');
         const hintText = document.getElementById('hintText');
+        const qrContainer = document.getElementById('qrcode');
+        const qrFallback = document.getElementById('qrFallback');
         
         // App state
         let currentSessionId = null;
@@ -611,6 +647,7 @@
         let hasShownHint = false;
         let touchStartY = 0;
         let touchEndY = 0;
+        let qrCode = null;
         
         // Generate a random session ID
         function generateSessionId() {
@@ -643,6 +680,44 @@
             }, 2000);
             
             debugLog("Hint shown");
+        }
+        
+        // Generate QR code for session using centralized base URL
+        function generateQRCode(sessionId) {
+            debugLog(`Generating QR code for session: ${sessionId}`);
+            
+            // Clear previous QR code if exists
+            if (qrCode) {
+                qrCode.clear();
+                qrCode = null;
+            }
+            
+            qrContainer.innerHTML = '';
+            qrFallback.classList.add('hidden');
+            
+            // Use the centralized base URL
+            const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
+            debugLog(`QR will encode: ${sessionUrl}`);
+
+            try {
+                qrCode = new QRCode(qrContainer, {
+                    text: sessionUrl,
+                    width: 184,
+                    height: 184,
+                    colorDark: "#4831D4",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                
+                qrContainer.classList.remove('hidden');
+                debugLog("QR code generated successfully");
+            } catch (err) {
+                debugLog(`QR code generation failed: ${err.message}`);
+                // Fallback: show session ID
+                qrFallback.textContent = sessionId;
+                qrFallback.classList.remove('hidden');
+                qrContainer.classList.remove('hidden');
+            }
         }
         
         // Initialize camera
@@ -966,6 +1041,7 @@
             
             participantRef.onDisconnect().remove();
             
+            // Watch for participants to hide QR when someone joins
             participantsRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const participants = snapshot.val();
@@ -974,6 +1050,12 @@
                     const otherPeers = Math.max(0, participantCount - 1);
                     peerCount.textContent = `${otherPeers} ${otherPeers === 1 ? 'peer' : 'peers'} connected`;
                     debugLog(`Participant count updated: ${otherPeers} other peers`);
+                    
+                    // Hide QR overlay when someone joins
+                    if (participantCount > 1) {
+                        qrContainer.classList.add('hidden');
+                        debugLog("Second participant joined, hiding QR overlay");
+                    }
                 } else {
                     peerCount.textContent = '0 peers connected';
                     debugLog("No participants in session");
@@ -1074,6 +1156,7 @@
                 cameraFeed.style.display = 'block';
                 imageQualityInfo.classList.add('hidden');
                 cameraSwitchBtn.classList.add('hidden');
+                qrContainer.classList.add('hidden');
                 
                 // Remove all photo slides except the first one (camera view)
                 while (slideContainer.children.length > 1) {
@@ -1125,17 +1208,19 @@
             // Initialize the session with a participants node
             database.ref(`sessions/${sessionId}`).set({
                 created: Date.now(),
-                participants: {
-                    [generateUserId()]: {
-                        active: true,
-                        lastActive: firebase.database.ServerValue.TIMESTAMP
-                    }
-                }
+                participants: {}
             }).then(() => {
                 debugLog("Session created in Firebase");
-                joinSession(sessionId, true);
+                
+                // Generate QR code for the new session
+                generateQRCode(sessionId);
+                
+                // Update UI
                 sessionIdInput.value = sessionId;
-                showToast('New session created!');
+                showToast('New session created! Scan the QR code to share');
+                
+                // Join the session as owner
+                joinSession(sessionId, true);
             }).catch(err => {
                 debugLog(`Session creation failed: ${err.message}`);
                 showToast('Failed to create session');
@@ -1219,11 +1304,23 @@
             }
         }, { passive: true });
         
-        if (!localStorage.getItem('pixcrab_visited')) {
-            showToast('Share the session ID with a friend to sync photos!');
-            localStorage.setItem('pixcrab_visited', 'true');
-            debugLog("First-time user welcome message shown");
-        }
+        // Check for session ID in URL on page load
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const qrSession = params.get('sessionId');
+            
+            if (qrSession) {
+                debugLog(`Found session ID in URL: ${qrSession}`);
+                sessionIdInput.value = qrSession;
+                joinSessionBtn.click();
+            }
+            
+            if (!localStorage.getItem('pixcrab_visited')) {
+                showToast('Share the session ID or QR code with a friend to sync photos!');
+                localStorage.setItem('pixcrab_visited', 'true');
+                debugLog("First-time user welcome message shown");
+            }
+        });
     </script>
 </body>
 </html>
