@@ -222,8 +222,9 @@
   filter:
     drop-shadow(0 0 12px rgba(204,243,129,0.8))
     drop-shadow(0 0 24px rgba(204,243,129,0.4));
-  border-radius: 50%;
+
 }
+
 @keyframes glowSpin {
   from {
     transform: rotate(0deg);
@@ -258,39 +259,27 @@
 }
 /* contenedor del logo */
 .crab-ring {
-  display: inline-block;
-  position: relative;    /* para posicionar el pseudo-elemento */
-  padding: 8px;          /* espacio alrededor del SVG */
+  /* definimos la variable y el borde transparente */
+  --angle: 0deg;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 8rem;
+  height: 8rem;
+  border: 4px solid transparent;
   border-radius: 50%;
+  /* aquí usamos la variable en el degradado */
+  border-image-source: conic-gradient(
+    from var(--angle),
+    #FF3B30, #FF9500, #FFCC00,
+    #34C759, #5AC8FA, #5856D6,
+    #FF2D55, #FF3B30
+  );
+  border-image-slice: 1;
+  /* animamos la variable */
+  animation: rotate 4s linear infinite;
 }
 
-/* pseudo-elemento que dibuja y anima solo el borde */
-.crab-ring::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  border-radius: 50%;
-  padding: 4px;          /* grosor del "borde" */
-  background: conic-gradient(
-      #FF3B30, #FF9500, #FFCC00,
-      #34C759, #5AC8FA, #5856D6,
-      #FF2D55, #FF3B30
-    );
-  mask:
-    radial-gradient(
-      farthest-side,
-      transparent calc(100% - 4px),
-      black calc(100% - 4px)
-    ) content-box;
-  animation: glowRotate 4s linear infinite;
-  z-index: 0;
-}
-
-/* asegúrate de que el SVG quede por encima */
-.crab-ring .logo-glow {
-  position: relative;
-  z-index: 1;
-}
 
 /* keyframes para rotar solo el pseudo-elemento */
 @keyframes glowRotate {
@@ -469,24 +458,30 @@
           width: fit-content;
           max-width: 80%;
         }
-        .rainbow-button {
-            position: relative;
-            width: 100%;
-            height: 48px;
-            border-radius: 12px;
-            outline: none;
-            background: #4831D4;
-            color: #CCF381;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            overflow: hidden;
-            z-index: 1;
-            border: none;
-        }
+.rainbow-button {
+    position: relative;
+    width: 100%;
+    /* ↗️ Eliminamos height y subimos el padding para hacerlo “gordito” */
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    outline: none;
+    background: transparent;   /* interior estático */
+    color: #CCF381;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    z-index: 1;
+    border: none;
+}
+
+.rainbow-button:hover {
+    transform: scale(1.05);
+}
+
         .rainbow-button::before {
             content: '';
             position: absolute;
@@ -509,17 +504,18 @@
             z-index: -1;
             animation: rotate 4s linear infinite;
         }
-        .rainbow-button::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
-            background: #4831D4;
-            border-radius: 10px;
-            z-index: -1;
-        }
+       .rainbow-button::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background: #4831D4;   /* igual que el background estático */
+    border-radius: 10px;
+    z-index: -1;
+}
+
         @keyframes rotate {
             to {
                 --angle: 360deg;
@@ -571,6 +567,26 @@
         #cameraSection {
             position: relative;
         }
+
+        /* sombra base con tu secondary en vez de negro */
+button,
+.btn-primary,
+.btn-secondary,
+.rainbow-button,
+.photo-action-btn {
+  box-shadow: 0 4px 12px rgba(204, 243, 129, 0.3);
+}
+
+/* al hover, intensificas la misma sombra “verde” */
+button:hover,
+.btn-primary:hover,
+.btn-secondary:hover,
+.rainbow-button:hover,
+.photo-action-btn:hover {
+  box-shadow: 0 8px 24px rgba(204, 243, 129, 0.5);
+  transform: translateY(-2px);
+}
+
     </style>
 </head>
 <body class="h-full">
@@ -579,11 +595,10 @@
             <!-- Crab Logo with Glow -->
 <div class="flex justify-center mb-2">
 <div class="crab-ring">
-  <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/crab_1.svg?alt=media&token=d5cd431f-9f0c-490e-be19-f6465249b47d"
+  <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/Group%202.svg?alt=media&token=b1c800ad-5002-437f-923f-611507218699$0"
        alt="PixCrab logo"
-       class="logo-glow w-32 h-32" />
+       class="logo-glow w-34 h-34" />
 </div>
-
 
 
 
