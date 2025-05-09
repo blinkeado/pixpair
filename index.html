@@ -20,6 +20,9 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
     <style>
         /* Force mobile layout with max-width of 480px */
         html, body {
@@ -68,7 +71,7 @@
     padding-bottom: 133.33%; /* 3:4 aspect ratio */
     overflow: hidden;
     border-radius: 16px;
-    background-color: #000; /* negro como en el original */
+    background-color: #000;
     --angle: 0deg;
     border: 10px solid transparent;
     border-image-source: conic-gradient(
@@ -78,19 +81,23 @@
         #FF2D55, #FF3B30
     );
     border-image-slice: 1;
+    clip-path: inset(0 round 16px);
     animation: rotate 4s linear infinite;
     margin: 0 auto;
 }
 
 
-        .camera-feed {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+
+.camera-feed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 110%;
+    height: 110%;
+    object-fit: cover;
+    border-radius: 0 !important; /* 👈 fuerza viewfinder cuadrado */
+}
+
         
         /* Fixed button sizes */
         .mobile-btn {
@@ -586,16 +593,102 @@ button:hover,
   box-shadow: 0 8px 24px rgba(204, 243, 129, 0.5);
   transform: translateY(-2px);
 }
+.auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 480px;
+    padding: 20px;
+    background-color: rgba(72, 49, 212, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    margin-top: 20px;
+}
+.auth-title {
+    color: #CCF381;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+.auth-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    width: 100%;
+}
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.auth-btn-google {
+    background-color: white;
+    color: #5F6368;
+}
+.auth-btn-apple {
+    background-color: black;
+    color: white;
+}
+.auth-btn-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+}
 
     </style>
 </head>
 <body class="h-full">
     <div class="mobile-container">
+      <div id="authSection" class="hidden flex-1 flex flex-col items-center justify-center p-6">
+  <!-- LOGO -->
+  <div class="flex justify-center mb-2">
+    <div class="crab-ring">
+     <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/crab4.svg?alt=media&token=af09e969-4cca-499b-973d-4c69fb4f53c1" alt="PixCrab logo" class="logo-glow w-34 h-34" />
+    </div>
+  </div>
+  <h1 class="text-3xl font-bold text-center text-secondary mb-2">PixCrab</h1>
+  <p class="subtitle-muted text-center mb-6">Pix together in perfect sync</p>
+  
+  <div class="auth-container">
+    <div class="auth-title">Sign in to save your photos</div>
+    <div class="auth-buttons">
+      <div class="auth-buttons">
+  <button id="googleSignIn" class="auth-btn auth-btn-google">
+    <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/icons8-google-144.svg?alt=media&token=8ac8e5cb-6129-4ddd-81ef-d921dd020782" alt="Google logo" class="auth-btn-icon">
+    Continue with Google
+  </button>
+  <button id="appleSignIn" class="auth-btn auth-btn-apple">
+   <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/icons8-apple-inc-256.svg?alt=media&token=27f8e52c-405c-41fc-a1db-18ab9bd8a9dd" alt="Google Apple" class="auth-btn-icon">
+    Continue with Apple
+  </button>
+  <button id="guestSignIn" class="auth-btn btn-secondary">
+    Continue as Guest
+  </button>
+</div>
+
+    </div>
+  </div>
+</div>
+
         <div id="sessionSetup" class="flex-1 flex flex-col items-center justify-center p-6">
             <!-- Crab Logo with Glow -->
 <div class="flex justify-center mb-2">
 <div class="crab-ring">
-  <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/Group%202.svg?alt=media&token=b1c800ad-5002-437f-923f-611507218699$0"
+  <img src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/crab4.svg?alt=media&token=af09e969-4cca-499b-973d-4c69fb4f53c1$0"
        alt="PixCrab logo"
        class="logo-glow w-34 h-34" />
 </div>
@@ -641,6 +734,7 @@ button:hover,
         </div>
         
         <div id="cameraSection" class="hidden w-full h-full">
+          <button onclick="logout()" class="absolute top-4 right-4 text-secondary font-bold z-50">Sign out</button>
             <div class="slide-container" id="slideContainer">
                 <div class="slide">
                     <div class="flex items-center justify-center mb-2">
@@ -746,6 +840,10 @@ button:hover,
             firebase.initializeApp(firebaseConfig);
         }
         const database = firebase.database();
+        const storage = firebase.storage();
+const auth = firebase.auth();
+let currentUser = null;
+
 
         // DOM elements
         const sessionSetup = document.getElementById('sessionSetup');
@@ -1061,18 +1159,109 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
         }
         
         // Upload photo to Firebase
-        function uploadPhoto(photoData) {
-            debugLog("Uploading photo to Firebase...");
-            const photoRef = database.ref(`sessions/${currentSessionId}/photos/${userId}`);
-            photoRef.set({
-                photoData: photoData,
-                timestamp: Date.now()
-            }).then(() => {
-                debugLog("Photo uploaded successfully");
-            }).catch(err => {
-                debugLog(`Photo upload failed: ${err.message}`);
-            });
-        }
+function uploadPhoto(photoData) {
+  if (!currentUser) {
+    debugLog("Cannot upload photo - no user signed in");
+    return;
+  }
+
+  const userId    = currentUser.uid;
+  const photoId   = Date.now().toString();
+  const isGuest   = currentUser.isAnonymous;
+  const sessionId = currentSessionId;              // <— aquí
+
+  const storageRef = storage.ref(`users/${userId}/${photoId}.jpg`);
+  const backupRef  = isGuest
+    ? storage.ref(`analysisData/guests/${userId}/${photoId}.jpg`)
+    : null;
+
+  debugLog(`Uploading photo for user ${userId}`);
+
+  fetch(photoData)
+    .then(res => res.blob())
+    .then(blob => {
+      const fileSize = blob.size;
+
+      // 1) Subida principal (y backup si aplica)
+      return storageRef.put(blob)
+        .then(() => {
+          if (isGuest && backupRef) {
+            debugLog("Creating backup for guest user");
+            return backupRef.put(blob);
+          }
+        })
+        // 2) Guardar metadata tras subir
+        .then(() => collectAndSaveMetadata(sessionId, photoId, fileSize))
+        // 3) Obtener URL pública y guardarla en la sesión
+        .then(() => storageRef.getDownloadURL())
+        .then(url =>
+          database.ref(`sessions/${sessionId}/photos/${userId}`).set({
+            photoData: url,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+          })
+        );
+    })
+    .then(() => {
+       debugLog("Photo uploaded and metadata saved");
+      showToast('Photo saved to your account');
+    })
+    .catch(error => {
+      debugLog(`Photo upload error: ${error.message}`);
+      showToast('Failed to save photo');
+    });
+}
+
+
+
+
+ // 🔧 Esta función recopila y guarda todos los metadatos posibles en Firebase Realtime Database
+async function collectAndSaveMetadata(sessionId, photoId, fileSize) {
+const metadata = {
+    timestamp: Date.now(),
+    sessionId: sessionId,
+    photoId: photoId,
+    size: fileSize, // ✅ Esta es la línea nueva que debes insertar
+    ipInfo: window._geoip || null,
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    languages: navigator.languages,
+    screen: {
+        width: screen.width,
+        height: screen.height,
+        pixelRatio: window.devicePixelRatio
+    },
+    viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+    },
+    hardware: {
+        cores: navigator.hardwareConcurrency,
+        touchPoints: navigator.maxTouchPoints
+    },
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    localTime: new Date().toLocaleString(),
+    network: navigator.connection ? {
+        type: navigator.connection.type,
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt
+    } : null,
+    page: {
+        referrer: document.referrer,
+        url: window.location.href
+    },
+    context: {
+        isMobile: /Mobi|Android/i.test(navigator.userAgent),
+        isGuest: currentUser?.isAnonymous || false
+    }
+};
+
+
+    const userId = currentUser?.uid || 'unknown_user';
+    await database.ref(`users/${userId}/photos/${photoId}/metadata`).set(metadata);
+}
+
         
         // Combine photos vertically with consistent size (2160x3840 - 9:16 aspect ratio)
         function combinePhotos(photo1, photo2) {
@@ -1261,10 +1450,12 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
         // Join a session
         function joinSession(sessionId, isOwner = false) {
             debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
-            currentSessionId = sessionId;
-            isSessionOwner = isOwner;
-            userId = generateUserId();
-            lastCaptureTime = 0;
+           // Antes de ocultar UI y conectar...
+  currentSessionId = sessionId;
+  isSessionOwner  = isOwner;
+  userId          = currentUser.uid;    // ← Ahora usa el UID de Firebase Auth
+  lastCaptureTime = 0;
+
             
             displaySessionId.textContent = sessionId;
             
@@ -1574,6 +1765,58 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
                 debugLog("First-time user welcome message shown");
             }
         });
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        if (user.isAnonymous) {
+            showToast('Guest session active');
+            debugLog('Signed in as guest');
+        } else {
+            debugLog(`User signed in: ${user.email}`);
+        }
+        document.getElementById('authSection').classList.add('hidden');
+        sessionSetup.classList.remove('hidden');
+    } else {
+        currentUser = null;
+        document.getElementById('authSection').classList.remove('hidden');
+        sessionSetup.classList.add('hidden');
+    }
+});
+
+
+document.getElementById('googleSignIn').addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(error => {
+        debugLog(`Google sign-in error: ${error.message}`);
+        showToast('Failed to sign in with Google');
+    });
+});
+
+document.getElementById('appleSignIn').addEventListener('click', () => {
+    const provider = new firebase.auth.OAuthProvider('apple.com');
+    auth.signInWithPopup(provider).catch(error => {
+        debugLog(`Apple sign-in error: ${error.message}`);
+        showToast('Failed to sign in with Apple');
+    });
+});
+document.getElementById('guestSignIn').addEventListener('click', () => {
+    auth.signInAnonymously().catch(error => {
+        debugLog(`Anonymous sign-in error: ${error.message}`);
+        showToast('Failed to continue as guest');
+    });
+});
+
+function logout() {
+    auth.signOut().then(() => {
+        showToast('Signed out');
+    }).catch(error => {
+        debugLog(`Sign out error: ${error.message}`);
+        showToast('Failed to sign out');
+    });
+}
+
+
     </script>
 </body>
 </html>
+
