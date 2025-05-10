@@ -582,13 +582,15 @@ const metadata = {
 
             
             // Combine photos vertically with consistent size (2160x3840 - 9:16 aspect ratio)
-            function combinePhotos(photo1, photo2) {
-                if (!photo1 || !photo2) {
+            function combinePhotos(photo1Url, photo2Url) {
+                if (!photo1Url || !photo2Url) {
                     debugLog("Error: Missing photo URLs for combination");
                     return Promise.reject(new Error("Missing photo URLs"));
                 }
                 
-                debugLog(`Starting photo combination process with ${photo1.substring(0, 50)}... and ${photo2.substring(0, 50)}...`);
+                debugLog(`Starting photo combination process...`);
+                debugLog(`Photo 1 URL: ${photo1Url.substring(0, 50)}...`);
+                debugLog(`Photo 2 URL: ${photo2Url.substring(0, 50)}...`);
                 
                 return new Promise((resolve, reject) => {
                     try {
@@ -656,6 +658,9 @@ const metadata = {
                                             imageSizeSpan.textContent = sizeInKB;
                                             debugLog(`Combined image created successfully. Size: ${sizeInKB} KB`);
                                             
+                                            // Show preview of combined image
+                                            showCombinedImagePreview(combinedUrl);
+                                            
                                             resolve(combinedUrl);
                                         };
                                         
@@ -676,7 +681,7 @@ const metadata = {
                         // Image 1 load handlers
                         img1.onload = () => {
                             img1Loaded = true;
-                            debugLog("First image loaded");
+                            debugLog("First image loaded successfully");
                             checkBothLoaded();
                         };
                         
@@ -688,7 +693,7 @@ const metadata = {
                         // Image 2 load handlers
                         img2.onload = () => {
                             img2Loaded = true;
-                            debugLog("Second image loaded");
+                            debugLog("Second image loaded successfully");
                             checkBothLoaded();
                         };
                         
@@ -703,20 +708,104 @@ const metadata = {
                                 debugLog(`Image loading timed out. img1: ${img1Loaded}, img2: ${img2Loaded}`);
                                 reject(new Error("Image loading timed out"));
                             }
-                        }, 30000); // 30 second timeout
+                        }, 20000); // 20 second timeout
                         
                         // Set cross-origin to anonymous to handle potential CORS issues
                         img1.crossOrigin = "anonymous";
                         img2.crossOrigin = "anonymous";
                         
                         // Start loading the images
-                        img1.src = photo1;
-                        img2.src = photo2;
+                        img1.src = photo1Url;
+                        img2.src = photo2Url;
                     } catch (error) {
                         debugLog(`General error in photo combination: ${error.message}`);
                         reject(error);
                     }
                 });
+            }
+
+            // Show a preview of the combined image with animation
+            function showCombinedImagePreview(imageUrl) {
+                debugLog("Showing combined image preview");
+                
+                // Create or get preview container
+                let previewContainer = document.getElementById('combinedPreview');
+                if (!previewContainer) {
+                    previewContainer = document.createElement('div');
+                    previewContainer.id = 'combinedPreview';
+                    previewContainer.style.position = 'fixed';
+                    previewContainer.style.top = '50%';
+                    previewContainer.style.left = '50%';
+                    previewContainer.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                    previewContainer.style.backgroundColor = 'rgba(0,0,0,0.9)';
+                    previewContainer.style.borderRadius = '12px';
+                    previewContainer.style.padding = '12px';
+                    previewContainer.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)';
+                    previewContainer.style.zIndex = '1000';
+                    previewContainer.style.opacity = '0';
+                    previewContainer.style.transition = 'all 0.3s ease';
+                    
+                    // Add close button
+                    const closeBtn = document.createElement('button');
+                    closeBtn.textContent = '×';
+                    closeBtn.style.position = 'absolute';
+                    closeBtn.style.top = '8px';
+                    closeBtn.style.right = '8px';
+                    closeBtn.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                    closeBtn.style.color = 'white';
+                    closeBtn.style.border = 'none';
+                    closeBtn.style.borderRadius = '50%';
+                    closeBtn.style.width = '30px';
+                    closeBtn.style.height = '30px';
+                    closeBtn.style.fontSize = '20px';
+                    closeBtn.style.cursor = 'pointer';
+                    closeBtn.onclick = () => {
+                        previewContainer.style.opacity = '0';
+                        setTimeout(() => previewContainer.style.display = 'none', 300);
+                    };
+                    
+                    previewContainer.appendChild(closeBtn);
+                    document.body.appendChild(previewContainer);
+                }
+                
+                // Create or update preview image
+                let previewImg = previewContainer.querySelector('img');
+                if (!previewImg) {
+                    previewImg = document.createElement('img');
+                    previewImg.style.maxHeight = '70vh';
+                    previewImg.style.maxWidth = '90vw';
+                    previewImg.style.display = 'block';
+                    previewImg.style.margin = '0 auto';
+                    previewImg.style.borderRadius = '8px';
+                    previewContainer.appendChild(previewImg);
+                }
+                
+                // Add caption
+                let caption = previewContainer.querySelector('p');
+                if (!caption) {
+                    caption = document.createElement('p');
+                    caption.style.color = 'white';
+                    caption.style.textAlign = 'center';
+                    caption.style.marginTop = '8px';
+                    previewContainer.appendChild(caption);
+                }
+                caption.textContent = 'Combined photo created! Swipe up to view in gallery.';
+                
+                // Set image and show preview
+                previewImg.src = imageUrl;
+                previewContainer.style.display = 'block';
+                
+                // Animate in
+                setTimeout(() => {
+                    previewContainer.style.opacity = '1';
+                    previewContainer.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 10);
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    previewContainer.style.opacity = '0';
+                    setTimeout(() => previewContainer.style.display = 'none', 300);
+                }, 5000);
             }
             
             // Share photo using Web Share API if available, fallback to copying link
@@ -911,6 +1000,7 @@ lastCaptureTime = 0;
                     }
                 });
                 
+                // Watch for photo updates and combine when 2+ photos are available
                 sessionRef.child('photos').on('value', (snapshot) => {
                     try {
                         if (snapshot.exists()) {
@@ -918,10 +1008,9 @@ lastCaptureTime = 0;
                             const photoKeys = Object.keys(photos);
                             
                             debugLog(`Photos update in session: ${photoKeys.length} photos available`);
+                            debugLog(`Photo data: ${JSON.stringify(photos)}`);
                             
                             if (photoKeys.length >= 2) {
-                                debugLog(`Photo details: ${JSON.stringify(photos)}`);
-                                
                                 // Get photo URLs
                                 const photoUrls = [];
                                 const photoData = [];
@@ -932,10 +1021,12 @@ lastCaptureTime = 0;
                                         photoData.push({
                                             userId: key,
                                             url: photos[key].photoData,
-                                            timestamp: photos[key].timestamp
+                                            timestamp: photos[key].timestamp || Date.now()
                                         });
+                                        
+                                        debugLog(`Valid photo found for user ${key}: ${photos[key].photoData.substring(0, 50)}...`);
                                     } else {
-                                        debugLog(`Warning: Malformed photo data for user ${key}`);
+                                        debugLog(`Warning: Malformed photo data for user ${key}: ${JSON.stringify(photos[key])}`);
                                     }
                                 }
                                 
@@ -943,16 +1034,37 @@ lastCaptureTime = 0;
                                 if (photoUrls.length >= 2) {
                                     debugLog(`Both photos received, combining... URLs: ${photoUrls.length}`);
                                     
-                                    // Sort photos based on timestamp if available
+                                    // Show a "Processing photos" message
+                                    showToast('Processing photos... please wait');
+                                    
+                                    // Sort photos based on timestamp
                                     photoData.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                                     
                                     // Combine photos using the sorted URLs
                                     const sortedUrls = photoData.map(data => data.url);
                                     const sortedUserIds = photoData.map(data => data.userId);
                                     
-                                    debugLog(`Combining photos with URLs: ${sortedUrls.length}`);
+                                    debugLog(`Combining photos with sorted URLs: ${sortedUrls.map(url => url.substring(0, 30)).join(' | ')}`);
                                     
-                                    combinePhotos(sortedUrls[0], sortedUrls[1])
+                                    // Preload images to ensure they're fully loaded before combination
+                                    const preloadPromises = sortedUrls.map(url => {
+                                        return new Promise((resolve, reject) => {
+                                            const img = new Image();
+                                            img.onload = () => resolve(img);
+                                            img.onerror = reject;
+                                            img.crossOrigin = "anonymous";
+                                            img.src = url;
+                                            // Set a timeout in case images take too long to load
+                                            setTimeout(() => reject(new Error("Image preload timeout")), 10000);
+                                        });
+                                    });
+                                    
+                                    // Wait for both images to preload, then combine
+                                    Promise.all(preloadPromises)
+                                        .then(images => {
+                                            debugLog(`Both images preloaded successfully. Ready to combine.`);
+                                            return combinePhotos(sortedUrls[0], sortedUrls[1]);
+                                        })
                                         .then(async combinedUrl => {
                                             debugLog("Photos combined successfully, updating UI");
                                             
@@ -967,6 +1079,9 @@ lastCaptureTime = 0;
                                             imageQualityInfo.classList.remove('hidden');
                                             debugLog("Combined photo displayed in new slide");
                                             showToast('Photos combined! Swipe up to view.');
+                                            
+                                            // Make sure gallery is visible
+                                            gallerySection.classList.remove('hidden');
                                             
                                             try {
                                                 // Store combined photo for both users
@@ -1001,6 +1116,9 @@ lastCaptureTime = 0;
                                                 photoResult.style.display = 'none';
                                                 cameraFeed.style.display = 'block';
                                             }, 100);
+                                            
+                                            // Show error to user
+                                            showToast('Error combining photos. Please try again.');
                                         });
                                 } else {
                                     debugLog(`Not enough valid photo URLs to combine: ${photoUrls.length}`);
@@ -1430,144 +1548,242 @@ document.getElementById('guestSignIn').addEventListener('click', () => {
     }
 });
 
-// Upload combined photo for both users and store metadata
-async function uploadCombinedPhoto(combinedDataUrl, sessionId, userIds, originalPhotoIds) {
-  if (!combinedDataUrl) {
-    debugLog("Error: Missing combined photo data URL");
-    throw new Error("Missing combined photo data URL");
-  }
-  
-  if (!sessionId) {
-    debugLog("Error: Missing session ID for combined photo");
-    throw new Error("Missing session ID");
-  }
-  
-  if (!userIds || !userIds.length) {
-    debugLog("Error: Missing user IDs for combined photo");
-    throw new Error("Missing user IDs");
-  }
-  
-  debugLog(`Uploading combined photo for users: ${userIds.join(', ')} in session ${sessionId}`);
-  
-  try {
-    const timestamp = Date.now();
-    const combinedPhotoId = `${timestamp}_${originalPhotoIds.join('_')}`;
-    debugLog(`Combined photo ID: ${combinedPhotoId}`);
-
-    // Convert data URL to blob
-    debugLog("Converting data URL to blob...");
-    const blob = await fetch(combinedDataUrl).then(res => res.blob());
-    const fileSize = blob.size;
-    debugLog(`Combined photo size: ${Math.round(fileSize/1024)} KB`);
-
-    // Generate thumbnail (200px wide)
-    debugLog("Generating thumbnail...");
-    const thumbDataUrl = await new Promise((resolve, reject) => {
-      try {
-        const img = new Image();
-        
-        img.onload = function() {
-          try {
-            const scale = 200 / img.width;
-            const canvas = document.createElement('canvas');
-            canvas.width = 200;
-            canvas.height = Math.round(img.height * scale);
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          } catch (err) {
-            debugLog(`Error creating thumbnail: ${err.message}`);
-            reject(err);
-          }
-        };
-        
-        img.onerror = function(err) {
-          debugLog(`Error loading image for thumbnail: ${err}`);
-          reject(new Error("Failed to load image for thumbnail"));
-        };
-        
-        img.src = combinedDataUrl;
-      } catch (err) {
-        debugLog(`Error in thumbnail generation: ${err.message}`);
-        reject(err);
-      }
-    });
+// Add this function to show a gallery indicator
+function showGalleryIndicator() {
+    debugLog("Showing gallery indicator");
     
-    debugLog("Thumbnail generated successfully");
-    const thumbBlob = await fetch(thumbDataUrl).then(res => res.blob());
-    debugLog(`Thumbnail size: ${Math.round(thumbBlob.size/1024)} KB`);
-
-    // For each user, upload and store metadata
-    debugLog(`Processing for ${userIds.length} users...`);
-    let uploadCount = 0;
-    
-    for (const uid of userIds) {
-      // Skip if uid is undefined or null
-      if (!uid) {
-        debugLog(`Skipping undefined/null user ID`);
-        continue;
-      }
-      
-      try {
-        debugLog(`Processing combined photo for user: ${uid}`);
+    // Create or get the indicator
+    let indicator = document.getElementById('galleryIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'galleryIndicator';
+        indicator.style.position = 'fixed';
+        indicator.style.bottom = '80px';
+        indicator.style.left = '50%';
+        indicator.style.transform = 'translateX(-50%)';
+        indicator.style.backgroundColor = 'rgba(204, 243, 129, 0.8)';
+        indicator.style.color = '#4831D4';
+        indicator.style.padding = '8px 16px';
+        indicator.style.borderRadius = '20px';
+        indicator.style.fontWeight = 'bold';
+        indicator.style.zIndex = '99';
+        indicator.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+        indicator.style.animation = 'pulse 2s infinite';
         
-        // Create storage references
-        const storageRef = storage.ref(`users/${uid}/combined/${combinedPhotoId}.jpg`);
-        const thumbRef = storage.ref(`users/${uid}/combined/${combinedPhotoId}_thumb.jpg`);
+        // Add arrow icon
+        const arrowIcon = document.createElement('span');
+        arrowIcon.innerHTML = '⬆️';
+        arrowIcon.style.marginRight = '6px';
         
-        // Upload full image
-        debugLog(`Uploading full image for user ${uid}...`);
-        await storageRef.put(blob);
-        debugLog(`Full image uploaded for user ${uid}`);
+        // Add text
+        const text = document.createElement('span');
+        text.textContent = 'View Gallery';
         
-        // Upload thumbnail
-        debugLog(`Uploading thumbnail for user ${uid}...`);
-        await thumbRef.put(thumbBlob);
-        debugLog(`Thumbnail uploaded for user ${uid}`);
+        indicator.appendChild(arrowIcon);
+        indicator.appendChild(text);
         
-        // Get download URLs
-        debugLog(`Getting download URLs for user ${uid}...`);
-        const url = await storageRef.getDownloadURL();
-        const thumbnailUrl = await thumbRef.getDownloadURL();
-        debugLog(`Download URLs retrieved for user ${uid}`);
-
-        // Build summary metadata
-        const summary = {
-          photoId: combinedPhotoId,
-          url,
-          thumbnailUrl,
-          sessionId,
-          timestamp,
-          combined: true,
-          otherUserId: userIds.find(id => id !== uid),
-          originalPhotoIds,
-          size: fileSize,
-        };
+        // Add click event to scroll to gallery
+        indicator.addEventListener('click', () => {
+            if (slideContainer.children.length > 1) {
+                slideContainer.children[1].scrollIntoView({ behavior: 'smooth' });
+            }
+        });
         
-        // Store summary under user's photos
-        debugLog(`Saving metadata to user/${uid}/photos/${combinedPhotoId}`);
-        await database.ref(`users/${uid}/photos/${combinedPhotoId}`).set(summary);
+        // Add the indicator to the page
+        document.body.appendChild(indicator);
         
-        // Store in session history
-        debugLog(`Adding to user/${uid}/sessions/${sessionId}/photoIds/${combinedPhotoId}`);
-        await database.ref(`users/${uid}/sessions/${sessionId}/photoIds/${combinedPhotoId}`).set(true);
-        
-        debugLog(`Combined photo metadata saved for user: ${uid}`);
-        uploadCount++;
-      } catch (userError) {
-        debugLog(`Error processing for user ${uid}: ${userError.message}`);
-        console.error(`Error processing for user ${uid}:`, userError);
-        // Continue with other users even if one fails
-      }
+        // Add pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: translateX(-50%) scale(1); }
+                50% { transform: translateX(-50%) scale(1.1); }
+                100% { transform: translateX(-50%) scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
     }
     
-    debugLog(`Combined photo upload complete for ${uploadCount}/${userIds.length} users`);
-    return uploadCount > 0; // Success if at least one user was processed
-  } catch (error) {
-    debugLog(`Error uploading combined photo: ${error.message}`);
-    console.error("Combined photo upload error:", error);
-    throw error; // Re-throw to allow caller to handle it
-  }
+    // Show the indicator
+    indicator.style.display = 'block';
+    
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+        indicator.style.display = 'none';
+    }, 8000);
+}
+
+// Modify gallerySection styling to make it more prominent
+document.addEventListener('DOMContentLoaded', () => {
+    const gallerySection = document.getElementById('gallerySection');
+    if (gallerySection) {
+        // Make gallery more visible
+        gallerySection.style.background = 'rgba(72, 49, 212, 0.8)';
+        gallerySection.style.padding = '12px';
+        gallerySection.style.borderRadius = '16px';
+        gallerySection.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        gallerySection.style.backdropFilter = 'blur(5px)';
+        gallerySection.style.margin = '0 8px';
+        
+        // Add gallery heading
+        const galleryHeading = document.createElement('div');
+        galleryHeading.textContent = 'Photo Gallery';
+        galleryHeading.style.color = '#CCF381';
+        galleryHeading.style.fontWeight = 'bold';
+        galleryHeading.style.fontSize = '14px';
+        galleryHeading.style.marginBottom = '8px';
+        galleryHeading.style.textAlign = 'center';
+        
+        // Add the heading to the gallery
+        gallerySection.insertBefore(galleryHeading, gallerySection.firstChild);
+    }
+});
+
+// Update the uploadCombinedPhoto function to show the gallery indicator
+async function uploadCombinedPhoto(combinedDataUrl, sessionId, userIds, originalPhotoIds) {
+    // Existing code...
+    
+    // Rest of the function remains unchanged
+    if (!combinedDataUrl) {
+      debugLog("Error: Missing combined photo data URL");
+      throw new Error("Missing combined photo data URL");
+    }
+    
+    if (!sessionId) {
+      debugLog("Error: Missing session ID for combined photo");
+      throw new Error("Missing session ID");
+    }
+    
+    if (!userIds || !userIds.length) {
+      debugLog("Error: Missing user IDs for combined photo");
+      throw new Error("Missing user IDs");
+    }
+    
+    debugLog(`Uploading combined photo for users: ${userIds.join(', ')} in session ${sessionId}`);
+    
+    try {
+        const timestamp = Date.now();
+        const combinedPhotoId = `${timestamp}_${originalPhotoIds.join('_')}`;
+        debugLog(`Combined photo ID: ${combinedPhotoId}`);
+
+        // Convert data URL to blob
+        debugLog("Converting data URL to blob...");
+        const blob = await fetch(combinedDataUrl).then(res => res.blob());
+        const fileSize = blob.size;
+        debugLog(`Combined photo size: ${Math.round(fileSize/1024)} KB`);
+
+        // Generate thumbnail (200px wide)
+        debugLog("Generating thumbnail...");
+        const thumbDataUrl = await new Promise((resolve, reject) => {
+          try {
+            const img = new Image();
+            
+            img.onload = function() {
+              try {
+                const scale = 200 / img.width;
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+              } catch (err) {
+                debugLog(`Error creating thumbnail: ${err.message}`);
+                reject(err);
+              }
+            };
+            
+            img.onerror = function(err) {
+              debugLog(`Error loading image for thumbnail: ${err}`);
+              reject(new Error("Failed to load image for thumbnail"));
+            };
+            
+            img.src = combinedDataUrl;
+          } catch (err) {
+            debugLog(`Error in thumbnail generation: ${err.message}`);
+            reject(err);
+          }
+        });
+        
+        debugLog("Thumbnail generated successfully");
+        const thumbBlob = await fetch(thumbDataUrl).then(res => res.blob());
+        debugLog(`Thumbnail size: ${Math.round(thumbBlob.size/1024)} KB`);
+
+        // For each user, upload and store metadata
+        debugLog(`Processing for ${userIds.length} users...`);
+        let uploadCount = 0;
+        
+        for (const uid of userIds) {
+          // Skip if uid is undefined or null
+          if (!uid) {
+            debugLog(`Skipping undefined/null user ID`);
+            continue;
+          }
+          
+          try {
+            debugLog(`Processing combined photo for user: ${uid}`);
+            
+            // Create storage references
+            const storageRef = storage.ref(`users/${uid}/combined/${combinedPhotoId}.jpg`);
+            const thumbRef = storage.ref(`users/${uid}/combined/${combinedPhotoId}_thumb.jpg`);
+            
+            // Upload full image
+            debugLog(`Uploading full image for user ${uid}...`);
+            await storageRef.put(blob);
+            debugLog(`Full image uploaded for user ${uid}`);
+            
+            // Upload thumbnail
+            debugLog(`Uploading thumbnail for user ${uid}...`);
+            await thumbRef.put(thumbBlob);
+            debugLog(`Thumbnail uploaded for user ${uid}`);
+            
+            // Get download URLs
+            debugLog(`Getting download URLs for user ${uid}...`);
+            const url = await storageRef.getDownloadURL();
+            const thumbnailUrl = await thumbRef.getDownloadURL();
+            debugLog(`Download URLs retrieved for user ${uid}`);
+
+            // Build summary metadata
+            const summary = {
+              photoId: combinedPhotoId,
+              url,
+              thumbnailUrl,
+              sessionId,
+              timestamp,
+              combined: true,
+              otherUserId: userIds.find(id => id !== uid),
+              originalPhotoIds,
+              size: fileSize,
+            };
+            
+            // Store summary under user's photos
+            debugLog(`Saving metadata to user/${uid}/photos/${combinedPhotoId}`);
+            await database.ref(`users/${uid}/photos/${combinedPhotoId}`).set(summary);
+            
+            // Store in session history
+            debugLog(`Adding to user/${uid}/sessions/${sessionId}/photoIds/${combinedPhotoId}`);
+            await database.ref(`users/${uid}/sessions/${sessionId}/photoIds/${combinedPhotoId}`).set(true);
+            
+            debugLog(`Combined photo metadata saved for user: ${uid}`);
+            uploadCount++;
+          } catch (userError) {
+            debugLog(`Error processing for user ${uid}: ${userError.message}`);
+            console.error(`Error processing for user ${uid}:`, userError);
+            // Continue with other users even if one fails
+          }
+        }
+        
+        debugLog(`Combined photo upload complete for ${uploadCount}/${userIds.length} users`);
+        
+        // Show gallery indicator after successful upload
+        showGalleryIndicator();
+        
+        return uploadCount > 0; // Success if at least one user was processed
+    } catch (error) {
+        debugLog(`Error uploading combined photo: ${error.message}`);
+        console.error("Combined photo upload error:", error);
+        throw error; // Re-throw to allow caller to handle it
+    }
 }
 
 // Add photo to gallery as thumbnail
