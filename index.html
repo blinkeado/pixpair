@@ -93,6 +93,16 @@ let currentUser = null;
                 });
             }
             
+            // View Gallery button on session setup screen
+            const viewGalleryBtn = document.getElementById('viewGalleryBtn');
+            if (viewGalleryBtn) {
+                viewGalleryBtn.addEventListener('click', () => {
+                    debugLog("View Gallery button clicked from session setup");
+                    loadGalleryGrid();
+                    galleryFullScreen.classList.remove('hidden');
+                });
+            }
+            
             if (closeGalleryBtn) {
                 closeGalleryBtn.addEventListener('click', () => {
                     debugLog("Close gallery button clicked");
@@ -2069,16 +2079,51 @@ function saveCombinedPhoto(combinedDataUrl) {
         color: #ffffff;
         height: 100vh;
         overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    /* Mobile Container for Desktop */
+    #mobile-container {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    /* On desktop, create a mobile-like container */
+    @media only screen and (min-width: 768px) {
+        #mobile-container {
+            width: 375px;
+            height: 667px;
+            border-radius: 30px;
+            border: 12px solid #333;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        
+        body {
+            background-color: #121212;
+        }
+        
+        #main-content {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
     }
     
     /* Main container */
     .container {
         display: flex;
         flex-direction: column;
-        height: 100vh;
-        max-width: 100%;
+        height: 100%;
+        width: 100%;
         margin: 0 auto;
         position: relative;
+        overflow: hidden;
     }
     
     /* Authentication section */
@@ -2246,6 +2291,7 @@ function saveCombinedPhoto(combinedDataUrl) {
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        margin-top: 70px; /* Add space for top header */
     }
     
     #cameraFeed {
@@ -2354,6 +2400,7 @@ function saveCombinedPhoto(combinedDataUrl) {
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        padding-bottom: 60px; /* Add padding to prevent browser bar from cutting off content */
     }
     
     .photo-wrapper {
@@ -2523,17 +2570,20 @@ function saveCombinedPhoto(combinedDataUrl) {
     /* Gallery section */
     #gallerySection {
         position: absolute;
-        top: 5rem;
+        bottom: 5rem;  /* Changed from top to bottom positioning */
         left: 1rem;
         right: 1rem;
         display: flex;
         flex-wrap: nowrap;
         overflow-x: auto;
         padding: 0.5rem;
-        background-color: rgba(0,0,0,0.3);
+        background-color: rgba(72, 49, 212, 0.8);
         border-radius: 0.5rem;
         z-index: 10;
         scrollbar-width: none;
+        backdrop-filter: blur(5px);
+        margin: 0 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     
     #gallerySection::-webkit-scrollbar {
@@ -2602,171 +2652,235 @@ function saveCombinedPhoto(combinedDataUrl) {
         right: 1rem;
         background-color: rgba(255,255,255,0.2);
     }
+    
+    /* Add a semi-transparent header bar */
+    .camera-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: rgba(0,0,0,0.7);
+        z-index: 100;
+    }
+    
+    /* Update session badge to show on top of the header bar */
+    .session-badge {
+        display: flex;
+        align-items: center;
+        background-color: rgba(72, 49, 212, 0.8);
+        color: #CCF381;
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin: 0 auto;
+    }
+    
+    /* Make camera switch button consistent with other controls */
+    #cameraSwitchBtn {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: rgba(0,0,0,0.5);
+        border: none;
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        z-index: 100;
+    }
+
+    .gallery-btn {
+        width: 100%;
+        max-width: 300px;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: none;
+        background-color: #333333;
+        color: #ffffff;
+        font-weight: bold;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-bottom: 1rem;
+        transition: transform 0.2s;
+    }
+
+    .gallery-btn:active {
+        transform: scale(0.98);
+    }
 </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Authentication Section -->
-        <div id="authSection" class="hidden">
-            <div class="auth-logo">PixCrab</div>
-            <div class="auth-message">Sync photos with friends in real-time</div>
-            <div class="auth-buttons">
-                <button id="googleSignIn" class="auth-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" class="mr-2">
-                        <path fill="currentColor" d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/>
-                    </svg>
-                    Continue with Google
-                </button>
-                <button id="appleSignIn" class="auth-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" class="mr-2">
-                        <path fill="currentColor" d="M17.05 20.28a9.85 9.85 0 0 1-.98 1.8c-.52.74-1.05 1.32-1.59 1.74-.85.7-1.73 1.06-2.64 1.07-68 0-1.5-.19-2.45-.58-96-.39-1.83-.58-2.63-.58-.83 0-1.73.2-2.71.6-.97.39-1.8.59-2.48.59s-1.52-.2-2.46-.61c-.95-.4-1.73-.61-2.35-.63-.9-.03-1.8-.38-2.68-1.06-.58-.44-1.16-1.04-1.73-1.81a11.2 11.2 0 0 1-1.21-2.27c-.41-.94-.73-2.03-.98-3.25-.27-1.3-.4-2.64-.4-4.01 0-1.6.34-3 1.03-4.2.54-.95 1.26-1.7 2.17-2.27.9-.57 1.9-.86 2.99-.88.6 0 1.37.12 2.33.35.95.23 1.56.35 1.84.35.2 0 .88-.14 2.05-.42 1.1-.25 2.02-.36 2.78-.33 2.06.16 3.6.95 4.63 2.38-1.84 1.12-2.75 2.69-2.75 4.7 0 1.57.58 2.87 1.72 3.9.52.5 1.09.89 1.73 1.18-.14.4-.28.79-.44 1.16zM12.92.02c0 .23-.02.47-.05.7-.04.24-.1.5-.19.75-.33 1.07-.9 1.99-1.72 2.75-.93.81-1.9 1.21-2.9 1.15-.05-.42-.08-.82-.08-1.2 0-.27.03-.57.09-.91.05-.34.14-.67.26-1 .12-.32.28-.63.48-.92.2-.3.4-.55.62-.75.22-.2.48-.4.76-.58.28-.18.52-.31.74-.39.22-.08.5-.16.83-.23.33-.07.58-.1.76-.11h.32z"/>
-                    </svg>
-                    Continue with Apple
-                </button>
-                <button id="guestSignIn" class="auth-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" class="mr-2">
-                        <path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
-                    Continue as Guest
-                </button>
-            </div>
-        </div>
-        
-        <!-- Session Setup Section -->
-        <div id="sessionSetup" class="hidden">
-            <div class="session-logo">PixCrab</div>
-            <div class="session-message">Capture photos with friends in perfect sync</div>
-            <div class="session-input">
-                <input type="text" id="sessionId" placeholder="Enter Session ID" maxlength="10">
-                <button id="joinSession" disabled>Join</button>
-            </div>
-            <button id="createSession" disabled>Create New Session</button>
-            <p class="text-sm text-gray-300">Share the session ID with a friend to sync photos</p>
-            
-            <button id="signOutBtn">Sign Out</button>
-        </div>
-        
-        <!-- Camera Section -->
-        <div id="cameraSection" class="hidden">
-            <div class="flex justify-between items-center w-full p-4 bg-primary">
-                <h1 class="text-2xl font-bold text-secondary">PixCrab</h1>
-                <div class="flex space-x-4">
-                    <button id="galleryBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Gallery</button>
-                    <button id="signOutBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Sign Out</button>
-                </div>
-            </div>
-            
-            <div class="session-badge" id="sessionIdBadge">
-                <span id="displaySessionId"></span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="ml-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                </svg>
-            </div>
-            
-            <div id="slideContainer">
-                <div class="slide">
-                    <div class="camera-feed-container">
-                        <video id="cameraFeed" autoplay playsinline></video>
-                        <img id="photoResult" alt="Photo result">
-                        
-                        <div id="countdownOverlay" class="hidden">
-                            <div id="countdownText" class="hidden">3</div>
-                            <div id="captureText" class="hidden">Snap!</div>
-                        </div>
-                        
-                        <button id="cameraSwitchBtn" class="hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-                                <line x1="16" y1="5" x2="22" y2="5"></line>
-                                <line x1="19" y1="2" x2="19" y2="8"></line>
-                                <circle cx="9" cy="9" r="3"></circle>
-                                <path d="M13 13L9 9"></path>
+    <div id="mobile-container">
+        <div id="main-content">
+            <div class="container">
+                <!-- Authentication Section -->
+                <div id="authSection" class="hidden">
+                    <div class="auth-logo">PixCrab</div>
+                    <div class="auth-message">Sync photos with friends in real-time</div>
+                    <div class="auth-buttons">
+                        <button id="googleSignIn" class="auth-btn">
+                            <svg width="24" height="24" viewBox="0 0 24 24" class="mr-2">
+                                <path fill="currentColor" d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/>
                             </svg>
+                            Continue with Google
                         </button>
-                        
-                        <div id="qrcode" class="hidden"></div>
-                        <div id="qrFallback" class="hidden"></div>
-                        
-                        <div id="hintText">Swipe up to view photos</div>
-                        
-                        <div id="gallerySection" class="hidden"></div>
-                        
-                        <div id="imageQualityInfo" class="hidden">
-                            <span id="imageSize">0</span> KB
+                        <button id="appleSignIn" class="auth-btn">
+                            <svg width="24" height="24" viewBox="0 0 24 24" class="mr-2">
+                                <path fill="currentColor" d="M17.05 20.28a9.85 9.85 0 0 1-.98 1.8c-.52.74-1.05 1.32-1.59 1.74-.85.7-1.73 1.06-2.64 1.07-68 0-1.5-.19-2.45-.58-96-.39-1.83-.58-2.63-.58-.83 0-1.73.2-2.71.6-.97.39-1.8.59-2.48.59s-1.52-.2-2.46-.61c-.95-.4-1.73-.61-2.35-.63-.9-.03-1.8-.38-2.68-1.06-.58-.44-1.16-1.04-1.73-1.81a11.2 11.2 0 0 1-1.21-2.27c-.41-.94-.73-2.03-.98-3.25-.27-1.3-.4-2.64-.4-4.01 0-1.6.34-3 1.03-4.2.54-.95 1.26-1.7 2.17-2.27.9-.57 1.9-.86 2.99-.88.6 0 1.37.12 2.33.35.95.23 1.56.35 1.84.35.2 0 .88-.14 2.05-.42 1.1-.25 2.02-.36 2.78-.33 2.06.16 3.6.95 4.63 2.38-1.84 1.12-2.75 2.69-2.75 4.7 0 1.57.58 2.87 1.72 3.9.52.5 1.09.89 1.73 1.18-.14.4-.28.79-.44 1.16zM12.92.02c0 .23-.02.47-.05.7-.04.24-.1.5-.19.75-.33 1.07-.9 1.99-1.72 2.75-.93.81-1.9 1.21-2.9 1.15-.05-.42-.08-.82-.08-1.2 0-.27.03-.57.09-.91.05-.34.14-.67.26-1 .12-.32.28-.63.48-.92.2-.3.4-.55.62-.75.22-.2.48-.4.76-.58.28-.18.52-.31.74-.39.22-.08.5-.16.83-.23.33-.07.58-.1.76-.11h.32z"/>
+                            </svg>
+                            Continue with Apple
+                        </button>
+                        <button id="guestSignIn" class="auth-btn">
+                            <svg width="24" height="24" viewBox="0 0 24 24" class="mr-2">
+                                <path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                            Continue as Guest
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Session Setup Section -->
+                <div id="sessionSetup" class="hidden">
+                    <div class="session-logo">PixCrab</div>
+                    <div class="session-message">Capture photos with friends in perfect sync</div>
+                    <div class="session-input">
+                        <input type="text" id="sessionId" placeholder="Enter Session ID" maxlength="10">
+                        <button id="joinSession" disabled>Join</button>
+                    </div>
+                    <button id="createSession" disabled>Create New Session</button>
+                    <button id="viewGalleryBtn" class="gallery-btn">View Gallery</button>
+                    <p class="text-sm text-gray-300">Share the session ID with a friend to sync photos</p>
+                    
+                    <button id="signOutBtn">Sign Out</button>
+                </div>
+                
+                <!-- Camera Section -->
+                <div id="cameraSection" class="hidden">
+                    <div class="camera-header">
+                        <h1 class="text-2xl font-bold text-secondary">PixCrab</h1>
+                        <div class="session-badge" id="sessionIdBadge">
+                            <span id="displaySessionId"></span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="ml-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                            </svg>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button id="galleryBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Gallery</button>
+                            <button id="signOutBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Sign Out</button>
                         </div>
                     </div>
                     
-                    <div class="camera-controls">
-                        <button id="newSessionBtn">Exit</button>
-                        <button id="captureBtn" disabled></button>
-                        <div class="w-20"></div>
+                    <div id="slideContainer">
+                        <div class="slide">
+                            <div class="camera-feed-container">
+                                <video id="cameraFeed" autoplay playsinline></video>
+                                <img id="photoResult" alt="Photo result">
+                                
+                                <div id="countdownOverlay" class="hidden">
+                                    <div id="countdownText" class="hidden">3</div>
+                                    <div id="captureText" class="hidden">Snap!</div>
+                                </div>
+                                
+                                <button id="cameraSwitchBtn" class="hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                                        <line x1="16" y1="5" x2="22" y2="5"></line>
+                                        <line x1="19" y1="2" x2="19" y2="8"></line>
+                                        <circle cx="9" cy="9" r="3"></circle>
+                                        <path d="M13 13L9 9"></path>
+                                    </svg>
+                                </button>
+                                
+                                <div id="qrcode" class="hidden"></div>
+                                <div id="qrFallback" class="hidden"></div>
+                                
+                                <div id="hintText">Swipe up to view photos</div>
+                                
+                                <div id="gallerySection" class="hidden"></div>
+                                
+                                <div id="imageQualityInfo" class="hidden">
+                                    <span id="imageSize">0</span> KB
+                                </div>
+                            </div>
+                            
+                            <div class="camera-controls">
+                                <button id="newSessionBtn">Exit</button>
+                                <button id="captureBtn" disabled></button>
+                                <div class="w-20"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- New Dedicated Gallery Section -->
-        <div id="galleryFullScreen" class="hidden fixed inset-0 bg-primary z-50 overflow-y-auto">
-            <div class="flex justify-between items-center w-full p-4 bg-primary shadow-md">
-                <h1 class="text-2xl font-bold text-secondary">Photo Gallery</h1>
-                <button id="closeGalleryBtn" class="btn-secondary px-4 py-2 rounded-lg">Back to Camera</button>
-            </div>
-            
-            <div class="p-4">
-                <div id="galleryGrid" class="grid grid-cols-2 gap-4">
-                    <!-- Gallery items will be added here -->
-                    <div class="text-center text-secondary p-8 col-span-2">
-                        No photos yet. Take some photos with a friend to see them here!
+                
+                <!-- New Dedicated Gallery Section -->
+                <div id="galleryFullScreen" class="hidden fixed inset-0 bg-primary z-50 overflow-y-auto">
+                    <div class="flex justify-between items-center w-full p-4 bg-primary shadow-md">
+                        <h1 class="text-2xl font-bold text-secondary">Photo Gallery</h1>
+                        <button id="closeGalleryBtn" class="btn-secondary px-4 py-2 rounded-lg">Back to Camera</button>
+                    </div>
+                    
+                    <div class="p-4">
+                        <div id="galleryGrid" class="grid grid-cols-2 gap-4">
+                            <!-- Gallery items will be added here -->
+                            <div class="text-center text-secondary p-8 col-span-2">
+                                No photos yet. Take some photos with a friend to see them here!
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Toast Notification -->
-        <div id="toast" class="hidden"></div>
-        
-        <!-- Photo Modal -->
-        <div id="photoModal" class="hidden">
-            <button id="modalCloseBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-            <img id="modalFullImg" src="" alt="Full size photo">
-            <div class="modal-actions">
-                <button id="modalDownloadBtn" class="modal-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                
+                <!-- Toast Notification -->
+                <div id="toast" class="hidden"></div>
+                
+                <!-- Photo Modal -->
+                <div id="photoModal" class="hidden">
+                    <button id="modalCloseBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <img id="modalFullImg" src="" alt="Full size photo">
+                    <div class="modal-actions">
+                        <button id="modalDownloadBtn" class="modal-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                        <button id="modalShareBtn" class="modal-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Debug Console -->
+                <div id="debugConsole"></div>
+                <button id="debugToggle" style="position: fixed; bottom: 10px; right: 10px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; z-index: 1000; display: flex; justify-content: center; align-items: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="4 17 10 11 4 5"></polyline>
+                        <line x1="12" y1="19" x2="20" y2="19"></line>
                     </svg>
                 </button>
-                <button id="modalShareBtn" class="modal-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="18" cy="5" r="3"></circle>
-                        <circle cx="6" cy="12" r="3"></circle>
-                        <circle cx="18" cy="19" r="3"></circle>
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                    </svg>
-                </button>
             </div>
         </div>
-        
-        <!-- Debug Console -->
-        <div id="debugConsole"></div>
-        <button id="debugToggle" style="position: fixed; bottom: 10px; right: 10px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; z-index: 1000; display: flex; justify-content: center; align-items: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="4 17 10 11 4 5"></polyline>
-                <line x1="12" y1="19" x2="20" y2="19"></line>
-            </svg>
-        </button>
     </div>
-    
-    <script>
-// ... rest of the script ...
-    </script>
 </body>
 </html>
