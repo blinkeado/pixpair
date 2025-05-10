@@ -582,15 +582,8 @@ const metadata = {
 
             
             // Combine photos vertically with consistent size (2160x3840 - 9:16 aspect ratio)
-            function combinePhotos(photo1Url, photo2Url) {
-                if (!photo1Url || !photo2Url) {
-                    debugLog("Error: Missing photo URLs for combination");
-                    return Promise.reject(new Error("Missing photo URLs"));
-                }
-                
-                debugLog(`Starting photo combination process...`);
-                debugLog(`Photo 1 URL: ${photo1Url.substring(0, 50)}...`);
-                debugLog(`Photo 2 URL: ${photo2Url.substring(0, 50)}...`);
+            function combinePhotosSimple(photo1, photo2) {
+                debugLog("Starting simple photo combination...");
                 
                 return new Promise((resolve, reject) => {
                     try {
@@ -643,34 +636,16 @@ const metadata = {
                                     
                                     debugLog("Canvas rendering complete, converting to blob...");
                                     
-                                    canvas.toBlob((blob) => {
-                                        if (!blob) {
-                                            debugLog("Error: Failed to create image blob");
-                                            reject(new Error("Failed to create image blob"));
-                                            return;
-                                        }
-                                        
-                                        const reader = new FileReader();
-                                        reader.onload = () => {
-                                            const combinedUrl = reader.result;
-                                            
-                                            const sizeInKB = Math.round(blob.size / 1024);
-                                            imageSizeSpan.textContent = sizeInKB;
-                                            debugLog(`Combined image created successfully. Size: ${sizeInKB} KB`);
-                                            
-                                            // Show preview of combined image
-                                            showCombinedImagePreview(combinedUrl);
-                                            
-                                            resolve(combinedUrl);
-                                        };
-                                        
-                                        reader.onerror = (error) => {
-                                            debugLog(`Error reading combined image: ${error}`);
-                                            reject(new Error("Failed to read combined image"));
-                                        };
-                                        
-                                        reader.readAsDataURL(blob);
-                                    }, 'image/jpeg', 0.95);
+                                    // Get the data URL directly (avoid blob conversion issues)
+                                    const combinedUrl = canvas.toDataURL('image/jpeg', 0.95);
+                                    const sizeEstimate = Math.round(combinedUrl.length / 1350); // Rough estimation
+                                    imageSizeSpan.textContent = sizeEstimate;
+                                    debugLog(`Combined image created successfully. Approx size: ${sizeEstimate} KB`);
+                                    
+                                    // Show success message
+                                    showToast('Photos combined successfully!');
+                                    
+                                    resolve(combinedUrl);
                                 } catch (error) {
                                     debugLog(`Error in canvas operations: ${error.message}`);
                                     reject(error);
@@ -681,7 +656,7 @@ const metadata = {
                         // Image 1 load handlers
                         img1.onload = () => {
                             img1Loaded = true;
-                            debugLog("First image loaded successfully");
+                            debugLog("First image loaded");
                             checkBothLoaded();
                         };
                         
@@ -693,7 +668,7 @@ const metadata = {
                         // Image 2 load handlers
                         img2.onload = () => {
                             img2Loaded = true;
-                            debugLog("Second image loaded successfully");
+                            debugLog("Second image loaded");
                             checkBothLoaded();
                         };
                         
@@ -702,21 +677,23 @@ const metadata = {
                             reject(new Error("Failed to load second image"));
                         };
                         
-                        // Set a maximum time to wait for images
+                        // Set a timeout
                         setTimeout(() => {
                             if (!img1Loaded || !img2Loaded) {
                                 debugLog(`Image loading timed out. img1: ${img1Loaded}, img2: ${img2Loaded}`);
                                 reject(new Error("Image loading timed out"));
                             }
-                        }, 20000); // 20 second timeout
+                        }, 15000);
                         
-                        // Set cross-origin to anonymous to handle potential CORS issues
+                        // Set cross-origin to anonymous
                         img1.crossOrigin = "anonymous";
                         img2.crossOrigin = "anonymous";
                         
                         // Start loading the images
-                        img1.src = photo1Url;
-                        img2.src = photo2Url;
+                        img1.src = photo1;
+                        img2.src = photo2;
+                        
+                        debugLog("Image loading started");
                     } catch (error) {
                         debugLog(`General error in photo combination: ${error.message}`);
                         reject(error);
@@ -1008,117 +985,59 @@ lastCaptureTime = 0;
                             const photoKeys = Object.keys(photos);
                             
                             debugLog(`Photos update in session: ${photoKeys.length} photos available`);
-                            debugLog(`Photo data: ${JSON.stringify(photos)}`);
                             
                             if (photoKeys.length >= 2) {
-                                // Get photo URLs
+                                debugLog(`Photo details: ${JSON.stringify(photos)}`);
+                                
+                                // Get photo URLs - simplify to just an array of URLs
                                 const photoUrls = [];
-                                const photoData = [];
                                 
                                 for (const key in photos) {
                                     if (photos[key] && photos[key].photoData) {
                                         photoUrls.push(photos[key].photoData);
-                                        photoData.push({
-                                            userId: key,
-                                            url: photos[key].photoData,
-                                            timestamp: photos[key].timestamp || Date.now()
-                                        });
-                                        
-                                        debugLog(`Valid photo found for user ${key}: ${photos[key].photoData.substring(0, 50)}...`);
+                                        debugLog(`Valid photo found for user ${key}`);
                                     } else {
-                                        debugLog(`Warning: Malformed photo data for user ${key}: ${JSON.stringify(photos[key])}`);
+                                        debugLog(`Warning: Malformed photo data for user ${key}`);
                                     }
                                 }
                                 
                                 // Check if we have enough valid photo URLs
                                 if (photoUrls.length >= 2) {
-                                    debugLog(`Both photos received, combining... URLs: ${photoUrls.length}`);
+                                    debugLog(`Both photos received, combining... URLs count: ${photoUrls.length}`);
                                     
-                                    // Show a "Processing photos" message
-                                    showToast('Processing photos... please wait');
-                                    
-                                    // Sort photos based on timestamp
-                                    photoData.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                                    
-                                    // Combine photos using the sorted URLs
-                                    const sortedUrls = photoData.map(data => data.url);
-                                    const sortedUserIds = photoData.map(data => data.userId);
-                                    
-                                    debugLog(`Combining photos with sorted URLs: ${sortedUrls.map(url => url.substring(0, 30)).join(' | ')}`);
-                                    
-                                    // Preload images to ensure they're fully loaded before combination
-                                    const preloadPromises = sortedUrls.map(url => {
-                                        return new Promise((resolve, reject) => {
-                                            const img = new Image();
-                                            img.onload = () => resolve(img);
-                                            img.onerror = reject;
-                                            img.crossOrigin = "anonymous";
-                                            img.src = url;
-                                            // Set a timeout in case images take too long to load
-                                            setTimeout(() => reject(new Error("Image preload timeout")), 10000);
-                                        });
-                                    });
-                                    
-                                    // Wait for both images to preload, then combine
-                                    Promise.all(preloadPromises)
-                                        .then(images => {
-                                            debugLog(`Both images preloaded successfully. Ready to combine.`);
-                                            return combinePhotos(sortedUrls[0], sortedUrls[1]);
-                                        })
-                                        .then(async combinedUrl => {
+                                    // Simple direct approach - just use the first two photos
+                                    combinePhotosSimple(photoUrls[0], photoUrls[1])
+                                        .then(combinedUrl => {
                                             debugLog("Photos combined successfully, updating UI");
                                             
-                                            // Update UI - always return to camera view
-                                            setTimeout(() => {
-                                                photoResult.style.display = 'none';
-                                                cameraFeed.style.display = 'block';
-                                            }, 100);
+                                            // Return to camera view
+                                            photoResult.style.display = 'none';
+                                            cameraFeed.style.display = 'block';
                                             
                                             // Add the combined photo to the slideshow/gallery
                                             addPhotoSlide(combinedUrl);
                                             imageQualityInfo.classList.remove('hidden');
+                                            
                                             debugLog("Combined photo displayed in new slide");
                                             showToast('Photos combined! Swipe up to view.');
                                             
-                                            // Make sure gallery is visible
-                                            gallerySection.classList.remove('hidden');
-                                            
-                                            try {
-                                                // Store combined photo for both users
-                                                debugLog(`Uploading combined photo for users: ${sortedUserIds.join(', ')}`);
-                                                await uploadCombinedPhoto(
-                                                    combinedUrl,
-                                                    sessionId,
-                                                    sortedUserIds, // userIds
-                                                    sortedUserIds  // originalPhotoIds (same as userIds here)
-                                                );
-                                                debugLog("Combined photo uploaded and metadata saved for both users");
-                                                
-                                                // Clear photos from session for next capture
-                                                debugLog("Clearing photos from Firebase for next capture");
-                                                await sessionRef.child('photos').remove();
-                                                
-                                                // Refresh gallery to show new combined photo
-                                                setTimeout(() => {
-                                                    loadGalleryPhotos();
-                                                }, 2000);
-                                            } catch (uploadError) {
-                                                debugLog(`Error during combined photo upload: ${uploadError.message}`);
-                                                console.error("Combined photo upload error:", uploadError);
-                                            }
-                                        })
-                                        .catch(combineError => {
-                                            debugLog(`Error combining photos: ${combineError.message}`);
-                                            console.error("Photo combination error:", combineError);
-                                            
-                                            // Return to camera view even if combining fails
+                                            // Show the hint to swipe up
+                                            hintText.style.opacity = '1';
                                             setTimeout(() => {
-                                                photoResult.style.display = 'none';
-                                                cameraFeed.style.display = 'block';
-                                            }, 100);
+                                                hintText.style.opacity = '0';
+                                            }, 3000);
                                             
-                                            // Show error to user
-                                            showToast('Error combining photos. Please try again.');
+                                            // Clear photos from session for next capture
+                                            debugLog("Clearing photos from Firebase for next capture");
+                                            sessionRef.child('photos').remove();
+                                        })
+                                        .catch(error => {
+                                            debugLog(`Error combining photos: ${error.message}`);
+                                            showToast('Error combining photos');
+                                            
+                                            // Return to camera view even if combination fails
+                                            photoResult.style.display = 'none';
+                                            cameraFeed.style.display = 'block';
                                         });
                                 } else {
                                     debugLog(`Not enough valid photo URLs to combine: ${photoUrls.length}`);
@@ -1131,13 +1050,10 @@ lastCaptureTime = 0;
                         }
                     } catch (error) {
                         debugLog(`Error processing photos: ${error.message}`);
-                        console.error("Photo processing error:", error);
                         
-                        // Return to camera view even if error occurs
-                        setTimeout(() => {
-                            photoResult.style.display = 'none';
-                            cameraFeed.style.display = 'block';
-                        }, 100);
+                        // Return to camera view if error occurs
+                        photoResult.style.display = 'none';
+                        cameraFeed.style.display = 'block';
                     }
                 });
                 
