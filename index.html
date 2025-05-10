@@ -447,6 +447,11 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
                     cameraSection.classList.add('shutter-effect');
                     setTimeout(() => {
                         cameraSection.classList.remove('shutter-effect');
+                        // Return to camera view after shutter effect (important fix)
+                        setTimeout(() => {
+                            photoResult.style.display = 'none';
+                            cameraFeed.style.display = 'block';
+                        }, 1000);
                     }, 500);
                 };
                 
@@ -514,8 +519,8 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
                     });
                 })
                 .then(() => {
-                   debugLog("Photo upload complete: storage ✓ metadata ✓ session ✓");
-                   showToast('Photo saved to your account');
+                  debugLog("Photo upload complete: storage ✓ metadata ✓ session ✓");
+                  showToast('Photo saved to your account');
                 })
                 .catch(error => {
                   debugLog(`Photo upload error: ${error.message}`);
@@ -951,9 +956,13 @@ lastCaptureTime = 0;
                                         .then(async combinedUrl => {
                                             debugLog("Photos combined successfully, updating UI");
                                             
-                                            // Update UI
-                                            photoResult.style.display = 'none';
-                                            cameraFeed.style.display = 'block';
+                                            // Update UI - always return to camera view
+                                            setTimeout(() => {
+                                                photoResult.style.display = 'none';
+                                                cameraFeed.style.display = 'block';
+                                            }, 100);
+                                            
+                                            // Add the combined photo to the slideshow/gallery
                                             addPhotoSlide(combinedUrl);
                                             imageQualityInfo.classList.remove('hidden');
                                             debugLog("Combined photo displayed in new slide");
@@ -973,6 +982,11 @@ lastCaptureTime = 0;
                                                 // Clear photos from session for next capture
                                                 debugLog("Clearing photos from Firebase for next capture");
                                                 await sessionRef.child('photos').remove();
+                                                
+                                                // Refresh gallery to show new combined photo
+                                                setTimeout(() => {
+                                                    loadGalleryPhotos();
+                                                }, 2000);
                                             } catch (uploadError) {
                                                 debugLog(`Error during combined photo upload: ${uploadError.message}`);
                                                 console.error("Combined photo upload error:", uploadError);
@@ -981,6 +995,12 @@ lastCaptureTime = 0;
                                         .catch(combineError => {
                                             debugLog(`Error combining photos: ${combineError.message}`);
                                             console.error("Photo combination error:", combineError);
+                                            
+                                            // Return to camera view even if combining fails
+                                            setTimeout(() => {
+                                                photoResult.style.display = 'none';
+                                                cameraFeed.style.display = 'block';
+                                            }, 100);
                                         });
                                 } else {
                                     debugLog(`Not enough valid photo URLs to combine: ${photoUrls.length}`);
@@ -994,6 +1014,12 @@ lastCaptureTime = 0;
                     } catch (error) {
                         debugLog(`Error processing photos: ${error.message}`);
                         console.error("Photo processing error:", error);
+                        
+                        // Return to camera view even if error occurs
+                        setTimeout(() => {
+                            photoResult.style.display = 'none';
+                            cameraFeed.style.display = 'block';
+                        }, 100);
                     }
                 });
                 
@@ -1547,6 +1573,8 @@ async function uploadCombinedPhoto(combinedDataUrl, sessionId, userIds, original
 // Add photo to gallery as thumbnail
 function addGalleryPhoto(photo) {
     debugLog('Adding photo to gallery...');
+    
+    // Create wrapper and container for the thumbnail
     const wrapper = document.createElement('div');
     wrapper.className = 'gallery-photo-wrapper';
     wrapper.style.position = 'relative';
@@ -1558,17 +1586,28 @@ function addGalleryPhoto(photo) {
     wrapper.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
     wrapper.style.background = '#222';
     wrapper.style.marginRight = '8px';
+    
+    // Create the image element
     const img = document.createElement('img');
-    img.src = photo.thumbnailUrl || photo.url;
+    img.src = photo.thumbnailUrl || photo.url; // Use thumbnail if available, otherwise full image
     img.alt = 'Gallery photo';
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'cover';
     img.style.borderRadius = '10px';
     img.style.cursor = 'pointer';
+    
+    // Loading indicator 
+    img.style.opacity = '0.5';
+    img.onload = () => {
+        img.style.opacity = '1';
+        img.style.transition = 'opacity 0.3s ease';
+    };
+    
     // On click, open modal with full image
     img.onclick = () => openPhotoModal(photo.url);
-    // Download button
+    
+    // Create download button
     const dlBtn = document.createElement('button');
     dlBtn.innerHTML = '⬇️';
     dlBtn.title = 'Download';
@@ -1583,10 +1622,24 @@ function addGalleryPhoto(photo) {
     dlBtn.style.height = '24px';
     dlBtn.style.fontSize = '1em';
     dlBtn.style.cursor = 'pointer';
-    dlBtn.onclick = (e) => { e.stopPropagation(); downloadPhoto(photo.url); };
+    
+    // Stop propagation to prevent opening modal when clicking download
+    dlBtn.onclick = (e) => { 
+        e.stopPropagation(); 
+        downloadPhoto(photo.url);
+    };
+    
+    // Assemble the components
     wrapper.appendChild(img);
     wrapper.appendChild(dlBtn);
+    
+    // Prepend to gallery (newest first)
     gallerySection.prepend(wrapper);
+    
+    // Make sure gallery is visible
+    gallerySection.classList.remove('hidden');
+    
+    debugLog(`Photo added to gallery: ${photo.photoId || 'unknown ID'}`);
 }
 
 // Modal logic
@@ -1631,7 +1684,7 @@ async function loadGalleryPhotos() {
         if (snapshot.exists()) {
             const photos = snapshot.val();
             const photoEntries = Object.entries(photos)
-                .filter(([_, photo]) => photo.combined && photo.thumbnailUrl)
+                .filter(([_, photo]) => photo.combined && (photo.thumbnailUrl || photo.url))
                 .sort((a, b) => b[1].timestamp - a[1].timestamp); // Sort newest first
             
             if (photoEntries.length > 0) {
@@ -1639,6 +1692,8 @@ async function loadGalleryPhotos() {
                 photoEntries.forEach(([_, photo]) => {
                     addGalleryPhoto(photo);
                 });
+                // Make gallery visible
+                gallerySection.classList.remove('hidden');
             } else {
                 debugLog("No combined photos found in gallery");
                 gallerySection.innerHTML = '<div class="text-gray-400 text-center p-4">No photos yet</div>';
