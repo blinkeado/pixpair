@@ -1,0 +1,105 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated (either by Google or as guest)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is the owner of the picture
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user is part of the session
+    function isInSession(sessionId) {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/sessions/$(sessionId)/members/$(request.auth.uid));
+    }
+
+    // Rules for user's pictures
+    match /users/{userId}/{photoId} {
+      // Allow upload if user is authenticated
+      allow create: if isAuthenticated();
+      
+      // Allow read if:
+      // 1. User is the owner of the picture
+      // 2. OR user is in the same session as the picture
+      allow read: if isOwner(userId) || 
+                  (resource.metadata.sessionId != null && 
+                   isInSession(resource.metadata.sessionId));
+      
+      // Allow update/delete only by the owner
+      allow update, delete: if isOwner(userId);
+    }
+
+    // Rules for combined pictures
+    match /users/{userId}/combined/{photoId} {
+      // Allow upload if user is authenticated
+      allow create: if isAuthenticated();
+      
+      // Allow read if:
+      // 1. User is the owner of the picture
+      // 2. OR user is in the same session as the picture
+      allow read: if isOwner(userId) || 
+                  (resource.metadata.sessionId != null && 
+                   isInSession(resource.metadata.sessionId));
+      
+      // Allow update/delete only by the owner
+      allow update, delete: if isOwner(userId);
+    }
+
+    // Rules for guest users
+    match /analysisData/guests/{userId}/{photoId} {
+      // Allow uploads by guests
+      allow create, read: if request.auth != null;
+    }
+
+    // Allow access to public assets
+    match /public/{allPaths=**} {
+      allow read: if true;
+    }
+
+    // Default deny all other access
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+// Database rules in separate file
+// Service: firebase.database
+/*
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "test": {
+      ".read": true,
+      ".write": true
+    },
+    "sessions": {
+      "$sessionId": {
+        ".read": true,
+        ".write": "auth != null",
+        "participants": {
+          ".read": true,
+          ".write": "auth != null"
+        },
+        "photos": {
+          ".read": true,
+          ".write": "auth != null"
+        },
+        "capture": {
+          ".read": true,
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}
+*/

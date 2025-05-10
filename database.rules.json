@@ -1,0 +1,38 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "test": {
+      ".read": true,
+      ".write": true
+    },
+    "sessions": {
+      "$sessionId": {
+        ".read": true,
+        ".write": "auth != null",
+        "participants": {
+          ".read": true,
+          ".write": "auth != null"
+        },
+        "photos": {
+          ".read": true,
+          ".write": "auth != null"
+        },
+        "capture": {
+          ".read": true,
+          ".write": "auth != null"
+        }
+      }
+    },
+    "users": {
+      "$userId": {
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId",
+        "photos": {
+          ".read": "auth != null && auth.uid == $userId",
+          ".write": "auth != null && auth.uid == $userId"
+        }
+      }
+    }
+  }
+} 
