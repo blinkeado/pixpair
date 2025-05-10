@@ -1,38 +1,62 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
-    "test": {
-      ".read": true,
-      ".write": true
+    "users": {
+      "$userId": {
+        ".read": true,
+        ".write": true,
+        "photos": {
+          "$photoId": {
+            ".read": true,
+            ".write": true
+          }
+        },
+        "sessions": {
+          "$sessionId": {
+            ".read": true,
+            ".write": true,
+            "photoIds": {
+              "$photoId": {
+                ".read": true,
+                ".write": true
+              }
+            }
+          }
+        }
+      }
     },
     "sessions": {
       "$sessionId": {
         ".read": true,
-        ".write": "auth != null",
+        ".write": true,
+        "photos": {
+          "$userId": {
+            ".read": true,
+            ".write": true
+          }
+        },
         "participants": {
           ".read": true,
-          ".write": "auth != null"
-        },
-        "photos": {
-          ".read": true,
-          ".write": "auth != null"
+          ".write": true
         },
         "capture": {
           ".read": true,
-          ".write": "auth != null"
+          ".write": true
+        },
+        "pictures": {
+          ".read": true,
+          ".write": true
+        },
+        "members": {
+          "$userId": {
+            ".read": true,
+            ".write": true
+          }
         }
       }
     },
-    "users": {
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        "photos": {
-          ".read": "auth != null && auth.uid == $userId",
-          ".write": "auth != null && auth.uid == $userId"
-        }
-      }
+    "test": {
+      ".read": true,
+      ".write": true
     }
   }
 } 

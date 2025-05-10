@@ -9,13 +9,13 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="firebase-config.js"></script>
 
     <script>
         // App configuration
         const APP_BASE_URL = 'https://pixcrab.netlify.app';
-        
+
         // Debugging function
         function debugLog(message) {
             const now = new Date();
@@ -33,7 +33,7 @@
             debugLog("DOM content loaded - initializing application");
             
             // Main app state variables
-            let currentUser = null;
+let currentUser = null;
             let currentSessionId = null;
             let stream = null;
             let isSessionOwner = false;
@@ -50,31 +50,31 @@
             let countdownInterval = null;
             
             // DOM elements - defined early to ensure they're available throughout the code
-            const sessionSetup = document.getElementById('sessionSetup');
-            const cameraSection = document.getElementById('cameraSection');
-            const sessionIdInput = document.getElementById('sessionId');
-            const joinSessionBtn = document.getElementById('joinSession');
-            const createSessionBtn = document.getElementById('createSession');
-            const captureBtn = document.getElementById('captureBtn');
-            const newSessionBtn = document.getElementById('newSessionBtn');
-            const cameraFeed = document.getElementById('cameraFeed');
-            const photoResult = document.getElementById('photoResult');
-            const connectionStatus = document.getElementById('connectionStatus');
-            const statusText = document.getElementById('statusText');
-            const peerCount = document.getElementById('peerCount');
-            const countdownOverlay = document.getElementById('countdownOverlay');
-            const countdownText = document.getElementById('countdownText');
-            const captureText = document.getElementById('captureText');
-            const toast = document.getElementById('toast');
-            const displaySessionId = document.getElementById('displaySessionId');
-            const sessionIdBadge = document.getElementById('sessionIdBadge');
-            const imageQualityInfo = document.getElementById('imageQualityInfo');
-            const imageSizeSpan = document.getElementById('imageSize');
-            const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
-            const slideContainer = document.getElementById('slideContainer');
-            const hintText = document.getElementById('hintText');
-            const qrContainer = document.getElementById('qrcode');
-            const qrFallback = document.getElementById('qrFallback');
+        const sessionSetup = document.getElementById('sessionSetup');
+        const cameraSection = document.getElementById('cameraSection');
+        const sessionIdInput = document.getElementById('sessionId');
+        const joinSessionBtn = document.getElementById('joinSession');
+        const createSessionBtn = document.getElementById('createSession');
+        const captureBtn = document.getElementById('captureBtn');
+        const newSessionBtn = document.getElementById('newSessionBtn');
+        const cameraFeed = document.getElementById('cameraFeed');
+        const photoResult = document.getElementById('photoResult');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const statusText = document.getElementById('statusText');
+        const peerCount = document.getElementById('peerCount');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownText = document.getElementById('countdownText');
+        const captureText = document.getElementById('captureText');
+        const toast = document.getElementById('toast');
+        const displaySessionId = document.getElementById('displaySessionId');
+        const sessionIdBadge = document.getElementById('sessionIdBadge');
+        const imageQualityInfo = document.getElementById('imageQualityInfo');
+        const imageSizeSpan = document.getElementById('imageSize');
+        const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
+        const slideContainer = document.getElementById('slideContainer');
+        const hintText = document.getElementById('hintText');
+        const qrContainer = document.getElementById('qrcode');
+        const qrFallback = document.getElementById('qrFallback');
             const gallerySection = document.getElementById('gallerySection');
             const signOutBtn = document.getElementById('signOutBtn');
             const googleSignInBtn = document.getElementById('googleSignIn');
@@ -211,308 +211,308 @@
 
             // Call reset on page load
             resetCountdownOverlay();
-            
-            // Generate a safe, human-readable session ID using common words
-            async function generateSafeSessionId() {
-                // Fallback function if word list fetch fails
-                const fallbackSessionId = () => {
-                    debugLog("Using fallback alphanumeric session ID generation");
-                    return Math.random().toString(36).substring(2, 8).toUpperCase();
-                };
+        
+        // Generate a safe, human-readable session ID using common words
+        async function generateSafeSessionId() {
+            // Fallback function if word list fetch fails
+            const fallbackSessionId = () => {
+                debugLog("Using fallback alphanumeric session ID generation");
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            };
 
-                try {
-                    debugLog("Attempting to fetch word list for session ID generation");
-                    
-                    // Using a reliable word list from GitHub (MIT license, CORS enabled)
-                    const response = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-medium.txt');
-                    
-                    if (!response.ok) {
-                        debugLog(`Word list fetch failed with status: ${response.status}`);
-                        return fallbackSessionId();
-                    }
-                    
-                    const text = await response.text();
-                    const words = text.split('\n')
-                        .filter(word => word.length >= 3 && word.length <= 5) // 3-5 letter words
-                        .filter(word => /^[a-z]+$/.test(word)); // Only alphabetic words
-                    
-                    if (words.length === 0) {
-                        debugLog("Word list is empty after filtering");
-                        return fallbackSessionId();
-                    }
-                    
-                    // Select a random word from the filtered list
-                    const randomWord = words[Math.floor(Math.random() * words.length)];
-                    const randomNumber = Math.floor(Math.random() * 900) + 100; // 100-999
-                    
-                    // Format: lowercase word + 3-digit number (e.g., "apple123")
-                    const sessionId = `${randomWord.toLowerCase()}${randomNumber}`;
-                    
-                    debugLog(`Generated human-readable session ID: ${sessionId}`);
-                    return sessionId;
-                    
-                } catch (error) {
-                    debugLog(`Error fetching word list: ${error.message}`);
+            try {
+                debugLog("Attempting to fetch word list for session ID generation");
+                
+                // Using a reliable word list from GitHub (MIT license, CORS enabled)
+                const response = await fetch('https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-medium.txt');
+                
+                if (!response.ok) {
+                    debugLog(`Word list fetch failed with status: ${response.status}`);
                     return fallbackSessionId();
                 }
-            }
-            
-            // Generate a random user ID
-            function generateUserId() {
-                return 'user_' + Math.random().toString(36).substring(2, 9);
-            }
-            
-            // Show toast message
-            function showToast(message) {
-                debugLog(`Toast: ${message}`);
-                toast.textContent = message;
-                toast.classList.remove('hidden');
-                setTimeout(() => {
-                    toast.classList.add('hidden');
-                }, 3000);
-            }
-            
-            // Show hint message
-            function showHint() {
-                if (hasShownHint) return;
                 
-                hintText.style.opacity = '1';
-                setTimeout(() => {
-                    hintText.style.opacity = '0';
-                    hasShownHint = true;
-                }, 2000);
+                const text = await response.text();
+                const words = text.split('\n')
+                    .filter(word => word.length >= 3 && word.length <= 5) // 3-5 letter words
+                    .filter(word => /^[a-z]+$/.test(word)); // Only alphabetic words
                 
-                debugLog("Hint shown");
-            }
-            
-            // Generate QR code for session using centralized base URL
-            function generateQRCode(sessionId) {
-                debugLog(`Generating QR code for session: ${sessionId}`);
-                
-                // Clear previous QR code if exists
-                if (qrCode) {
-                    qrCode.clear();
-                    qrCode = null;
+                if (words.length === 0) {
+                    debugLog("Word list is empty after filtering");
+                    return fallbackSessionId();
                 }
                 
-                qrContainer.innerHTML = '';
-                qrFallback.classList.add('hidden');
+                // Select a random word from the filtered list
+                const randomWord = words[Math.floor(Math.random() * words.length)];
+                const randomNumber = Math.floor(Math.random() * 900) + 100; // 100-999
                 
-                // Use the current page URL as base,
+                // Format: lowercase word + 3-digit number (e.g., "apple123")
+                const sessionId = `${randomWord.toLowerCase()}${randomNumber}`;
+                
+                debugLog(`Generated human-readable session ID: ${sessionId}`);
+                return sessionId;
+                
+            } catch (error) {
+                debugLog(`Error fetching word list: ${error.message}`);
+                return fallbackSessionId();
+            }
+        }
+        
+        // Generate a random user ID
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substring(2, 9);
+        }
+        
+        // Show toast message
+        function showToast(message) {
+            debugLog(`Toast: ${message}`);
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Show hint message
+        function showHint() {
+            if (hasShownHint) return;
+            
+            hintText.style.opacity = '1';
+            setTimeout(() => {
+                hintText.style.opacity = '0';
+                hasShownHint = true;
+            }, 2000);
+            
+            debugLog("Hint shown");
+        }
+        
+        // Generate QR code for session using centralized base URL
+        function generateQRCode(sessionId) {
+            debugLog(`Generating QR code for session: ${sessionId}`);
+            
+            // Clear previous QR code if exists
+            if (qrCode) {
+                qrCode.clear();
+                qrCode = null;
+            }
+            
+            qrContainer.innerHTML = '';
+            qrFallback.classList.add('hidden');
+            
+            // Use the current page URL as base,
 const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
 
-                
-                debugLog(`QR will encode: ${sessionUrl}`);
+            
+            debugLog(`QR will encode: ${sessionUrl}`);
 
-                try {
-                    qrCode = new QRCode(qrContainer, {
-                        text: sessionUrl,
-                        width: 184,
-                        height: 184,
-                        colorDark: "#4831D4",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                    
-                    qrContainer.classList.remove('hidden');
-                    debugLog("QR code generated successfully");
-                } catch (err) {
-                    debugLog(`QR code generation failed: ${err.message}`);
-                    // Fallback: show session ID
-                    qrFallback.textContent = sessionId;
-                    qrFallback.classList.remove('hidden');
-                    qrContainer.classList.remove('hidden');
-                }
+            try {
+                qrCode = new QRCode(qrContainer, {
+                    text: sessionUrl,
+                    width: 184,
+                    height: 184,
+                    colorDark: "#4831D4",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                
+                qrContainer.classList.remove('hidden');
+                debugLog("QR code generated successfully");
+            } catch (err) {
+                debugLog(`QR code generation failed: ${err.message}`);
+                // Fallback: show session ID
+                qrFallback.textContent = sessionId;
+                qrFallback.classList.remove('hidden');
+                qrContainer.classList.remove('hidden');
             }
-            
-            // Initialize camera
-            async function initCamera() {
-                try {
-                    debugLog("Initializing camera...");
-                    
-                    if (stream) {
-                        stopCamera();
-                    }
-                    
-                    const constraints = {
-                        video: { 
-                            facingMode: usingFrontCamera ? 'user' : { exact: 'environment' },
-                            width: { ideal: 2560 },
-                            height: { ideal: 1440 },
-                            aspectRatio: 0.75
-                        },
-                        audio: false
-                    };
-                    
-                    stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    cameraFeed.srcObject = stream;
-                    
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                    if (videoDevices.length > 1) {
-                        cameraSwitchBtn.classList.remove('hidden');
-                    }
-                    
-                    debugLog("Camera initialized successfully");
-                } catch (err) {
-                    debugLog(`Camera error: ${err.message}`);
-                    showToast('Could not access camera. Please allow camera permissions.');
-                }
-            }
-            
-            // Stop camera
-            function stopCamera() {
+        }
+        
+        // Initialize camera
+        async function initCamera() {
+            try {
+                debugLog("Initializing camera...");
+                
                 if (stream) {
-                    debugLog("Stopping camera...");
-                    stream.getTracks().forEach(track => track.stop());
-                    cameraFeed.srcObject = null;
-                    stream = null;
-                }
-            }
-            
-            // Switch between front and rear cameras
-            async function switchCamera() {
-                debugLog(`Switching to ${usingFrontCamera ? 'rear' : 'front'} camera`);
-                usingFrontCamera = !usingFrontCamera;
-                await initCamera();
-            }
-            
-            // Start synchronized countdown
-            function startCountdown(captureTime) {
-                debugLog(`Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
-                
-                const now = Date.now();
-                const timeUntilCapture = captureTime - now;
-                
-                if (timeUntilCapture <= 0) {
-                    debugLog("Capture time already passed, taking photo immediately");
-                    takePhoto();
-                    return;
+                    stopCamera();
                 }
                 
+                const constraints = {
+                    video: { 
+                        facingMode: usingFrontCamera ? 'user' : { exact: 'environment' },
+                        width: { ideal: 2560 },
+                        height: { ideal: 1440 },
+                        aspectRatio: 0.75
+                    },
+                    audio: false
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraFeed.srcObject = stream;
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                if (videoDevices.length > 1) {
+                    cameraSwitchBtn.classList.remove('hidden');
+                }
+                
+                debugLog("Camera initialized successfully");
+            } catch (err) {
+                debugLog(`Camera error: ${err.message}`);
+                showToast('Could not access camera. Please allow camera permissions.');
+            }
+        }
+        
+        // Stop camera
+        function stopCamera() {
+            if (stream) {
+                debugLog("Stopping camera...");
+                stream.getTracks().forEach(track => track.stop());
+                cameraFeed.srcObject = null;
+                stream = null;
+            }
+        }
+        
+        // Switch between front and rear cameras
+        async function switchCamera() {
+            debugLog(`Switching to ${usingFrontCamera ? 'rear' : 'front'} camera`);
+            usingFrontCamera = !usingFrontCamera;
+            await initCamera();
+        }
+        
+        // Start synchronized countdown
+        function startCountdown(captureTime) {
+            debugLog(`Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
+            
+            const now = Date.now();
+            const timeUntilCapture = captureTime - now;
+            
+            if (timeUntilCapture <= 0) {
+                debugLog("Capture time already passed, taking photo immediately");
+                takePhoto();
+                return;
+            }
+            
                 // Reset countdown state before starting new countdown
                 resetCountdownOverlay();
-                
+            
                 // Show countdown overlay
                 countdownOverlay.style.display = 'flex';
-                countdownOverlay.classList.remove('hidden');
+            countdownOverlay.classList.remove('hidden');
                 countdownText.style.display = 'block';
-                countdownText.classList.remove('hidden');
-                debugLog("Countdown overlay shown");
+            countdownText.classList.remove('hidden');
+            debugLog("Countdown overlay shown");
+            
+            const countdownSteps = Math.floor(timeUntilCapture / 1000);
+            let currentCount = countdownSteps;
+            
+            countdownText.textContent = currentCount;
+            debugLog(`Countdown started: ${currentCount} seconds remaining`);
+            
+            countdownInterval = setInterval(() => {
+                currentCount--;
                 
-                const countdownSteps = Math.floor(timeUntilCapture / 1000);
-                let currentCount = countdownSteps;
-                
-                countdownText.textContent = currentCount;
-                debugLog(`Countdown started: ${currentCount} seconds remaining`);
-                
-                countdownInterval = setInterval(() => {
-                    currentCount--;
-                    
-                    if (currentCount > 0) {
-                        countdownText.textContent = currentCount;
-                        debugLog(`Countdown: ${currentCount}`);
-                    } else {
+                if (currentCount > 0) {
+                    countdownText.textContent = currentCount;
+                    debugLog(`Countdown: ${currentCount}`);
+                } else {
                         countdownText.style.display = 'none';
-                        countdownText.classList.add('hidden');
+                    countdownText.classList.add('hidden');
                         captureText.style.display = 'block';
-                        captureText.classList.remove('hidden');
-                        debugLog("Countdown: Capture!");
-                    }
-                }, 1000);
-                
-                setTimeout(() => {
-                    debugLog("Countdown complete, taking photo...");
+                    captureText.classList.remove('hidden');
+                    debugLog("Countdown: Capture!");
+                }
+            }, 1000);
+            
+            setTimeout(() => {
+                debugLog("Countdown complete, taking photo...");
                     resetCountdownOverlay();
-                    takePhoto();
-                }, timeUntilCapture);
+                takePhoto();
+            }, timeUntilCapture);
+        }
+        
+        // Take photo at the exact synchronized time
+        function takePhoto() {
+            if (!stream) {
+                debugLog("Cannot take photo - no camera stream");
+                return;
             }
             
-            // Take photo at the exact synchronized time
-            function takePhoto() {
-                if (!stream) {
-                    debugLog("Cannot take photo - no camera stream");
-                    return;
-                }
-                
-                debugLog("Taking photo...");
-                
-                const canvas = document.createElement('canvas');
-                const targetWidth = 2160;
-                const targetHeight = 1920;
-                
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-                
-                const ctx = canvas.getContext('2d');
-                
-                const sourceAspect = cameraFeed.videoWidth / cameraFeed.videoHeight;
-                const targetAspect = targetWidth / targetHeight;
-                
-                let sourceWidth, sourceHeight, sourceX, sourceY;
-                
-                if (sourceAspect > targetAspect) {
-                    sourceHeight = cameraFeed.videoHeight;
-                    sourceWidth = sourceHeight * targetAspect;
-                    sourceX = (cameraFeed.videoWidth - sourceWidth) / 2;
-                    sourceY = 0;
-                } else {
-                    sourceWidth = cameraFeed.videoWidth;
-                    sourceHeight = sourceWidth / targetAspect;
-                    sourceX = 0;
-                    sourceY = (cameraFeed.videoHeight - sourceHeight) / 2;
-                }
-                
-                ctx.drawImage(
-                    cameraFeed, 
-                    sourceX, sourceY, sourceWidth, sourceHeight,
-                    0, 0, targetWidth, targetHeight
-                );
-                
-                photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
-                photoResult.onload = () => {
-                    photoResult.style.display = 'block';
-                    cameraFeed.style.display = 'none';
-                    cameraSection.classList.add('shutter-effect');
-                    setTimeout(() => {
-                        cameraSection.classList.remove('shutter-effect');
+            debugLog("Taking photo...");
+            
+            const canvas = document.createElement('canvas');
+            const targetWidth = 2160;
+            const targetHeight = 1920;
+            
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            
+            const ctx = canvas.getContext('2d');
+            
+            const sourceAspect = cameraFeed.videoWidth / cameraFeed.videoHeight;
+            const targetAspect = targetWidth / targetHeight;
+            
+            let sourceWidth, sourceHeight, sourceX, sourceY;
+            
+            if (sourceAspect > targetAspect) {
+                sourceHeight = cameraFeed.videoHeight;
+                sourceWidth = sourceHeight * targetAspect;
+                sourceX = (cameraFeed.videoWidth - sourceWidth) / 2;
+                sourceY = 0;
+            } else {
+                sourceWidth = cameraFeed.videoWidth;
+                sourceHeight = sourceWidth / targetAspect;
+                sourceX = 0;
+                sourceY = (cameraFeed.videoHeight - sourceHeight) / 2;
+            }
+            
+            ctx.drawImage(
+                cameraFeed, 
+                sourceX, sourceY, sourceWidth, sourceHeight,
+                0, 0, targetWidth, targetHeight
+            );
+            
+            photoResult.src = canvas.toDataURL('image/jpeg', 0.95);
+            photoResult.onload = () => {
+                photoResult.style.display = 'block';
+                cameraFeed.style.display = 'none';
+                cameraSection.classList.add('shutter-effect');
+                setTimeout(() => {
+                    cameraSection.classList.remove('shutter-effect');
                         // Return to camera view after shutter effect (important fix)
                         setTimeout(() => {
                             photoResult.style.display = 'none';
                             cameraFeed.style.display = 'block';
                         }, 1000);
-                    }, 500);
-                };
-                
-                debugLog("Photo taken and displayed");
-                
-                uploadPhoto(canvas.toDataURL('image/jpeg', 0.95));
-            }
+                }, 500);
+            };
             
-            // Upload photo to Firebase
-            function uploadPhoto(photoData) {
-              if (!currentUser) {
-                debugLog("Cannot upload photo - no user signed in");
-                return;
-              }
+            debugLog("Photo taken and displayed");
+            
+            uploadPhoto(canvas.toDataURL('image/jpeg', 0.95));
+        }
+        
+        // Upload photo to Firebase
+function uploadPhoto(photoData) {
+  if (!currentUser) {
+    debugLog("Cannot upload photo - no user signed in");
+    return;
+  }
 
               if (!currentSessionId) {
                 debugLog("Cannot upload photo - no active session");
                 return;
               }
 
-              const userId    = currentUser.uid;
-              const photoId   = Date.now().toString();
-              const isGuest   = currentUser.isAnonymous;
+  const userId    = currentUser.uid;
+  const photoId   = Date.now().toString();
+  const isGuest   = currentUser.isAnonymous;
               const sessionId = currentSessionId;
 
               debugLog(`Uploading photo for user ${userId} in session ${sessionId}`);
 
               // First convert photoData to a blob
-              fetch(photoData)
-                  .then(res => res.blob())
-                  .then(blob => {
-                      const fileSize = blob.size;
+  fetch(photoData)
+    .then(res => res.blob())
+    .then(blob => {
+      const fileSize = blob.size;
                       debugLog(`Photo size: ${Math.round(fileSize/1024)} KB`);
 
                       // Create a storage reference directly in the database
@@ -523,15 +523,15 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
                           photoData: photoData, // Store the data URL directly
                           timestamp: firebase.database.ServerValue.TIMESTAMP,
                           userId: userId
-                      })
-                      .then(() => {
+    })
+    .then(() => {
                           debugLog("Photo stored in database successfully");
                           showToast('Photo saved!');
                           
                           // Also save metadata
                           collectAndSaveMetadata(sessionId, photoId, fileSize);
-                      })
-                      .catch(error => {
+    })
+    .catch(error => {
                           debugLog(`Error storing photo in database: ${error.message}`);
                           showToast('Error saving photo');
                       });
@@ -539,8 +539,8 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
                   .catch(error => {
                       debugLog(`Error processing photo: ${error.message}`);
                       showToast('Error processing photo');
-                  });
-            }
+    });
+}
 
 
 
@@ -593,8 +593,8 @@ const metadata = {
     await database.ref(`users/${userId}/photos/${photoId}/metadata`).set(metadata);
 }
 
-            
-            // Combine photos vertically with consistent size (2160x3840 - 9:16 aspect ratio)
+        
+        // Combine photos vertically with consistent size (2160x3840 - 9:16 aspect ratio)
             function combinePhotosSimple(photo1, photo2) {
                 debugLog("Starting simple photo combination...");
                 
@@ -610,7 +610,7 @@ const metadata = {
                             if (img1Loaded && img2Loaded) {
                                 try {
                                     debugLog(`Both images loaded successfully. Dimensions: ${img1.width}x${img1.height} and ${img2.width}x${img2.height}`);
-                                    
+                
                                     const individualWidth = 2160;
                                     const individualHeight = 1920;
                                     
@@ -647,12 +647,14 @@ const metadata = {
                                     ctx.textBaseline = 'bottom';
                                     ctx.fillText('PixCrab', combinedWidth - 40, combinedHeight - 40);
                                     
-                                    debugLog("Canvas rendering complete, converting to blob...");
+                                    debugLog("Canvas rendering complete, converting to data URL...");
                                     
                                     // Get the data URL directly (avoid blob conversion issues)
                                     const combinedUrl = canvas.toDataURL('image/jpeg', 0.95);
                                     const sizeEstimate = Math.round(combinedUrl.length / 1350); // Rough estimation
-                                    imageSizeSpan.textContent = sizeEstimate;
+                                    if (imageSizeSpan) {
+                                        imageSizeSpan.textContent = sizeEstimate;
+                                    }
                                     debugLog(`Combined image created successfully. Approx size: ${sizeEstimate} KB`);
                                     
                                     // Show success message
@@ -797,217 +799,239 @@ const metadata = {
                     setTimeout(() => previewContainer.style.display = 'none', 300);
                 }, 5000);
             }
+        
+        // Share photo using Web Share API if available, fallback to copying link
+        function sharePhoto(photoUrl) {
+            debugLog("Attempting to share photo...");
             
-            // Share photo using Web Share API if available, fallback to copying link
-            function sharePhoto(photoUrl) {
-                debugLog("Attempting to share photo...");
-                
-                if (navigator.share) {
-                    // Convert data URL to blob for sharing
-                    fetch(photoUrl)
-                        .then(res => res.blob())
-                        .then(blob => {
-                            const file = new File([blob], 'pixcrab_photo.jpg', { type: 'image/jpeg' });
-                            navigator.share({
-                                title: 'Check out our PixCrab photo!',
-                                text: 'We captured this moment together with PixCrab',
-                                files: [file]
-                            }).then(() => {
-                                debugLog("Share successful");
-                            }).catch(err => {
-                                debugLog(`Share failed: ${err.message}`);
-                                fallbackShare(photoUrl);
-                            });
-                        })
-                        .catch(err => {
-                            debugLog(`Error converting photo for sharing: ${err.message}`);
+            if (navigator.share) {
+                // Convert data URL to blob for sharing
+                fetch(photoUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const file = new File([blob], 'pixcrab_photo.jpg', { type: 'image/jpeg' });
+                        navigator.share({
+                            title: 'Check out our PixCrab photo!',
+                            text: 'We captured this moment together with PixCrab',
+                            files: [file]
+                        }).then(() => {
+                            debugLog("Share successful");
+                        }).catch(err => {
+                            debugLog(`Share failed: ${err.message}`);
                             fallbackShare(photoUrl);
                         });
-                } else {
-                    fallbackShare(photoUrl);
-                }
+                    })
+                    .catch(err => {
+                        debugLog(`Error converting photo for sharing: ${err.message}`);
+                        fallbackShare(photoUrl);
+                    });
+            } else {
+                fallbackShare(photoUrl);
             }
+        }
+        
+        // Fallback share method when Web Share API isn't available
+        function fallbackShare(photoUrl) {
+            debugLog("Using fallback share method");
             
-            // Fallback share method when Web Share API isn't available
-            function fallbackShare(photoUrl) {
-                debugLog("Using fallback share method");
-                
-                // Copy the photo URL to clipboard (data URL might be too large)
-                try {
-                    navigator.clipboard.writeText("Check out our PixCrab photo! Download it here: " + photoUrl)
-                        .then(() => {
-                            showToast('Photo link copied to clipboard!');
-                            debugLog("Photo URL copied to clipboard");
-                        })
-                        .catch(err => {
-                            debugLog(`Failed to copy photo URL: ${err.message}`);
-                            showToast('Could not share photo. Try downloading it first.');
-                        });
-                } catch (err) {
-                    debugLog(`Clipboard API not available: ${err.message}`);
-                    showToast('Sharing not supported. Try downloading the photo first.');
-                }
+            // Copy the photo URL to clipboard (data URL might be too large)
+            try {
+                navigator.clipboard.writeText("Check out our PixCrab photo! Download it here: " + photoUrl)
+                    .then(() => {
+                        showToast('Photo link copied to clipboard!');
+                        debugLog("Photo URL copied to clipboard");
+                    })
+                    .catch(err => {
+                        debugLog(`Failed to copy photo URL: ${err.message}`);
+                        showToast('Could not share photo. Try downloading it first.');
+                    });
+            } catch (err) {
+                debugLog(`Clipboard API not available: ${err.message}`);
+                showToast('Sharing not supported. Try downloading the photo first.');
             }
+        }
+        
+        // Add photo slide to the container
+        function addPhotoSlide(photoUrl) {
+            debugLog("Adding photo slide...");
             
-            // Add photo slide to the container
-            function addPhotoSlide(photoUrl) {
-                debugLog("Adding photo slide...");
-                
-                const photoSlide = document.createElement('div');
-                photoSlide.className = 'photo-slide';
-                
-                const photoWrapper = document.createElement('div');
-                photoWrapper.className = 'photo-wrapper';
-                
-                const img = document.createElement('img');
-                img.src = photoUrl;
-                img.alt = 'Combined photo';
-                
-                const actionsContainer = document.createElement('div');
-                actionsContainer.className = 'photo-actions-container';
-                
-                const downloadBtn = document.createElement('button');
-                downloadBtn.className = 'photo-action-btn';
-                downloadBtn.innerHTML = 
-                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>`;
-                
-                const shareBtn = document.createElement('button');
-                shareBtn.className = 'photo-action-btn';
-                shareBtn.innerHTML = 
-                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="18" cy="5" r="3"></circle>
-                        <circle cx="6" cy="12" r="3"></circle>
-                        <circle cx="18" cy="19" r="3"></circle>
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                    </svg>`;
-                
-                downloadBtn.addEventListener('click', () => downloadPhoto(photoUrl));
-                shareBtn.addEventListener('click', () => sharePhoto(photoUrl));
-                
-                actionsContainer.appendChild(downloadBtn);
-                actionsContainer.appendChild(shareBtn);
-                photoWrapper.appendChild(img);
-                photoWrapper.appendChild(actionsContainer);
-                photoSlide.appendChild(photoWrapper);
-                slideContainer.appendChild(photoSlide);
-                
-                // Scroll to the new photo slide
-                setTimeout(() => {
-                    photoSlide.scrollIntoView({ behavior: 'smooth' });
-                }, 300);
-                
-                debugLog("Photo slide added");
-            }
+            const photoSlide = document.createElement('div');
+            photoSlide.className = 'photo-slide';
             
-            // Download photo
-            function downloadPhoto(photoUrl) {
-                if (!photoUrl) return;
-                
-                debugLog("Downloading photo...");
-                const link = document.createElement('a');
-                link.href = photoUrl;
-                link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                debugLog("Download initiated");
-            }
+            const photoWrapper = document.createElement('div');
+            photoWrapper.className = 'photo-wrapper';
             
-            // Join a session
-            function joinSession(sessionId, isOwner = false) {
-                debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
-               // Antes de ocultar UI y conectar...
-currentSessionId = sessionId;
-isSessionOwner  = isOwner;
-userId          = currentUser.uid;    // ← Ahora usa el UID de Firebase Auth
-lastCaptureTime = 0;
+            const img = document.createElement('img');
+            img.src = photoUrl;
+            img.alt = 'Combined photo';
+            
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'photo-actions-container';
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'photo-action-btn';
+            downloadBtn.innerHTML = 
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>`;
+            
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'photo-action-btn';
+            shareBtn.innerHTML = 
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>`;
+            
+            downloadBtn.addEventListener('click', () => downloadPhoto(photoUrl));
+            shareBtn.addEventListener('click', () => sharePhoto(photoUrl));
+            
+            actionsContainer.appendChild(downloadBtn);
+            actionsContainer.appendChild(shareBtn);
+            photoWrapper.appendChild(img);
+            photoWrapper.appendChild(actionsContainer);
+            photoSlide.appendChild(photoWrapper);
+            slideContainer.appendChild(photoSlide);
+            
+            // Scroll to the new photo slide
+            setTimeout(() => {
+                photoSlide.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+            
+            debugLog("Photo slide added");
+        }
+        
+        // Download photo
+        function downloadPhoto(photoUrl) {
+            if (!photoUrl) return;
+            
+            debugLog("Downloading photo...");
+            const link = document.createElement('a');
+            link.href = photoUrl;
+            link.download = `pixcrab_${currentSessionId}_${new Date().toISOString().slice(0,10)}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            debugLog("Download initiated");
+        }
+        
+        // Join a session
+        function joinSession(sessionId, isOwner = false) {
+            debugLog(`Joining session ${sessionId} as ${isOwner ? 'owner' : 'participant'}`);
+           // Antes de ocultar UI y conectar...
+  currentSessionId = sessionId;
+  isSessionOwner  = isOwner;
+  userId          = currentUser.uid;    // ← Ahora usa el UID de Firebase Auth
+  lastCaptureTime = 0;
 
-                
-                displaySessionId.textContent = sessionId;
-                
-                initCamera();
-                
-                sessionSetup.classList.add('hidden');
-                cameraSection.classList.remove('hidden');
-                
-                captureBtn.disabled = false;
-                statusText.textContent = 'Connecting...';
-                connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
-                
-                const sessionRef = database.ref(`sessions/${sessionId}`);
-                
-                participantsRef = database.ref(`sessions/${sessionId}/participants`);
-                participantRef = participantsRef.child(userId);
-                
-                participantRef.set({
-                    active: true,
-                    lastActive: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                participantRef.onDisconnect().remove();
-                
-                // Watch for participants to hide QR when someone joins
+    
+    // Make sure all DOM elements exist
+    if (!displaySessionId) {
+        debugLog("Error: displaySessionId element not found");
+        showToast('Error joining session');
+        return;
+    }
+    
+    // Set the session ID in the badge
+    displaySessionId.textContent = sessionId;
+    
+    initCamera();
+    
+    sessionSetup.classList.add('hidden');
+    cameraSection.classList.remove('hidden');
+    
+    captureBtn.disabled = false;
+    
+    // Update the status element if it exists
+    if (statusText) {
+        statusText.textContent = 'Connecting...';
+    }
+    
+    if (connectionStatus) {
+        connectionStatus.className = 'w-3 h-3 rounded-full status-connecting mr-2';
+    }
+    
+    const sessionRef = database.ref(`sessions/${sessionId}`);
+    
+    participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    participantRef = participantsRef.child(userId);
+    
+    participantRef.set({
+        active: true,
+        lastActive: firebase.database.ServerValue.TIMESTAMP
+    });
+    
+    participantRef.onDisconnect().remove();
+    
+    // Watch for participants to hide QR when someone joins
      participantsRef.on('value', (snapshot) => {
     if (snapshot.exists()) {
         const participants = snapshot.val();
         const participantCount = Object.keys(participants).length;
 
-        // ✅ Incluye al creador de la sesión como peer
-        peerCount.textContent = `${participantCount} ${participantCount === 1 ? 'peer' : 'peers'} connected`;
-        debugLog(`Participant count updated: ${participantCount} total peers`);
+        // Check if peerCount element exists
+        if (peerCount) {
+            // ✅ Incluye al creador de la sesión como peer
+            peerCount.textContent = `${participantCount} ${participantCount === 1 ? 'peer' : 'peers'} connected`;
+            debugLog(`Participant count updated: ${participantCount} total peers`);
 
-        // 🔁 Cambio dinámico de color
-        if (participantCount > 1) {
-            peerCount.style.color = '#CCF381'; // Color fuerte cuando hay más de 1
-            qrContainer.classList.add('hidden');
-            debugLog("Second participant joined, hiding QR overlay");
-        } else {
-            peerCount.style.color = '#999999'; // Color apagado cuando solo hay uno
+            // 🔁 Cambio dinámico de color
+            if (participantCount > 1) {
+                peerCount.style.color = '#CCF381'; // Color fuerte cuando hay más de 1
+                if (qrContainer) {
+                    qrContainer.classList.add('hidden');
+                }
+                debugLog("Second participant joined, hiding QR overlay");
+            } else {
+                peerCount.style.color = '#999999'; // Color apagado cuando solo hay uno
+            }
         }
     } else {
-        peerCount.textContent = '0 peers connected';
-        peerCount.style.color = '#999999';
+        if (peerCount) {
+            peerCount.textContent = '0 peers connected';
+            peerCount.style.color = '#999999';
+        }
         debugLog("No participants in session");
     }
 });
 
-                
-                sessionRef.child('capture').on('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        const captureData = snapshot.val();
-                        if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
-                            lastCaptureTime = captureData.captureTime;
-                            debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
-                            startCountdown(captureData.captureTime);
-                        }
+            
+            sessionRef.child('capture').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const captureData = snapshot.val();
+                    if (captureData.captureTime && captureData.captureTime !== lastCaptureTime) {
+                        lastCaptureTime = captureData.captureTime;
+                        debugLog(`Received capture command for time: ${new Date(captureData.captureTime).toISOString()}`);
+                        startCountdown(captureData.captureTime);
                     }
-                });
-                
+                }
+            });
+            
                 // Watch for photo updates and combine when 2+ photos are available
-                sessionRef.child('photos').on('value', (snapshot) => {
+            sessionRef.child('photos').on('value', (snapshot) => {
                     try {
-                        if (snapshot.exists()) {
-                            const photos = snapshot.val();
-                            const photoKeys = Object.keys(photos);
+                if (snapshot.exists()) {
+                    const photos = snapshot.val();
+                    const photoKeys = Object.keys(photos);
                             
                             debugLog(`Photos update in session: ${photoKeys.length} photos available`);
-                            
-                            if (photoKeys.length >= 2) {
+                    
+                    if (photoKeys.length >= 2) {
                                 debugLog(`Photo details available, preparing to combine`);
                                 
                                 // Get photo URLs or data URLs directly from the database
-                                const photoUrls = [];
+                        const photoUrls = [];
                                 
-                                for (const key in photos) {
+                        for (const key in photos) {
                                     if (photos[key] && photos[key].photoData) {
-                                        photoUrls.push(photos[key].photoData);
+                            photoUrls.push(photos[key].photoData);
                                         debugLog(`Valid photo found for user ${key}`);
                                     } else {
                                         debugLog(`Warning: Malformed photo data for user ${key}`);
@@ -1024,14 +1048,14 @@ lastCaptureTime = 0;
                                             debugLog("Photos combined successfully, updating UI");
                                             
                                             // Return to camera view
-                                            photoResult.style.display = 'none';
-                                            cameraFeed.style.display = 'block';
-                                            
+                            photoResult.style.display = 'none';
+                            cameraFeed.style.display = 'block';
+                            
                                             // Add the combined photo to the slideshow
-                                            addPhotoSlide(combinedUrl);
-                                            imageQualityInfo.classList.remove('hidden');
-                                            
-                                            debugLog("Combined photo displayed in new slide");
+                            addPhotoSlide(combinedUrl);
+                            imageQualityInfo.classList.remove('hidden');
+                            
+                            debugLog("Combined photo displayed in new slide");
                                             showToast('Photos combined! Check your gallery');
                                             
                                             // Store the combined photo in the user's account
@@ -1044,8 +1068,8 @@ lastCaptureTime = 0;
                                             }, 3000);
                                             
                                             // Clear photos from session for next capture
-                                            debugLog("Clearing photos from Firebase for next capture");
-                                            sessionRef.child('photos').remove();
+                            debugLog("Clearing photos from Firebase for next capture");
+                            sessionRef.child('photos').remove();
                                         })
                                         .catch(error => {
                                             debugLog(`Error combining photos: ${error.message}`);
@@ -1070,103 +1094,103 @@ lastCaptureTime = 0;
                         // Return to camera view if error occurs
                         photoResult.style.display = 'none';
                         cameraFeed.style.display = 'block';
-                    }
-                });
-                
-                sessionRef.on('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        statusText.textContent = 'Connected';
-                        connectionStatus.className = 'w-3 h-3 rounded-full status-connected mr-2';
-                        debugLog("Connected to Firebase session");
-                    } else {
-                        statusText.textContent = 'Disconnected';
-                        connectionStatus.className = 'w-3 h-3 rounded-full status-disconnected mr-2';
-                        debugLog("Disconnected from Firebase session");
-                    }
-                });
-                
-                sessionRef.on('value', (snapshot) => {
-                    if (!snapshot.exists()) {
-                        debugLog("Session ended by owner");
-                        showToast('Session ended');
-                        leaveSession();
-                    }
-                });
-                loadGalleryPhotos();
-            }
-            
-            // Leave current session
-            function leaveSession() {
-                debugLog("Leaving current session...");
-                if (currentSessionId) {
-                    if (participantRef) {
-                        participantRef.remove();
-                    }
-                    
-                    database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
-                    
-                    if (participantsRef) {
-                        participantsRef.off();
-                    }
-                    
-                    database.ref(`sessions/${currentSessionId}`).off();
-                    
-                    if (isSessionOwner) {
-                        debugLog("Removing session from Firebase (owner)");
-                        database.ref(`sessions/${currentSessionId}`).remove();
-                    }
-                    
-                    currentSessionId = null;
-                    stopCamera();
-                    
-                    sessionSetup.classList.remove('hidden');
-                    cameraSection.classList.add('hidden');
-                    photoResult.style.display = 'none';
-                    cameraFeed.style.display = 'block';
-                    imageQualityInfo.classList.add('hidden');
-                    cameraSwitchBtn.classList.add('hidden');
-                    qrContainer.classList.add('hidden');
-                    
-                    // Remove all photo slides except the first one (camera view)
-                    while (slideContainer.children.length > 1) {
-                        slideContainer.removeChild(slideContainer.lastChild);
-                    }
-                    
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                        countdownOverlay.classList.add('hidden');
-                    }
-                    
-                    debugLog("Session left successfully");
                 }
-            }
-            
-            // Copy session ID to clipboard
-            sessionIdBadge.addEventListener('click', () => {
-                navigator.clipboard.writeText(currentSessionId).then(() => {
-                    showToast('Session ID copied!');
-                    debugLog("Session ID copied to clipboard");
-                }).catch(err => {
-                    debugLog(`Could not copy session ID: ${err.message}`);
-                });
             });
             
-            // Event listeners
-            joinSessionBtn.addEventListener('click', () => {
-                debugLog("Join session button clicked");
-                const sessionId = sessionIdInput.value.trim();
-                debugLog(`Session ID entered: ${sessionId}`);
-                if (sessionId.length >= 4) {
-                    debugLog(`Attempting to join session: ${sessionId}`);
-                    joinSession(sessionId, false);
+            sessionRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    statusText.textContent = 'Connected';
+                    connectionStatus.className = 'w-3 h-3 rounded-full status-connected mr-2';
+                    debugLog("Connected to Firebase session");
                 } else {
-                    debugLog("Invalid session ID entered");
-                    showToast('Please enter a valid session ID');
+                    statusText.textContent = 'Disconnected';
+                    connectionStatus.className = 'w-3 h-3 rounded-full status-disconnected mr-2';
+                    debugLog("Disconnected from Firebase session");
                 }
             });
             
-            createSessionBtn.addEventListener('click', async () => {
-                debugLog("Create session button clicked");
+            sessionRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    debugLog("Session ended by owner");
+                    showToast('Session ended');
+                    leaveSession();
+                }
+            });
+                loadGalleryPhotos();
+        }
+        
+        // Leave current session
+        function leaveSession() {
+            debugLog("Leaving current session...");
+            if (currentSessionId) {
+                if (participantRef) {
+                    participantRef.remove();
+                }
+                
+                database.ref(`sessions/${currentSessionId}/photos/${userId}`).remove();
+                
+                if (participantsRef) {
+                    participantsRef.off();
+                }
+                
+                database.ref(`sessions/${currentSessionId}`).off();
+                
+                if (isSessionOwner) {
+                    debugLog("Removing session from Firebase (owner)");
+                    database.ref(`sessions/${currentSessionId}`).remove();
+                }
+                
+                currentSessionId = null;
+                stopCamera();
+                
+                sessionSetup.classList.remove('hidden');
+                cameraSection.classList.add('hidden');
+                photoResult.style.display = 'none';
+                cameraFeed.style.display = 'block';
+                imageQualityInfo.classList.add('hidden');
+                cameraSwitchBtn.classList.add('hidden');
+                qrContainer.classList.add('hidden');
+                
+                // Remove all photo slides except the first one (camera view)
+                while (slideContainer.children.length > 1) {
+                    slideContainer.removeChild(slideContainer.lastChild);
+                }
+                
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownOverlay.classList.add('hidden');
+                }
+                
+                debugLog("Session left successfully");
+            }
+        }
+        
+        // Copy session ID to clipboard
+        sessionIdBadge.addEventListener('click', () => {
+            navigator.clipboard.writeText(currentSessionId).then(() => {
+                showToast('Session ID copied!');
+                debugLog("Session ID copied to clipboard");
+            }).catch(err => {
+                debugLog(`Could not copy session ID: ${err.message}`);
+            });
+        });
+        
+        // Event listeners
+        joinSessionBtn.addEventListener('click', () => {
+                debugLog("Join session button clicked");
+            const sessionId = sessionIdInput.value.trim();
+                debugLog(`Session ID entered: ${sessionId}`);
+            if (sessionId.length >= 4) {
+                    debugLog(`Attempting to join session: ${sessionId}`);
+                joinSession(sessionId, false);
+            } else {
+                debugLog("Invalid session ID entered");
+                    showToast('Please enter a valid session ID');
+            }
+        });
+        
+        createSessionBtn.addEventListener('click', async () => {
+            debugLog("Create session button clicked");
                 
                 try {
                     // Check if the user is authenticated
@@ -1181,19 +1205,19 @@ lastCaptureTime = 0;
                             return;
                         }
                     }
-                    
-                    // Add button press effect
-                    createSessionBtn.classList.add('active');
-                    setTimeout(() => {
-                        createSessionBtn.classList.remove('active');
-                    }, 100);
-                    
-                    const sessionId = await generateSafeSessionId();
+            
+            // Add button press effect
+            createSessionBtn.classList.add('active');
+            setTimeout(() => {
+                createSessionBtn.classList.remove('active');
+            }, 100);
+            
+            const sessionId = await generateSafeSessionId();
                     debugLog(`Generated new session ID: ${sessionId}`);
-                    
-                    // Initialize the session with a participants node
+            
+            // Initialize the session with a participants node
                     await database.ref(`sessions/${sessionId}`).set({
-                        created: Date.now(),
+                created: Date.now(),
                         createdBy: currentUser.uid,
                         participants: {
                             [currentUser.uid]: {
@@ -1203,138 +1227,138 @@ lastCaptureTime = 0;
                         }
                     });
                     
-                    debugLog("Session created in Firebase");
-                    
-                    // Generate QR code for the new session
-                    generateQRCode(sessionId);
-                    
-                    // Update UI
-                    sessionIdInput.value = sessionId;
-                    showToast('New session created! Scan the QR code to share');
-                    
-                    // Join the session as owner
+                debugLog("Session created in Firebase");
+                
+                // Generate QR code for the new session
+                generateQRCode(sessionId);
+                
+                // Update UI
+                sessionIdInput.value = sessionId;
+                showToast('New session created! Scan the QR code to share');
+                
+                // Join the session as owner
                     debugLog("Joining session as owner");
-                    joinSession(sessionId, true);
+                joinSession(sessionId, true);
                 } catch (err) {
-                    debugLog(`Session creation failed: ${err.message}`);
+                debugLog(`Session creation failed: ${err.message}`);
                     console.error(err);
-                    showToast('Failed to create session');
+                showToast('Failed to create session');
                 }
+        });
+        
+        captureBtn.addEventListener('click', () => {
+            const now = Date.now();
+            if (now - lastCaptureTime < 5000) {
+                debugLog("Capture too soon after last capture");
+                showToast('Please wait before capturing again');
+                return;
+            }
+            
+            const captureTime = Date.now() + 4000;
+            lastCaptureTime = captureTime;
+            
+            debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
+            
+            database.ref(`sessions/${currentSessionId}/capture`).set({
+                captureTime: captureTime
+            }).then(() => {
+                debugLog("Capture command sent to Firebase");
+            }).catch(err => {
+                debugLog(`Failed to send capture command: ${err.message}`);
             });
             
-            captureBtn.addEventListener('click', () => {
-                const now = Date.now();
-                if (now - lastCaptureTime < 5000) {
-                    debugLog("Capture too soon after last capture");
-                    showToast('Please wait before capturing again');
-                    return;
+            startCountdown(captureTime);
+        });
+        
+        newSessionBtn.addEventListener('click', leaveSession);
+        
+        cameraSwitchBtn.addEventListener('click', switchCamera);
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                debugLog("Page hidden, pausing camera");
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
                 }
-                
-                const captureTime = Date.now() + 4000;
-                lastCaptureTime = captureTime;
-                
-                debugLog(`Initiating capture sequence for ${new Date(captureTime).toISOString()}`);
-                
-                database.ref(`sessions/${currentSessionId}/capture`).set({
-                    captureTime: captureTime
-                }).then(() => {
-                    debugLog("Capture command sent to Firebase");
-                }).catch(err => {
-                    debugLog(`Failed to send capture command: ${err.message}`);
-                });
-                
-                startCountdown(captureTime);
-            });
+            } else {
+                if (currentSessionId && !stream) {
+                    debugLog("Page visible again, resuming camera");
+                    initCamera();
+                }
+            }
+        });
+        
+        // Touch events for swipe navigation
+        document.addEventListener('touchstart', (e) => {
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            touchEndY = e.changedTouches[0].screenY;
+            const threshold = 50;
             
-            newSessionBtn.addEventListener('click', leaveSession);
-            
-            cameraSwitchBtn.addEventListener('click', switchCamera);
-            
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    debugLog("Page hidden, pausing camera");
-                    if (stream) {
-                        stream.getTracks().forEach(track => track.stop());
+            // Only allow swipe navigation if we're in the camera section
+            if (!cameraSection.classList.contains('hidden')) {
+                if (touchStartY - touchEndY > threshold) {
+                    // Swipe up - scroll to next photo slide if available
+                    const currentSlide = document.elementFromPoint(
+                        window.innerWidth / 2, 
+                        window.innerHeight / 2
+                    ).closest('.slide, .photo-slide');
+                    
+                    if (currentSlide && currentSlide.nextElementSibling) {
+                        currentSlide.nextElementSibling.scrollIntoView({ behavior: 'smooth' });
                     }
-                } else {
-                    if (currentSessionId && !stream) {
-                        debugLog("Page visible again, resuming camera");
-                        initCamera();
+                } else if (touchEndY - touchStartY > threshold) {
+                    // Swipe down - scroll to previous slide (usually back to camera)
+                    const currentSlide = document.elementFromPoint(
+                        window.innerWidth / 2, 
+                        window.innerHeight / 2
+                    ).closest('.slide, .photo-slide');
+                    
+                    if (currentSlide && currentSlide.previousElementSibling) {
+                        currentSlide.previousElementSibling.scrollIntoView({ behavior: 'smooth' });
                     }
                 }
-            });
+            }
+        }, { passive: true });
+        
+        // Check for session ID in URL on page load
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const qrSession = params.get('sessionId');
             
-            // Touch events for swipe navigation
-            document.addEventListener('touchstart', (e) => {
-                touchStartY = e.changedTouches[0].screenY;
-            }, { passive: true });
+            if (qrSession) {
+                debugLog(`Found session ID in URL: ${qrSession}`);
+                sessionIdInput.value = qrSession;
+                joinSessionBtn.click();
+            }
             
-            document.addEventListener('touchend', (e) => {
-                touchEndY = e.changedTouches[0].screenY;
-                const threshold = 50;
-                
-                // Only allow swipe navigation if we're in the camera section
-                if (!cameraSection.classList.contains('hidden')) {
-                    if (touchStartY - touchEndY > threshold) {
-                        // Swipe up - scroll to next photo slide if available
-                        const currentSlide = document.elementFromPoint(
-                            window.innerWidth / 2, 
-                            window.innerHeight / 2
-                        ).closest('.slide, .photo-slide');
-                        
-                        if (currentSlide && currentSlide.nextElementSibling) {
-                            currentSlide.nextElementSibling.scrollIntoView({ behavior: 'smooth' });
-                        }
-                    } else if (touchEndY - touchStartY > threshold) {
-                        // Swipe down - scroll to previous slide (usually back to camera)
-                        const currentSlide = document.elementFromPoint(
-                            window.innerWidth / 2, 
-                            window.innerHeight / 2
-                        ).closest('.slide, .photo-slide');
-                        
-                        if (currentSlide && currentSlide.previousElementSibling) {
-                            currentSlide.previousElementSibling.scrollIntoView({ behavior: 'smooth' });
-                        }
-                    }
-                }
-            }, { passive: true });
-            
-            // Check for session ID in URL on page load
-            window.addEventListener('load', () => {
-                const params = new URLSearchParams(window.location.search);
-                const qrSession = params.get('sessionId');
-                
-                if (qrSession) {
-                    debugLog(`Found session ID in URL: ${qrSession}`);
-                    sessionIdInput.value = qrSession;
-                    joinSessionBtn.click();
-                }
-                
-                if (!localStorage.getItem('pixcrab_visited')) {
-                    showToast('Share the session ID or QR code with a friend to sync photos!');
-                    localStorage.setItem('pixcrab_visited', 'true');
-                    debugLog("First-time user welcome message shown");
-                }
-            });
+            if (!localStorage.getItem('pixcrab_visited')) {
+                showToast('Share the session ID or QR code with a friend to sync photos!');
+                localStorage.setItem('pixcrab_visited', 'true');
+                debugLog("First-time user welcome message shown");
+            }
+        });
 auth.onAuthStateChanged((user) => {
     try {
         debugLog(`Auth state changed: user ${user ? 'signed in' : 'signed out'}`);
         
-        if (user) {
-            currentUser = user;
+    if (user) {
+        currentUser = user;
             
-            if (user.isAnonymous) {
-                debugLog('Signed in as guest');
+        if (user.isAnonymous) {
+            debugLog('Signed in as guest');
                 showToast('Guest session active');
                 showCenteredToast('Logged in successfully!');
-            } else {
-                debugLog(`User signed in: ${user.email}`);
+        } else {
+            debugLog(`User signed in: ${user.email}`);
                 showToast(`Signed in as ${user.displayName || user.email}`);
                 showCenteredToast('Logged in successfully!');
-            }
+        }
             
-            document.getElementById('authSection').classList.add('hidden');
-            sessionSetup.classList.remove('hidden');
+        document.getElementById('authSection').classList.add('hidden');
+        sessionSetup.classList.remove('hidden');
 
             // Auto-join session for guests with sessionId in URL
             const params = new URLSearchParams(window.location.search);
@@ -1347,10 +1371,10 @@ auth.onAuthStateChanged((user) => {
                     joinSession(qrSession, false);
                 }
             }
-        } else {
+    } else {
             // User is signed out
             debugLog("User is signed out");
-            currentUser = null;
+        currentUser = null;
             
             // Clean up any active sessions
             if (currentSessionId) {
@@ -1358,8 +1382,8 @@ auth.onAuthStateChanged((user) => {
             }
             
             // Reset UI to auth screen
-            document.getElementById('authSection').classList.remove('hidden');
-            sessionSetup.classList.add('hidden');
+        document.getElementById('authSection').classList.remove('hidden');
+        sessionSetup.classList.add('hidden');
             cameraSection.classList.add('hidden');
             
             // Stop camera
@@ -1414,7 +1438,7 @@ document.getElementById('googleSignIn').addEventListener('click', () => {
     debugLog("Google sign-in clicked");
     
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
+    const provider = new firebase.auth.GoogleAuthProvider();
         showToast('Signing in with Google...');
         
         auth.signInWithPopup(provider)
@@ -1422,10 +1446,10 @@ document.getElementById('googleSignIn').addEventListener('click', () => {
                 debugLog("Google sign-in successful");
             })
             .catch(error => {
-                debugLog(`Google sign-in error: ${error.message}`);
+        debugLog(`Google sign-in error: ${error.message}`);
                 console.error("Google sign-in error:", error);
-                showToast('Failed to sign in with Google');
-            });
+        showToast('Failed to sign in with Google');
+    });
     } catch (error) {
         debugLog(`Error initializing Google sign-in: ${error.message}`);
         console.error("Error initializing Google sign-in:", error);
@@ -1438,7 +1462,7 @@ document.getElementById('appleSignIn').addEventListener('click', () => {
     debugLog("Apple sign-in clicked");
     
     try {
-        const provider = new firebase.auth.OAuthProvider('apple.com');
+    const provider = new firebase.auth.OAuthProvider('apple.com');
         showToast('Signing in with Apple...');
         
         auth.signInWithPopup(provider)
@@ -1446,10 +1470,10 @@ document.getElementById('appleSignIn').addEventListener('click', () => {
                 debugLog("Apple sign-in successful");
             })
             .catch(error => {
-                debugLog(`Apple sign-in error: ${error.message}`);
+        debugLog(`Apple sign-in error: ${error.message}`);
                 console.error("Apple sign-in error:", error);
-                showToast('Failed to sign in with Apple');
-            });
+        showToast('Failed to sign in with Apple');
+    });
     } catch (error) {
         debugLog(`Error initializing Apple sign-in: ${error.message}`);
         console.error("Error initializing Apple sign-in:", error);
@@ -1469,10 +1493,10 @@ document.getElementById('guestSignIn').addEventListener('click', () => {
                 debugLog("Anonymous sign-in successful");
             })
             .catch(error => {
-                debugLog(`Anonymous sign-in error: ${error.message}`);
+        debugLog(`Anonymous sign-in error: ${error.message}`);
                 console.error("Anonymous sign-in error:", error);
-                showToast('Failed to continue as guest');
-            });
+        showToast('Failed to continue as guest');
+    });
     } catch (error) {
         debugLog(`Error initializing anonymous sign-in: ${error.message}`);
         console.error("Error initializing anonymous sign-in:", error);
@@ -2008,7 +2032,7 @@ function saveCombinedPhoto(combinedDataUrl) {
     // Create a reference to the user's photos
     const userPhotosRef = database.ref(`users/${userId}/photos/${photoId}`);
     
-    // Save the combined photo directly
+    // Save the combined photo directly with all necessary metadata
     userPhotosRef.set({
         url: combinedDataUrl,
         thumbnailUrl: combinedDataUrl, // Use the same URL for thumbnail for simplicity
@@ -2020,6 +2044,9 @@ function saveCombinedPhoto(combinedDataUrl) {
     .then(() => {
         debugLog("Combined photo saved to user account");
         showToast("Combined photo saved to your gallery");
+        
+        // Show gallery indicator
+        showGalleryIndicator();
         
         // Reload the gallery
         loadGalleryGrid();
@@ -2210,73 +2237,37 @@ function saveCombinedPhoto(combinedDataUrl) {
         flex-direction: column;
         background-color: #000000;
         overflow: hidden;
-    }
-    
-    .camera-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 1rem;
-        background-color: rgba(0,0,0,0.7);
-        z-index: 10;
-    }
-    
-    .session-badge {
-        display: flex;
-        align-items: center;
-        background-color: rgba(72, 49, 212, 0.8);
-        color: #CCF381;
-        padding: 0.25rem 0.5rem;
-        border-radius: 1rem;
-        font-size: 0.8rem;
-        cursor: pointer;
-    }
-    
-    .camera-status {
-        display: flex;
-        align-items: center;
-        font-size: 0.8rem;
-        color: #cccccc;
-    }
-    
-    .status-connected {
-        background-color: #4CAF50;
-    }
-    
-    .status-connecting {
-        background-color: #FFC107;
-    }
-    
-    .status-disconnected {
-        background-color: #F44336;
+        height: 100vh;
     }
     
     .camera-feed-container {
         flex: 1;
         position: relative;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
     
     #cameraFeed {
         width: 100%;
         height: 100%;
         object-fit: cover;
-    }
-    
-    #photoResult {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
     
     .camera-controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
         display: flex;
         justify-content: space-around;
         align-items: center;
         padding: 1rem;
         background-color: rgba(0,0,0,0.7);
-        z-index: 10;
+        z-index: 100;
     }
     
     #captureBtn {
@@ -2286,6 +2277,8 @@ function saveCombinedPhoto(combinedDataUrl) {
         border: 3px solid #ffffff;
         background-color: #4831D4;
         cursor: pointer;
+        position: relative;
+        z-index: 101;
     }
     
     #newSessionBtn {
@@ -2295,6 +2288,41 @@ function saveCombinedPhoto(combinedDataUrl) {
         background-color: #333333;
         color: #ffffff;
         cursor: pointer;
+        position: relative;
+        z-index: 101;
+    }
+    
+    .session-badge {
+        position: fixed;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        background-color: rgba(72, 49, 212, 0.8);
+        color: #CCF381;
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        z-index: 100;
+    }
+    
+    #cameraSwitchBtn {
+        position: fixed;
+        top: 5rem;
+        right: 1rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: rgba(0,0,0,0.5);
+        border: none;
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        z-index: 100;
     }
     
     /* Slideshow container */
