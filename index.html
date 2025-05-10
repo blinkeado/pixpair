@@ -80,6 +80,25 @@
             const googleSignInBtn = document.getElementById('googleSignIn');
             const appleSignInBtn = document.getElementById('appleSignIn');
             const guestSignInBtn = document.getElementById('guestSignIn');
+            const galleryBtn = document.getElementById('galleryBtn');
+            const closeGalleryBtn = document.getElementById('closeGalleryBtn');
+            const galleryFullScreen = document.getElementById('galleryFullScreen');
+            
+            // Gallery button event listeners
+            if (galleryBtn) {
+                galleryBtn.addEventListener('click', () => {
+                    debugLog("Gallery button clicked");
+                    loadGalleryGrid();
+                    galleryFullScreen.classList.remove('hidden');
+                });
+            }
+            
+            if (closeGalleryBtn) {
+                closeGalleryBtn.addEventListener('click', () => {
+                    debugLog("Close gallery button clicked");
+                    galleryFullScreen.classList.add('hidden');
+                });
+            }
             
             // Disable buttons until Firebase is connected
             if (joinSessionBtn) joinSessionBtn.disabled = true;
@@ -109,6 +128,16 @@
                 try {
                     firebase.initializeApp(firebaseConfig);
                     debugLog("Firebase initialized successfully");
+                    
+                    // Set CORS configuration for Firebase Storage
+                    const storageRef = firebase.storage().ref();
+                    storageRef.getMetadata().then(() => {
+                        debugLog("Firebase Storage connection successful");
+                    }).catch(error => {
+                        debugLog(`Firebase Storage connection issue: ${error.message}`);
+                        showToast('Firebase Storage connection issue');
+                    });
+                    
                 } catch (error) {
                     debugLog(`Firebase initialization error: ${error.message}`);
                     showToast('Failed to initialize Firebase');
@@ -479,54 +508,38 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
 
               debugLog(`Uploading photo for user ${userId} in session ${sessionId}`);
 
-              const storageRef = storage.ref(`users/${userId}/${photoId}.jpg`);
-              const backupRef  = isGuest
-                ? storage.ref(`analysisData/guests/${userId}/${photoId}.jpg`)
-                : null;
-
+              // First convert photoData to a blob
               fetch(photoData)
-                .then(res => res.blob())
-                .then(blob => {
-                  const fileSize = blob.size;
-                  debugLog(`Photo size: ${Math.round(fileSize/1024)} KB`);
+                  .then(res => res.blob())
+                  .then(blob => {
+                      const fileSize = blob.size;
+                      debugLog(`Photo size: ${Math.round(fileSize/1024)} KB`);
 
-                  // 1) Upload to Firebase Storage
-                  return storageRef.put(blob)
-                    .then(() => {
-                      debugLog("Photo uploaded to Firebase Storage");
-                      if (isGuest && backupRef) {
-                        debugLog("Creating backup for guest user");
-                        return backupRef.put(blob);
-                      }
-                    })
-                    // 2) Save metadata
-                    .then(() => {
-                      debugLog("Saving photo metadata");
-                      return collectAndSaveMetadata(sessionId, photoId, fileSize);
-                    })
-                    // 3) Get download URL and save to session
-                    .then(() => {
-                      debugLog("Getting photo download URL");
-                      return storageRef.getDownloadURL();
-                    })
-                    .then(url => {
-                      debugLog(`Saving photo URL to session ${sessionId}`);
-                      return database.ref(`sessions/${sessionId}/photos/${userId}`).set({
-                        photoData: url,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP,
-                        userId: userId
+                      // Create a storage reference directly in the database
+                      const photoRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
+                      
+                      // Store the photo data directly in the database to avoid CORS issues
+                      photoRef.set({
+                          photoData: photoData, // Store the data URL directly
+                          timestamp: firebase.database.ServerValue.TIMESTAMP,
+                          userId: userId
+                      })
+                      .then(() => {
+                          debugLog("Photo stored in database successfully");
+                          showToast('Photo saved!');
+                          
+                          // Also save metadata
+                          collectAndSaveMetadata(sessionId, photoId, fileSize);
+                      })
+                      .catch(error => {
+                          debugLog(`Error storing photo in database: ${error.message}`);
+                          showToast('Error saving photo');
                       });
-                    });
-                })
-                .then(() => {
-                  debugLog("Photo upload complete: storage ✓ metadata ✓ session ✓");
-                  showToast('Photo saved to your account');
-                })
-                .catch(error => {
-                  debugLog(`Photo upload error: ${error.message}`);
-                  console.error("Photo upload error:", error);
-                  showToast('Failed to save photo');
-                });
+                  })
+                  .catch(error => {
+                      debugLog(`Error processing photo: ${error.message}`);
+                      showToast('Error processing photo');
+                  });
             }
 
 
@@ -987,9 +1000,9 @@ lastCaptureTime = 0;
                             debugLog(`Photos update in session: ${photoKeys.length} photos available`);
                             
                             if (photoKeys.length >= 2) {
-                                debugLog(`Photo details: ${JSON.stringify(photos)}`);
+                                debugLog(`Photo details available, preparing to combine`);
                                 
-                                // Get photo URLs - simplify to just an array of URLs
+                                // Get photo URLs or data URLs directly from the database
                                 const photoUrls = [];
                                 
                                 for (const key in photos) {
@@ -1014,12 +1027,15 @@ lastCaptureTime = 0;
                                             photoResult.style.display = 'none';
                                             cameraFeed.style.display = 'block';
                                             
-                                            // Add the combined photo to the slideshow/gallery
+                                            // Add the combined photo to the slideshow
                                             addPhotoSlide(combinedUrl);
                                             imageQualityInfo.classList.remove('hidden');
                                             
                                             debugLog("Combined photo displayed in new slide");
-                                            showToast('Photos combined! Swipe up to view.');
+                                            showToast('Photos combined! Check your gallery');
+                                            
+                                            // Store the combined photo in the user's account
+                                            saveCombinedPhoto(combinedUrl);
                                             
                                             // Show the hint to swipe up
                                             hintText.style.opacity = '1';
@@ -1826,6 +1842,9 @@ async function loadGalleryPhotos() {
                 });
                 // Make gallery visible
                 gallerySection.classList.remove('hidden');
+                
+                // Also load the full gallery grid
+                loadGalleryGrid();
             } else {
                 debugLog("No combined photos found in gallery");
                 gallerySection.innerHTML = '<div class="text-gray-400 text-center p-4">No photos yet</div>';
@@ -1837,6 +1856,97 @@ async function loadGalleryPhotos() {
     } catch (error) {
         debugLog(`Error loading gallery photos: ${error.message}`);
         gallerySection.innerHTML = '<div class="text-red-400 text-center p-4">Error loading photos</div>';
+    }
+}
+
+// New function to load photos into the full gallery grid
+async function loadGalleryGrid() {
+    try {
+        if (!currentUser) {
+            debugLog("Cannot load gallery grid - user not signed in");
+            return;
+        }
+        
+        debugLog("Loading gallery grid");
+        const galleryGrid = document.getElementById('galleryGrid');
+        galleryGrid.innerHTML = ''; // Clear existing content
+        
+        const userId = currentUser.uid;
+        const photosRef = database.ref(`users/${userId}/photos`);
+        
+        const snapshot = await photosRef.once('value');
+        
+        if (snapshot.exists()) {
+            const photos = snapshot.val();
+            const photoEntries = Object.entries(photos)
+                .filter(([_, photo]) => photo.url) // Include all photos with URLs
+                .sort((a, b) => b[1].timestamp - a[1].timestamp); // Sort newest first
+            
+            if (photoEntries.length > 0) {
+                debugLog(`Found ${photoEntries.length} photos for gallery grid`);
+                
+                photoEntries.forEach(([photoId, photo]) => {
+                    const gridItem = document.createElement('div');
+                    gridItem.className = 'gallery-grid-item bg-gray-800 rounded-lg overflow-hidden shadow-lg';
+                    
+                    const img = document.createElement('img');
+                    img.src = photo.thumbnailUrl || photo.url;
+                    img.className = 'w-full h-40 object-cover cursor-pointer';
+                    img.alt = 'Gallery photo';
+                    img.loading = 'lazy';
+                    
+                    img.onclick = () => openPhotoModal(photo.url);
+                    
+                    const actions = document.createElement('div');
+                    actions.className = 'p-2 flex justify-between';
+                    
+                    const dateInfo = document.createElement('div');
+                    dateInfo.className = 'text-xs text-gray-400';
+                    const date = new Date(photo.timestamp);
+                    dateInfo.textContent = date.toLocaleDateString();
+                    
+                    const buttons = document.createElement('div');
+                    
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.innerHTML = '⬇️';
+                    downloadBtn.title = 'Download';
+                    downloadBtn.className = 'text-sm bg-primary text-secondary p-1 rounded mr-2';
+                    downloadBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        downloadPhoto(photo.url);
+                    };
+                    
+                    const shareBtn = document.createElement('button');
+                    shareBtn.innerHTML = '↗️';
+                    shareBtn.title = 'Share';
+                    shareBtn.className = 'text-sm bg-primary text-secondary p-1 rounded';
+                    shareBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        sharePhoto(photo.url);
+                    };
+                    
+                    buttons.appendChild(downloadBtn);
+                    buttons.appendChild(shareBtn);
+                    actions.appendChild(dateInfo);
+                    actions.appendChild(buttons);
+                    
+                    gridItem.appendChild(img);
+                    gridItem.appendChild(actions);
+                    
+                    galleryGrid.appendChild(gridItem);
+                });
+            } else {
+                debugLog("No photos found for gallery grid");
+                galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
+            }
+        } else {
+            debugLog("No photos found for user");
+            galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
+        }
+    } catch (error) {
+        debugLog(`Error loading gallery grid: ${error.message}`);
+        const galleryGrid = document.getElementById('galleryGrid');
+        galleryGrid.innerHTML = '<div class="text-red-400 text-center p-8 col-span-2">Error loading photos</div>';
     }
 }
 
@@ -1875,6 +1985,49 @@ function showCenteredToast(message) {
 // Add signout button event listener
 if (signOutBtn) {
     signOutBtn.addEventListener('click', logout);
+}
+
+// Simpler version to save combined photos directly to the database
+function saveCombinedPhoto(combinedDataUrl) {
+    if (!currentUser) {
+        debugLog("Cannot save combined photo - no user signed in");
+        return;
+    }
+
+    if (!currentSessionId) {
+        debugLog("Cannot save combined photo - no active session");
+        return;
+    }
+
+    debugLog("Saving combined photo to user account");
+    
+    const userId = currentUser.uid;
+    const timestamp = Date.now();
+    const photoId = `combined_${timestamp}`;
+    
+    // Create a reference to the user's photos
+    const userPhotosRef = database.ref(`users/${userId}/photos/${photoId}`);
+    
+    // Save the combined photo directly
+    userPhotosRef.set({
+        url: combinedDataUrl,
+        thumbnailUrl: combinedDataUrl, // Use the same URL for thumbnail for simplicity
+        sessionId: currentSessionId,
+        timestamp: timestamp,
+        combined: true,
+        photoId: photoId
+    })
+    .then(() => {
+        debugLog("Combined photo saved to user account");
+        showToast("Combined photo saved to your gallery");
+        
+        // Reload the gallery
+        loadGalleryGrid();
+    })
+    .catch(error => {
+        debugLog(`Error saving combined photo: ${error.message}`);
+        showToast("Error saving combined photo");
+    });
 }
 
         });
@@ -2467,20 +2620,20 @@ if (signOutBtn) {
         
         <!-- Camera Section -->
         <div id="cameraSection" class="hidden">
-            <div class="camera-header">
-                <div class="session-badge" id="sessionIdBadge">
-                    <span id="displaySessionId"></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                    </svg>
+            <div class="flex justify-between items-center w-full p-4 bg-primary">
+                <h1 class="text-2xl font-bold text-secondary">PixCrab</h1>
+                <div class="flex space-x-4">
+                    <button id="galleryBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Gallery</button>
+                    <button id="signOutBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Sign Out</button>
                 </div>
-                <div class="camera-status">
-                    <div id="connectionStatus" class="w-3 h-3 rounded-full status-disconnected mr-2"></div>
-                    <span id="statusText">Disconnected</span>
-                    <span class="mx-2">|</span>
-                    <span id="peerCount">0 peers connected</span>
-                </div>
+            </div>
+            
+            <div class="session-badge" id="sessionIdBadge">
+                <span id="displaySessionId"></span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="ml-1" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                </svg>
             </div>
             
             <div id="slideContainer">
@@ -2520,6 +2673,23 @@ if (signOutBtn) {
                         <button id="newSessionBtn">Exit</button>
                         <button id="captureBtn" disabled></button>
                         <div class="w-20"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New Dedicated Gallery Section -->
+        <div id="galleryFullScreen" class="hidden fixed inset-0 bg-primary z-50 overflow-y-auto">
+            <div class="flex justify-between items-center w-full p-4 bg-primary shadow-md">
+                <h1 class="text-2xl font-bold text-secondary">Photo Gallery</h1>
+                <button id="closeGalleryBtn" class="btn-secondary px-4 py-2 rounded-lg">Back to Camera</button>
+            </div>
+            
+            <div class="p-4">
+                <div id="galleryGrid" class="grid grid-cols-2 gap-4">
+                    <!-- Gallery items will be added here -->
+                    <div class="text-center text-secondary p-8 col-span-2">
+                        No photos yet. Take some photos with a friend to see them here!
                     </div>
                 </div>
             </div>
