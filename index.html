@@ -468,7 +468,7 @@
 .rainbow-button {
     position: relative;
     width: 100%;
-    /* ↗️ Eliminamos height y subimos el padding para hacerlo “gordito” */
+    /* ↗️ Eliminamos height y subimos el padding para hacerlo "gordito" */
     padding: 0.75rem 1.25rem;
     border-radius: 12px;
     outline: none;
@@ -584,7 +584,7 @@ button,
   box-shadow: 0 4px 12px rgba(204, 243, 129, 0.3);
 }
 
-/* al hover, intensificas la misma sombra “verde” */
+/* al hover, intensificas la misma sombra "verde" */
 button:hover,
 .btn-primary:hover,
 .btn-secondary:hover,
@@ -647,6 +647,25 @@ button:hover,
     width: 20px;
     height: 20px;
     margin-right: 12px;
+}
+
+/* Sign out button custom style */
+.signout-btn {
+    background: transparent;
+    color: #CCF381;
+    font-weight: bold;
+    font-size: 1.1rem;
+    padding: 0.15em 0.7em;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 0 8px 2px rgba(204,243,129,0.10);
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.signout-btn:hover, .signout-btn:focus {
+    background: rgba(204,243,129,0.10);
+    color: #fff;
+    box-shadow: 0 0 16px 4px rgba(204,243,129,0.18);
+    outline: none;
 }
 
     </style>
@@ -734,7 +753,7 @@ button:hover,
         </div>
         
         <div id="cameraSection" class="hidden w-full h-full">
-          <button onclick="logout()" class="absolute top-4 right-4 text-secondary font-bold z-50">Sign out</button>
+          <button onclick="logout()" class="signout-btn absolute top-4 right-4 z-50">Sign out</button>
             <div class="slide-container" id="slideContainer">
                 <div class="slide">
                     <div class="flex items-center justify-center mb-2">
@@ -1527,21 +1546,22 @@ const metadata = {
                         for (const key in photos) {
                             photoUrls.push(photos[key].photoData);
                         }
-                        
                         debugLog("Both photos received, combining...");
-                        
-                        combinePhotos(photoUrls[0], photoUrls[1]).then(combinedUrl => {
+                        combinePhotos(photoUrls[0], photoUrls[1]).then(async combinedUrl => {
                             photoResult.style.display = 'none';
                             cameraFeed.style.display = 'block';
-                            
                             addPhotoSlide(combinedUrl);
-                            
                             imageQualityInfo.classList.remove('hidden');
-                            
                             debugLog("Combined photo displayed in new slide");
-                            
                             showToast('Photos combined! Swipe up to view.');
-                            
+                            // Store combined photo for both users
+                            await uploadCombinedPhoto(
+                              combinedUrl,
+                              sessionId,
+                              photoKeys, // userIds
+                              photoKeys // originalPhotoIds (same as userIds here)
+                            );
+                            debugLog("Combined photo uploaded and metadata saved for both users");
                             debugLog("Clearing photos from Firebase for next capture");
                             sessionRef.child('photos').remove();
                         });
@@ -1776,10 +1796,19 @@ auth.onAuthStateChanged((user) => {
         }
         document.getElementById('authSection').classList.add('hidden');
         sessionSetup.classList.remove('hidden');
+
+        // Auto-join session for guests with sessionId in URL
+        const params = new URLSearchParams(window.location.search);
+        const qrSession = params.get('sessionId');
+        if (user.isAnonymous && qrSession) {
+            debugLog(`Guest detected with sessionId in URL: ${qrSession}`);
+            joinSession(qrSession, false);
+        }
     } else {
         currentUser = null;
         document.getElementById('authSection').classList.remove('hidden');
         sessionSetup.classList.add('hidden');
+        cameraSection.classList.add('hidden');
     }
 });
 
@@ -1815,6 +1844,40 @@ function logout() {
     });
 }
 
+// Upload combined photo for both users and store metadata
+async function uploadCombinedPhoto(combinedDataUrl, sessionId, userIds, originalPhotoIds) {
+  debugLog('Uploading combined photo for users: ' + userIds.join(', '));
+  const timestamp = Date.now();
+  const combinedPhotoId = `${timestamp}_${originalPhotoIds.join('_')}`;
+
+  // Convert data URL to blob
+  const blob = await fetch(combinedDataUrl).then(res => res.blob());
+  const fileSize = blob.size;
+
+  // For each user, upload and store metadata
+  for (const uid of userIds) {
+    const storageRef = storage.ref(`users/${uid}/combined/${combinedPhotoId}.jpg`);
+    await storageRef.put(blob);
+    const url = await storageRef.getDownloadURL();
+
+    // Build summary metadata
+    const summary = {
+      photoId: combinedPhotoId,
+      url,
+      sessionId,
+      timestamp,
+      combined: true,
+      otherUserId: userIds.find(id => id !== uid),
+      originalPhotoIds,
+      size: fileSize,
+      // Optionally add more metadata fields here
+    };
+    // Store summary under user's photos
+    await database.ref(`users/${uid}/photos/${combinedPhotoId}`).set(summary);
+    // Store in session history
+    await database.ref(`users/${uid}/sessions/${sessionId}/photoIds/${combinedPhotoId}`).set(true);
+  }
+}
 
     </script>
 </body>
