@@ -15954,7 +15954,6 @@ let currentUser = null;
 
             // Initialize Firebase if not already initialized
             if (!firebase.apps.length) {
-                try {
                     firebase.initializeApp(firebaseConfig);
                     debugLog("Firebase initialized successfully");
                     
@@ -17099,7 +17098,7 @@ const metadata = {
             startCountdown(captureTime);
         });
         
-        newSessionBtn.addEventListener('click', leaveSession);
+        if (newSessionBtn) newSessionBtn.addEventListener('click', leaveSession);
         
         cameraSwitchBtn.addEventListener('click', switchCamera);
         
