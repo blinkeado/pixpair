@@ -501,55 +501,134 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
         
         // Upload photo to Firebase
 function uploadPhoto(photoData) {
-  if (!currentUser) {
-    debugLog("Cannot upload photo - no user signed in");
-    return;
-  }
+    if (!currentUser) {
+        debugLog("Cannot upload photo - no user signed in");
+        return;
+    }
 
-              if (!currentSessionId) {
-                debugLog("Cannot upload photo - no active session");
-                return;
-              }
+    if (!currentSessionId) {
+        debugLog("Cannot upload photo - no active session");
+        return;
+    }
 
-  const userId    = currentUser.uid;
-  const photoId   = Date.now().toString();
-  const isGuest   = currentUser.isAnonymous;
-              const sessionId = currentSessionId;
+    const userId = currentUser.uid;
+    const photoId = Date.now().toString();
+    const isGuest = currentUser.isAnonymous;
+    const sessionId = currentSessionId;
 
-              debugLog(`Uploading photo for user ${userId} in session ${sessionId}`);
+    debugLog(`Uploading photo for user ${userId} in session ${sessionId}`);
 
-              // First convert photoData to a blob
-  fetch(photoData)
-    .then(res => res.blob())
-    .then(blob => {
-      const fileSize = blob.size;
-                      debugLog(`Photo size: ${Math.round(fileSize/1024)} KB`);
+    // Convert photoData to a blob
+    fetch(photoData)
+        .then(res => res.blob())
+        .then(blob => {
+            const fileSize = blob.size;
+            debugLog(`Photo size: ${Math.round(fileSize/1024)} KB`);
 
-                      // Create a storage reference directly in the database
-                      const photoRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
-                      
-                      // Store the photo data directly in the database to avoid CORS issues
-                      photoRef.set({
-                          photoData: photoData, // Store the data URL directly
-                          timestamp: firebase.database.ServerValue.TIMESTAMP,
-                          userId: userId
-    })
-    .then(() => {
-                          debugLog("Photo stored in database successfully");
-                          showToast('Photo saved!');
-                          
-                          // Also save metadata
-                          collectAndSaveMetadata(sessionId, photoId, fileSize);
-    })
-    .catch(error => {
-                          debugLog(`Error storing photo in database: ${error.message}`);
-                          showToast('Error saving photo');
-                      });
-                  })
-                  .catch(error => {
-                      debugLog(`Error processing photo: ${error.message}`);
-                      showToast('Error processing photo');
-    });
+            // Create a reference to the user's photo in Firebase Storage
+            const photoStorageRef = storage.ref(`sessions/${sessionId}/photos/${userId}_${photoId}.jpg`);
+            
+            // Upload the blob to Firebase Storage
+            return photoStorageRef.put(blob).then(() => {
+                // Get the download URL
+                return photoStorageRef.getDownloadURL().then(downloadURL => {
+                    debugLog("Photo uploaded to Storage successfully");
+                    
+                    // Generate a scaled-down thumbnail version
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 300;
+                        const MAX_HEIGHT = 300;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Maintain aspect ratio while resizing
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to jpeg and upload thumbnail
+                        canvas.toBlob(thumbBlob => {
+                            const thumbStorageRef = storage.ref(`sessions/${sessionId}/photos/${userId}_${photoId}_thumb.jpg`);
+                            thumbStorageRef.put(thumbBlob).then(() => {
+                                return thumbStorageRef.getDownloadURL();
+                            }).then(thumbURL => {
+                                // Create a reference in the database with URLs and metadata
+                                const sessionPhotoRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
+                                
+                                // Store the photo metadata in the database
+                                sessionPhotoRef.set({
+                                    url: downloadURL,
+                                    thumbnailUrl: thumbURL,
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                                    userId: userId,
+                                    photoId: photoId
+                                });
+                                
+                                // Also save a reference in the user's photos collection
+                                if (!isGuest) {
+                                    const userPhotoRef = database.ref(`users/${userId}/photos/${photoId}`);
+                                    userPhotoRef.set({
+                                        url: downloadURL,
+                                        thumbnailUrl: thumbURL,
+                                        sessionId: sessionId,
+                                        timestamp: firebase.database.ServerValue.TIMESTAMP,
+                                        photoId: photoId
+                                    });
+                                }
+                                
+                                // Show success message
+                                debugLog("Photo metadata stored in database successfully");
+                                showToast('Photo saved!');
+                                
+                                // Also save detailed metadata
+                                collectAndSaveMetadata(sessionId, photoId, fileSize);
+                            });
+                        }, 'image/jpeg', 0.7);
+                    };
+                    
+                    img.onerror = function() {
+                        debugLog("Error creating thumbnail");
+                        // Save without thumbnail
+                        const sessionPhotoRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
+                        sessionPhotoRef.set({
+                            url: downloadURL,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP,
+                            userId: userId,
+                            photoId: photoId
+                        });
+                        
+                        // Show success message
+                        debugLog("Photo metadata stored without thumbnail");
+                        showToast('Photo saved!');
+                        
+                        // Also save detailed metadata
+                        collectAndSaveMetadata(sessionId, photoId, fileSize);
+                    };
+                    
+                    img.src = photoData;
+                });
+            });
+        })
+        .catch(error => {
+            debugLog(`Error uploading photo: ${error.message}`);
+            showToast('Error saving photo');
+        });
 }
 
 
@@ -2145,7 +2224,7 @@ if (cameraSignOutBtn) {
     cameraSignOutBtn.addEventListener('click', logout);
 }
 
-// Simpler version to save combined photos directly to the database
+// Save combined photo to Firebase Storage
 function saveCombinedPhoto(combinedDataUrl) {
     if (!currentUser) {
         debugLog("Cannot save combined photo - no user signed in");
@@ -2162,33 +2241,122 @@ function saveCombinedPhoto(combinedDataUrl) {
     const userId = currentUser.uid;
     const timestamp = Date.now();
     const photoId = `combined_${timestamp}`;
+    const sessionId = currentSessionId;
+    const isGuest = currentUser.isAnonymous;
     
-    // Create a reference to the user's photos
-    const userPhotosRef = database.ref(`users/${userId}/photos/${photoId}`);
+    // Skip persistent storage for guest users
+    if (isGuest) {
+        debugLog("Guest user - combined photo will not be saved to account");
+        showToast("Photo available only for this session");
+        return;
+    }
     
-    // Save the combined photo directly with all necessary metadata
-    userPhotosRef.set({
-        url: combinedDataUrl,
-        thumbnailUrl: combinedDataUrl, // Use the same URL for thumbnail for simplicity
-        sessionId: currentSessionId,
-        timestamp: timestamp,
-        combined: true,
-        photoId: photoId
-    })
-    .then(() => {
-        debugLog("Combined photo saved to user account");
-        showToast("Combined photo saved to your gallery");
-        
-        // Show gallery indicator
-        showGalleryIndicator();
-        
-        // Reload the gallery
-        loadGalleryGrid();
-    })
-    .catch(error => {
-        debugLog(`Error saving combined photo: ${error.message}`);
-        showToast("Error saving combined photo");
-    });
+    // Convert dataURL to blob
+    fetch(combinedDataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+            const fileSize = blob.size;
+            debugLog(`Combined photo size: ${Math.round(fileSize/1024)} KB`);
+            
+            // Create a reference to Firebase Storage
+            const photoStorageRef = storage.ref(`users/${userId}/photos/${photoId}.jpg`);
+            
+            // Upload photo to Storage
+            return photoStorageRef.put(blob).then(() => {
+                return photoStorageRef.getDownloadURL().then(downloadURL => {
+                    debugLog("Combined photo uploaded to Storage successfully");
+                    
+                    // Generate a thumbnail version
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 300;
+                        const MAX_HEIGHT = 300;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Maintain aspect ratio while resizing
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to jpeg and upload thumbnail
+                        canvas.toBlob(thumbBlob => {
+                            const thumbStorageRef = storage.ref(`users/${userId}/photos/${photoId}_thumb.jpg`);
+                            thumbStorageRef.put(thumbBlob).then(() => {
+                                return thumbStorageRef.getDownloadURL();
+                            }).then(thumbURL => {
+                                // Create a reference in the database with URLs and metadata
+                                const userPhotoRef = database.ref(`users/${userId}/photos/${photoId}`);
+                                
+                                // Store the photo metadata in the database
+                                userPhotoRef.set({
+                                    url: downloadURL,
+                                    thumbnailUrl: thumbURL,
+                                    sessionId: sessionId,
+                                    timestamp: timestamp,
+                                    combined: true,
+                                    photoId: photoId
+                                })
+                                .then(() => {
+                                    debugLog("Combined photo metadata stored in database");
+                                    showToast("Combined photo saved to your gallery");
+                                    
+                                    // Show gallery indicator
+                                    showGalleryIndicator();
+                                    
+                                    // Reload the gallery
+                                    loadGalleryGrid();
+                                });
+                            });
+                        }, 'image/jpeg', 0.7);
+                    };
+                    
+                    img.onerror = function() {
+                        debugLog("Error creating thumbnail for combined photo");
+                        // Save without thumbnail
+                        const userPhotoRef = database.ref(`users/${userId}/photos/${photoId}`);
+                        userPhotoRef.set({
+                            url: downloadURL,
+                            sessionId: sessionId,
+                            timestamp: timestamp,
+                            combined: true,
+                            photoId: photoId
+                        })
+                        .then(() => {
+                            debugLog("Combined photo metadata stored without thumbnail");
+                            showToast("Combined photo saved to your gallery");
+                            
+                            // Show gallery indicator
+                            showGalleryIndicator();
+                            
+                            // Reload the gallery
+                            loadGalleryGrid();
+                        });
+                    };
+                    
+                    img.src = combinedDataUrl;
+                });
+            });
+        })
+        .catch(error => {
+            debugLog(`Error saving combined photo: ${error.message}`);
+            showToast("Error saving combined photo");
+        });
 }
 
         });

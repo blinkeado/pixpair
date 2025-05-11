@@ -1,0 +1,49 @@
+{
+  "rules": {
+    "users": {
+      "$userId": {
+        ".read": "auth !== null && auth.uid === $userId",
+        ".write": "auth !== null && auth.uid === $userId",
+        "photos": {
+          "$photoId": {
+            ".read": "auth !== null && auth.uid === $userId",
+            ".write": "auth !== null && auth.uid === $userId"
+          }
+        },
+        "sessions": {
+          "$sessionId": {
+            ".read": "auth !== null && auth.uid === $userId",
+            ".write": "auth !== null && auth.uid === $userId"
+          }
+        }
+      }
+    },
+    "sessions": {
+      "$sessionId": {
+        ".read": "auth !== null",
+        ".write": "auth !== null",
+        "photos": {
+          "$userId": {
+            ".write": "auth !== null && auth.uid === $userId",
+            ".read": "auth !== null"
+          }
+        },
+        "participants": {
+          ".read": "auth !== null",
+          ".write": "auth !== null",
+          "$userId": {
+            ".write": "auth !== null && auth.uid === $userId"
+          }
+        },
+        "capture": {
+          ".read": "auth !== null",
+          ".write": "auth !== null"
+        }
+      }
+    },
+    "test": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
