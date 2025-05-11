@@ -2804,6 +2804,20 @@ function saveCombinedPhoto(combinedDataUrl) {
         margin: 0 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
+
+    /* Style for the camera switch button in the bottom controls */
+    .control-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        background-color: rgba(72, 49, 212, 0.8);
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    }
 </style>
 </head>
 <body>
@@ -2877,16 +2891,6 @@ function saveCombinedPhoto(combinedDataUrl) {
                             <div id="captureText" class="hidden">Snap!</div>
                         </div>
                         
-                        <button id="cameraSwitchBtn" class="hidden">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-                                <line x1="16" y1="5" x2="22" y2="5"></line>
-                                <line x1="19" y1="2" x2="19" y2="8"></line>
-                                <circle cx="9" cy="9" r="3"></circle>
-                                <path d="M13 13L9 9"></path>
-                            </svg>
-                        </button>
-                        
                         <div id="qrcode" class="hidden"></div>
                         <div id="qrFallback" class="hidden"></div>
                         
@@ -2900,9 +2904,17 @@ function saveCombinedPhoto(combinedDataUrl) {
                     </div>
                     
                     <div class="camera-controls">
-                        <button id="newSessionBtn">Exit</button>
+                        <div class="w-20"></div> <!-- Empty space to balance the layout -->
                         <button id="captureBtn" disabled></button>
-                        <div class="w-20"></div>
+                        <button id="cameraSwitchBtn" class="control-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                                <line x1="16" y1="5" x2="22" y2="5"></line>
+                                <line x1="19" y1="2" x2="19" y2="8"></line>
+                                <circle cx="9" cy="9" r="3"></circle>
+                                <path d="M13 13L9 9"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
