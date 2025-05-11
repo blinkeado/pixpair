@@ -2011,7 +2011,7 @@ async function loadGalleryGrid() {
         if (snapshot.exists()) {
             const photos = snapshot.val();
             const photoEntries = Object.entries(photos)
-                .filter(([_, photo]) => (photo.url || photo.storageUrl || photo.photoData)) // Include all photos with any URL type
+                .filter(([_, photo]) => photo.storageUrl || photo.url) // Include photos with either storageUrl or url
                 .sort((a, b) => b[1].timestamp - a[1].timestamp); // Sort newest first
             
             if (photoEntries.length > 0) {
@@ -2019,41 +2019,66 @@ async function loadGalleryGrid() {
                 
                 photoEntries.forEach(([photoId, photo]) => {
                     const gridItem = document.createElement('div');
-                    gridItem.className = 'gallery-grid-item';
+                    gridItem.className = 'gallery-grid-item bg-gray-800 rounded-lg overflow-hidden shadow-lg';
                     
                     const img = document.createElement('img');
-                    // Use any available URL in order of preference
-                    img.src = photo.thumbnailUrl || photo.storageUrl || photo.url || photo.photoData;
+                    img.src = photo.storageUrl || photo.url; // Use storageUrl if available, fallback to url
+                    img.className = 'w-full h-40 object-cover cursor-pointer';
                     img.alt = 'Gallery photo';
                     img.loading = 'lazy';
                     
-                    img.onclick = () => openPhotoModal(photo.storageUrl || photo.url || photo.photoData);
+                    img.onclick = () => openPhotoModal(photo.storageUrl || photo.url);
+                    
+                    const actions = document.createElement('div');
+                    actions.className = 'p-2 flex justify-between';
+                    
+                    const dateInfo = document.createElement('div');
+                    dateInfo.className = 'text-xs text-gray-400';
+                    const date = new Date(photo.timestamp);
+                    dateInfo.textContent = date.toLocaleDateString();
+                    
+                    const buttons = document.createElement('div');
+                    
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.innerHTML = '⬇️';
+                    downloadBtn.title = 'Download';
+                    downloadBtn.className = 'text-sm bg-primary text-secondary p-1 rounded mr-2';
+                    downloadBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        downloadPhoto(photo.storageUrl || photo.url);
+                    };
+                    
+                    const shareBtn = document.createElement('button');
+                    shareBtn.innerHTML = '↗️';
+                    shareBtn.title = 'Share';
+                    shareBtn.className = 'text-sm bg-primary text-secondary p-1 rounded';
+                    shareBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        sharePhoto(photo.storageUrl || photo.url);
+                    };
+                    
+                    buttons.appendChild(downloadBtn);
+                    buttons.appendChild(shareBtn);
+                    actions.appendChild(dateInfo);
+                    actions.appendChild(buttons);
                     
                     gridItem.appendChild(img);
+                    gridItem.appendChild(actions);
+                    
                     galleryGrid.appendChild(gridItem);
                 });
-                
-                // Also update the profile photo count if profile is visible
-                const profilePhotoCount = document.getElementById('profilePhotoCount');
-                if (profilePhotoCount) {
-                    profilePhotoCount.textContent = photoEntries.length;
-                }
-                
-                // Also load profile photos
-                loadProfilePhotos(photoEntries);
-                
             } else {
                 debugLog("No photos found for gallery grid");
-                galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-3">No photos yet. Take some photos with a friend to see them here!</div>';
+                galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
             }
         } else {
             debugLog("No photos found for user");
-            galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-3">No photos yet. Take some photos with a friend to see them here!</div>';
+            galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
         }
     } catch (error) {
         debugLog(`Error loading gallery grid: ${error.message}`);
         const galleryGrid = document.getElementById('galleryGrid');
-        galleryGrid.innerHTML = '<div class="text-red-400 text-center p-8 col-span-3">Error loading photos</div>';
+        galleryGrid.innerHTML = '<div class="text-red-400 text-center p-8 col-span-2">Error loading photos</div>';
     }
 }
 
@@ -2196,7 +2221,7 @@ if (cameraSignOutBtn) {
     cameraSignOutBtn.addEventListener('click', logout);
 }
 
-// Save combined photo to Firebase Storage
+// Updated saveCombinedPhoto function to upload combined image to Storage and save download URL in Realtime Database
 function saveCombinedPhoto(combinedDataUrl) {
     if (!currentUser) {
         debugLog("Cannot save combined photo - no user signed in");
@@ -2214,84 +2239,59 @@ function saveCombinedPhoto(combinedDataUrl) {
     const timestamp = Date.now();
     const photoId = `combined_${timestamp}`;
     const sessionId = currentSessionId;
-    const isGuest = currentUser.isAnonymous;
     
-    // Skip persistent storage for guest users
-    if (isGuest) {
-        debugLog("Guest user - combined photo will not be saved to account");
-        showToast("Photo available only for this session");
-        return;
-    }
-
-    // First, save to database directly as this is most reliable
-    const userPhotoRef = database.ref(`users/${userId}/photos/${photoId}`);
-    
-    // Save basic data to database first to ensure it shows up in gallery immediately
-    userPhotoRef.set({
-        url: combinedDataUrl,           // Use data URL directly
-        timestamp: timestamp,
-        combined: true,
-        photoId: photoId,
-        sessionId: sessionId
-    })
-    .then(() => {
-        debugLog("Combined photo saved to user account database");
-        showToast("Combined photo saved to your gallery");
-        
-        // Show gallery indicator
-        showGalleryIndicator();
-        
-        // Reload the gallery
-        loadGalleryGrid();
-        
-        // Now try to save to Storage as a backup/future use
-        try {
-            // Convert dataURL to blob
-            fetch(combinedDataUrl)
-                .then(res => res.blob())
-                .then(blob => {
-                    debugLog(`Attempting Storage upload for combined photo (${Math.round(blob.size/1024)} KB)`);
+    // Convert combinedDataUrl to a blob
+    fetch(combinedDataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+            debugLog(`Combined photo size: ${Math.round(blob.size/1024)} KB`);
+            
+            // Create a reference to Firebase Storage
+            const photoStorageRef = storage.ref(`users/${userId}/photos/${photoId}.jpg`);
+            
+            // Upload the combined photo to Storage
+            photoStorageRef.put(blob)
+                .then(snapshot => {
+                    debugLog(`Combined photo upload successful: ${snapshot.bytesTransferred} bytes`);
+                    return photoStorageRef.getDownloadURL();
+                })
+                .then(downloadURL => {
+                    debugLog(`Storage URL obtained for combined photo: ${downloadURL.substring(0, 50)}...`);
                     
-                    // Create a reference to Firebase Storage
-                    const photoStorageRef = storage.ref(`users/${userId}/photos/${photoId}.jpg`);
-                    
-                    // Upload photo to Storage
-                    photoStorageRef.put(blob)
-                        .then(snapshot => {
-                            debugLog(`Combined photo upload successful: ${snapshot.bytesTransferred} bytes`);
-                            return photoStorageRef.getDownloadURL();
-                        })
-                        .then(downloadURL => {
-                            debugLog(`Storage URL obtained for combined photo`);
-                            
-                            // Update the database record with the Storage URL
-                            userPhotoRef.update({
-                                storageUrl: downloadURL  // Add Storage URL but keep data URL as backup
-                            })
-                            .then(() => {
-                                debugLog("Combined photo record updated with Storage URL");
-                            })
-                            .catch(error => {
-                                debugLog(`Error updating combined photo with Storage URL: ${error.message}`);
-                            });
-                        })
-                        .catch(error => {
-                            debugLog(`Storage upload for combined photo failed: ${error.message}`);
-                            // No user-facing error needed as the photo is already saved to database
-                        });
+                    // Save metadata and download URL to Realtime Database
+                    const userPhotoRef = database.ref(`users/${userId}/photos/${photoId}`);
+                    userPhotoRef.set({
+                        url: downloadURL,           // Storage download URL
+                        thumbnailUrl: downloadURL,  // Use same URL for thumbnail for simplicity
+                        sessionId: sessionId,
+                        timestamp: timestamp,
+                        combined: true,
+                        photoId: photoId
+                    })
+                    .then(() => {
+                        debugLog("Combined photo metadata saved to user account");
+                        showToast("Combined photo saved to your gallery");
+                        
+                        // Show gallery indicator
+                        showGalleryIndicator();
+                        
+                        // Reload the gallery
+                        loadGalleryGrid();
+                    })
+                    .catch(error => {
+                        debugLog(`Error saving combined photo metadata: ${error.message}`);
+                        showToast("Error saving combined photo");
+                    });
                 })
                 .catch(error => {
-                    debugLog(`Error converting combined photo for Storage: ${error.message}`);
+                    debugLog(`Error uploading combined photo to Storage: ${error.message}`);
+                    showToast("Error uploading combined photo");
                 });
-        } catch (error) {
-            debugLog(`Error in Storage upload attempt: ${error.message}`);
-            // Already saved to database so no additional error handling needed
-        }
-    })
-    .catch(error => {
-        debugLog(`Error saving combined photo to database: ${error.message}`);
-        showToast("Error saving combined photo");
-    });
+        })
+        .catch(error => {
+            debugLog(`Error converting combined photo for Storage: ${error.message}`);
+            showToast("Error processing combined photo");
+        });
 }
 
 // Load photos for the profile page
