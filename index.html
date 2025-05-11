@@ -2016,9 +2016,15 @@ function showCenteredToast(message) {
     }, 2000);
 }
 
-// Add signout button event listener
+// Add signout button event listeners
 if (signOutBtn) {
     signOutBtn.addEventListener('click', logout);
+}
+
+// Add camera signout button event listener
+const cameraSignOutBtn = document.getElementById('cameraSignOutBtn');
+if (cameraSignOutBtn) {
+    cameraSignOutBtn.addEventListener('click', logout);
 }
 
 // Simpler version to save combined photos directly to the database
@@ -2257,7 +2263,8 @@ function saveCombinedPhoto(combinedDataUrl) {
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        margin-top: 70px; /* Add space for top header */
+        margin-top: 50px; /* Reduced from 60px to reduce space at the top */
+        margin-bottom: 70px; /* Add space at bottom for controls */
     }
     
     #cameraFeed {
@@ -2386,9 +2393,10 @@ function saveCombinedPhoto(combinedDataUrl) {
     
     .photo-actions-container {
         position: absolute;
-        bottom: 2rem;
+        bottom: 80px; /* Position above the camera controls */
         display: flex;
         gap: 1rem;
+        z-index: 101; /* Above camera controls */
     }
     
     .photo-action-btn {
@@ -2536,16 +2544,15 @@ function saveCombinedPhoto(combinedDataUrl) {
     /* Gallery section */
     #gallerySection {
         position: absolute;
-        bottom: 5rem;  /* Changed from top to bottom positioning */
-        left: 1rem;
-        right: 1rem;
+        bottom: 80px; /* Increased to place above the camera controls */
+        left: 0;
+        right: 0;
         display: flex;
         flex-wrap: nowrap;
         overflow-x: auto;
         padding: 0.5rem;
         background-color: rgba(72, 49, 212, 0.8);
-        border-radius: 0.5rem;
-        z-index: 10;
+        z-index: 101; /* Increased to be above camera controls */
         scrollbar-width: none;
         backdrop-filter: blur(5px);
         margin: 0 8px;
@@ -2754,7 +2761,8 @@ function saveCombinedPhoto(combinedDataUrl) {
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        margin-top: 60px; /* Reduced from 70px to provide more space for the camera */
+        margin-top: 50px; /* Reduced from 60px to reduce space at the top */
+        margin-bottom: 70px; /* Add space at bottom for controls */
     }
 
     /* Improve gallery grid responsiveness */
@@ -2782,7 +2790,7 @@ function saveCombinedPhoto(combinedDataUrl) {
     /* Make the gallery section responsive */
     #gallerySection {
         position: absolute;
-        bottom: 5rem;
+        bottom: 80px; /* Increased to place above the camera controls */
         left: 0;
         right: 0;
         display: flex;
@@ -2790,7 +2798,7 @@ function saveCombinedPhoto(combinedDataUrl) {
         overflow-x: auto;
         padding: 0.5rem;
         background-color: rgba(72, 49, 212, 0.8);
-        z-index: 10;
+        z-index: 101; /* Increased to be above camera controls */
         scrollbar-width: none;
         backdrop-filter: blur(5px);
         margin: 0 8px;
@@ -2854,7 +2862,7 @@ function saveCombinedPhoto(combinedDataUrl) {
                 </div>
                 <div class="flex space-x-4">
                     <button id="galleryBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Gallery</button>
-                    <button id="signOutBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Sign Out</button>
+                    <button id="cameraSignOutBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Sign Out</button>
                 </div>
             </div>
             
