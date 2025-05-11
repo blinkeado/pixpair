@@ -400,15 +400,23 @@ const sessionUrl = `${APP_BASE_URL}?sessionId=${sessionId}`;
                 return;
             }
             
-                // Reset countdown state before starting new countdown
-                resetCountdownOverlay();
+            // Reset countdown state before starting new countdown
+            resetCountdownOverlay();
             
-                // Show countdown overlay
-                countdownOverlay.style.display = 'flex';
+            // Show countdown overlay
+            countdownOverlay.style.display = 'flex';
             countdownOverlay.classList.remove('hidden');
-                countdownText.style.display = 'block';
+            countdownText.style.display = 'block';
             countdownText.classList.remove('hidden');
             debugLog("Countdown overlay shown");
+            
+            // Always hide QR code during countdown
+            if (qrContainer) {
+                qrContainer.classList.add('hidden');
+            }
+            if (qrFallback) {
+                qrFallback.classList.add('hidden');
+            }
             
             const countdownSteps = Math.floor(timeUntilCapture / 1000);
             let currentCount = countdownSteps;
@@ -988,25 +996,33 @@ const metadata = {
 
         // Check if peerCount element exists
         if (peerCount) {
-            // ✅ Incluye al creador de la sesión como peer
-            peerCount.textContent = `${participantCount} ${participantCount === 1 ? 'peer' : 'peers'} connected`;
-            debugLog(`Participant count updated: ${participantCount} total peers`);
+        // ✅ Incluye al creador de la sesión como peer
+        peerCount.textContent = `${participantCount} ${participantCount === 1 ? 'peer' : 'peers'} connected`;
+        debugLog(`Participant count updated: ${participantCount} total peers`);
 
-            // 🔁 Cambio dinámico de color
-            if (participantCount > 1) {
-                peerCount.style.color = '#CCF381'; // Color fuerte cuando hay más de 1
+        // 🔁 Cambio dinámico de color
+        if (participantCount > 1) {
+            peerCount.style.color = '#CCF381'; // Color fuerte cuando hay más de 1
+                // Always hide QR code when more than one peer is connected
                 if (qrContainer) {
                     qrContainer.classList.add('hidden');
                 }
-                debugLog("Second participant joined, hiding QR overlay");
-            } else {
-                peerCount.style.color = '#999999'; // Color apagado cuando solo hay uno
+                if (qrFallback) {
+                    qrFallback.classList.add('hidden');
+                }
+            debugLog("Second participant joined, hiding QR overlay");
+        } else {
+            peerCount.style.color = '#999999'; // Color apagado cuando solo hay uno
+                // Show QR code when only one peer (the owner) is connected
+                if (isSessionOwner && qrContainer) {
+                    qrContainer.classList.remove('hidden');
+                }
             }
         }
     } else {
         if (peerCount) {
-            peerCount.textContent = '0 peers connected';
-            peerCount.style.color = '#999999';
+        peerCount.textContent = '0 peers connected';
+        peerCount.style.color = '#999999';
         }
         debugLog("No participants in session");
     }
@@ -2979,6 +2995,48 @@ function saveCombinedPhoto(combinedDataUrl) {
         }
     }
 
+    /* Make sure the connection status indicators are visible */
+    .status-connected {
+        background-color: #4CAF50;
+    }
+    
+    .status-connecting {
+        background-color: #FFC107;
+        animation: pulse 1.5s infinite;
+    }
+    
+    .status-disconnected {
+        background-color: #F44336;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 0.4; }
+        50% { opacity: 1; }
+        100% { opacity: 0.4; }
+    }
+    
+    /* Make the camera header spacing better */
+    .camera-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: rgba(0,0,0,0.7);
+        z-index: 100;
+    }
+    
+    /* Make the peer count more visible */
+    #peerCount {
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    /* Fix the spacing in camera controls to ensure capture button is centered */
+    .camera-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 </style>
 </head>
 <body>
@@ -3035,6 +3093,13 @@ function saveCombinedPhoto(combinedDataUrl) {
                         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                     </svg>
                 </div>
+                
+                <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full status-connecting mr-2" id="connectionStatus"></div>
+                    <span id="statusText">Connecting...</span>
+                    <span id="peerCount" class="ml-2">0 peers connected</span>
+                </div>
+                
                 <div class="flex space-x-4">
                     <button id="galleryBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Gallery</button>
                     <button id="cameraSignOutBtn" class="btn-secondary px-3 py-1 rounded-lg text-sm">Sign Out</button>
@@ -3075,7 +3140,7 @@ function saveCombinedPhoto(combinedDataUrl) {
                     </div>
                     
                     <div class="camera-controls">
-                        <button id="newSessionBtn" class="hidden">Exit</button>
+                        <div class="w-20"></div>
                         <button id="captureBtn" disabled></button>
                         <div class="w-20"></div>
                     </div>
