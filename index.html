@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PixCrab - Synchronized Photo Capture</title>
     <link rel="stylesheet" href="dist/output.css">
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-<script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script type="text/javascript" src="firebase-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="firebase-config.js"></script>
 
-    <script type="text/javascript">
+    <script>
         // App configuration
         const APP_BASE_URL = 'https://pixcrab.netlify.app';
 
@@ -1280,13 +1280,9 @@ const metadata = {
             startCountdown(captureTime);
         });
         
-        if (newSessionBtn) {
-            newSessionBtn.addEventListener('click', leaveSession);
-        }
+        newSessionBtn.addEventListener('click', leaveSession);
         
-        if (cameraSwitchBtn) {
-            cameraSwitchBtn.addEventListener('click', switchCamera);
-        }
+        cameraSwitchBtn.addEventListener('click', switchCamera);
         
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
@@ -1448,84 +1444,75 @@ function logout() {
 }
 
 // Add proper error handling to Google sign-in
-const googleLoginBtn = document.getElementById('googleSignIn');
-if (googleLoginBtn) {
-    googleLoginBtn.addEventListener('click', () => {
-        debugLog("Google sign-in clicked");
+document.getElementById('googleSignIn').addEventListener('click', () => {
+    debugLog("Google sign-in clicked");
+    
+    try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+        showToast('Signing in with Google...');
         
-        try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            showToast('Signing in with Google...');
-            
-            auth.signInWithPopup(provider)
-                .then(() => {
-                    debugLog("Google sign-in successful");
-                })
-                .catch(error => {
-                    debugLog(`Google sign-in error: ${error.message}`);
-                    console.error("Google sign-in error:", error);
-                    showToast('Failed to sign in with Google');
-                });
-        } catch (error) {
-            debugLog(`Error initializing Google sign-in: ${error.message}`);
-            console.error("Error initializing Google sign-in:", error);
-            showToast('Failed to start Google sign-in');
-        }
+        auth.signInWithPopup(provider)
+            .then(() => {
+                debugLog("Google sign-in successful");
+            })
+            .catch(error => {
+        debugLog(`Google sign-in error: ${error.message}`);
+                console.error("Google sign-in error:", error);
+        showToast('Failed to sign in with Google');
     });
-}
+    } catch (error) {
+        debugLog(`Error initializing Google sign-in: ${error.message}`);
+        console.error("Error initializing Google sign-in:", error);
+        showToast('Failed to start Google sign-in');
+    }
+});
 
 // Add proper error handling to Apple sign-in
-const appleLoginBtn = document.getElementById('appleSignIn');
-if (appleLoginBtn) {
-    appleLoginBtn.addEventListener('click', () => {
-        debugLog("Apple sign-in clicked");
+document.getElementById('appleSignIn').addEventListener('click', () => {
+    debugLog("Apple sign-in clicked");
+    
+    try {
+    const provider = new firebase.auth.OAuthProvider('apple.com');
+        showToast('Signing in with Apple...');
         
-        try {
-            const provider = new firebase.auth.OAuthProvider('apple.com');
-            showToast('Signing in with Apple...');
-            
-            auth.signInWithPopup(provider)
-                .then(() => {
-                    debugLog("Apple sign-in successful");
-                })
-                .catch(error => {
-                    debugLog(`Apple sign-in error: ${error.message}`);
-                    console.error("Apple sign-in error:", error);
-                    showToast('Failed to sign in with Apple');
-                });
-        } catch (error) {
-            debugLog(`Error initializing Apple sign-in: ${error.message}`);
-            console.error("Error initializing Apple sign-in:", error);
-            showToast('Failed to start Apple sign-in');
-        }
+        auth.signInWithPopup(provider)
+            .then(() => {
+                debugLog("Apple sign-in successful");
+            })
+            .catch(error => {
+        debugLog(`Apple sign-in error: ${error.message}`);
+                console.error("Apple sign-in error:", error);
+        showToast('Failed to sign in with Apple');
     });
-}
+    } catch (error) {
+        debugLog(`Error initializing Apple sign-in: ${error.message}`);
+        console.error("Error initializing Apple sign-in:", error);
+        showToast('Failed to start Apple sign-in');
+    }
+});
 
 // Add proper error handling to guest sign-in
-const guestLoginBtn = document.getElementById('guestSignIn');
-if (guestLoginBtn) {
-    guestLoginBtn.addEventListener('click', () => {
-        debugLog("Guest sign-in clicked");
+document.getElementById('guestSignIn').addEventListener('click', () => {
+    debugLog("Guest sign-in clicked");
+    
+    try {
+        showToast('Signing in as guest...');
         
-        try {
-            showToast('Signing in as guest...');
-            
-            auth.signInAnonymously()
-                .then(() => {
-                    debugLog("Anonymous sign-in successful");
-                })
-                .catch(error => {
-                    debugLog(`Anonymous sign-in error: ${error.message}`);
-                    console.error("Anonymous sign-in error:", error);
-                    showToast('Failed to continue as guest');
-                });
-        } catch (error) {
-            debugLog(`Error initializing anonymous sign-in: ${error.message}`);
-            console.error("Error initializing anonymous sign-in:", error);
-            showToast('Failed to start guest sign-in');
-        }
+        auth.signInAnonymously()
+            .then(() => {
+                debugLog("Anonymous sign-in successful");
+            })
+            .catch(error => {
+        debugLog(`Anonymous sign-in error: ${error.message}`);
+                console.error("Anonymous sign-in error:", error);
+        showToast('Failed to continue as guest');
     });
-}
+    } catch (error) {
+        debugLog(`Error initializing anonymous sign-in: ${error.message}`);
+        console.error("Error initializing anonymous sign-in:", error);
+        showToast('Failed to start guest sign-in');
+    }
+});
 
 // Add this function to show a gallery indicator
 function showGalleryIndicator() {
@@ -2817,20 +2804,6 @@ function saveCombinedPhoto(combinedDataUrl) {
         margin: 0 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
-
-    /* Style for the camera switch button in the bottom controls */
-    .control-btn {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: 2px solid #ffffff;
-        background-color: rgba(72, 49, 212, 0.8);
-        color: #ffffff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-    }
 </style>
 </head>
 <body>
@@ -2904,6 +2877,16 @@ function saveCombinedPhoto(combinedDataUrl) {
                             <div id="captureText" class="hidden">Snap!</div>
                         </div>
                         
+                        <button id="cameraSwitchBtn" class="hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                                <line x1="16" y1="5" x2="22" y2="5"></line>
+                                <line x1="19" y1="2" x2="19" y2="8"></line>
+                                <circle cx="9" cy="9" r="3"></circle>
+                                <path d="M13 13L9 9"></path>
+                            </svg>
+                        </button>
+                        
                         <div id="qrcode" class="hidden"></div>
                         <div id="qrFallback" class="hidden"></div>
                         
@@ -2917,17 +2900,9 @@ function saveCombinedPhoto(combinedDataUrl) {
                     </div>
                     
                     <div class="camera-controls">
-                        <div class="w-20"></div> <!-- Empty space to balance the layout -->
+                        <button id="newSessionBtn">Exit</button>
                         <button id="captureBtn" disabled></button>
-                        <button id="cameraSwitchBtn" class="control-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-                                <line x1="16" y1="5" x2="22" y2="5"></line>
-                                <line x1="19" y1="2" x2="19" y2="8"></line>
-                                <circle cx="9" cy="9" r="3"></circle>
-                                <path d="M13 13L9 9"></path>
-                            </svg>
-                        </button>
+                        <div class="w-20"></div>
                     </div>
                 </div>
             </div>
