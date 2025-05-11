@@ -1357,6 +1357,27 @@ auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
             
+        // Update profile button visibility based on auth type
+        const profileBtn = document.getElementById('profileBtn');
+        if (profileBtn) {
+            if (user.isAnonymous) {
+                profileBtn.classList.add('hidden');
+            } else {
+                profileBtn.classList.remove('hidden');
+            }
+        } else {
+            // Create profile button if it doesn't exist yet
+            const navButtons = document.querySelector('.camera-header .flex.space-x-4');
+            if (navButtons && !user.isAnonymous) {
+                const profileBtn = document.createElement('button');
+                profileBtn.id = 'profileBtn';
+                profileBtn.className = 'btn-secondary px-3 py-1 rounded-lg text-sm';
+                profileBtn.textContent = 'Profile';
+                profileBtn.addEventListener('click', showUserProfile);
+                navButtons.insertBefore(profileBtn, document.getElementById('galleryBtn'));
+            }
+        }
+            
         if (user.isAnonymous) {
             debugLog('Signed in as guest');
                 showToast('Guest session active');
@@ -1406,6 +1427,12 @@ auth.onAuthStateChanged((user) => {
             cameraSwitchBtn.classList.add('hidden');
             qrContainer.classList.add('hidden');
             
+            // Make sure profile page is hidden
+            const userProfilePage = document.getElementById('userProfilePage');
+            if (userProfilePage) {
+                userProfilePage.classList.add('hidden');
+            }
+            
             // Clear any slideshow elements
             while (slideContainer.children.length > 1) {
                 slideContainer.removeChild(slideContainer.lastChild);
@@ -1419,6 +1446,27 @@ auth.onAuthStateChanged((user) => {
     } catch (error) {
         debugLog(`Error in auth state handler: ${error.message}`);
         console.error('Auth state handler error:', error);
+    }
+});
+
+// Set up profile page event listeners when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Add event listeners for profile buttons
+    const closeProfileBtn = document.getElementById('closeProfileBtn');
+    if (closeProfileBtn) {
+        closeProfileBtn.addEventListener('click', () => {
+            const userProfilePage = document.getElementById('userProfilePage');
+            if (userProfilePage) {
+                userProfilePage.classList.add('hidden');
+            }
+        });
+    }
+
+    const editProfileBtn = document.getElementById('editProfileBtn');
+    if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', () => {
+            showToast('Profile editing coming soon');
+        });
     }
 });
 
@@ -1921,66 +1969,136 @@ async function loadGalleryGrid() {
                 
                 photoEntries.forEach(([photoId, photo]) => {
                     const gridItem = document.createElement('div');
-                    gridItem.className = 'gallery-grid-item bg-gray-800 rounded-lg overflow-hidden shadow-lg';
+                    gridItem.className = 'gallery-grid-item';
                     
                     const img = document.createElement('img');
                     img.src = photo.thumbnailUrl || photo.url;
-                    img.className = 'w-full h-40 object-cover cursor-pointer';
                     img.alt = 'Gallery photo';
                     img.loading = 'lazy';
                     
                     img.onclick = () => openPhotoModal(photo.url);
                     
-                    const actions = document.createElement('div');
-                    actions.className = 'p-2 flex justify-between';
-                    
-                    const dateInfo = document.createElement('div');
-                    dateInfo.className = 'text-xs text-gray-400';
-                    const date = new Date(photo.timestamp);
-                    dateInfo.textContent = date.toLocaleDateString();
-                    
-                    const buttons = document.createElement('div');
-                    
-                    const downloadBtn = document.createElement('button');
-                    downloadBtn.innerHTML = '⬇️';
-                    downloadBtn.title = 'Download';
-                    downloadBtn.className = 'text-sm bg-primary text-secondary p-1 rounded mr-2';
-                    downloadBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        downloadPhoto(photo.url);
-                    };
-                    
-                    const shareBtn = document.createElement('button');
-                    shareBtn.innerHTML = '↗️';
-                    shareBtn.title = 'Share';
-                    shareBtn.className = 'text-sm bg-primary text-secondary p-1 rounded';
-                    shareBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        sharePhoto(photo.url);
-                    };
-                    
-                    buttons.appendChild(downloadBtn);
-                    buttons.appendChild(shareBtn);
-                    actions.appendChild(dateInfo);
-                    actions.appendChild(buttons);
-                    
                     gridItem.appendChild(img);
-                    gridItem.appendChild(actions);
-                    
                     galleryGrid.appendChild(gridItem);
                 });
+                
+                // Also update the profile photo count if profile is visible
+                const profilePhotoCount = document.getElementById('profilePhotoCount');
+                if (profilePhotoCount) {
+                    profilePhotoCount.textContent = photoEntries.length;
+                }
+                
+                // Also load profile photos
+                loadProfilePhotos(photoEntries);
+                
             } else {
                 debugLog("No photos found for gallery grid");
-                galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
+                galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-3">No photos yet. Take some photos with a friend to see them here!</div>';
             }
         } else {
             debugLog("No photos found for user");
-            galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
+            galleryGrid.innerHTML = '<div class="text-secondary text-center p-8 col-span-3">No photos yet. Take some photos with a friend to see them here!</div>';
         }
     } catch (error) {
         debugLog(`Error loading gallery grid: ${error.message}`);
         const galleryGrid = document.getElementById('galleryGrid');
-        galleryGrid.innerHTML = '<div class="text-red-400 text-center p-8 col-span-2">Error loading photos</div>';
+        galleryGrid.innerHTML = '<div class="text-red-400 text-center p-8 col-span-3">Error loading photos</div>';
+    }
+}
+
+// New function to load photos into the profile grid
+function loadProfilePhotos(photoEntries) {
+    try {
+        const profilePhotoGrid = document.getElementById('profilePhotoGrid');
+        if (!profilePhotoGrid) return;
+        
+        profilePhotoGrid.innerHTML = ''; // Clear existing content
+        
+        if (photoEntries.length > 0) {
+            photoEntries.forEach(([photoId, photo]) => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item';
+                
+                const img = document.createElement('img');
+                img.src = photo.thumbnailUrl || photo.url;
+                img.alt = 'Profile photo';
+                img.loading = 'lazy';
+                
+                img.onclick = () => openPhotoModal(photo.url);
+                
+                photoItem.appendChild(img);
+                profilePhotoGrid.appendChild(photoItem);
+            });
+        } else {
+            profilePhotoGrid.innerHTML = '<div class="text-gray-400 text-center p-8 col-span-3">No photos yet</div>';
+        }
+    } catch (error) {
+        debugLog(`Error loading profile photos: ${error.message}`);
+    }
+}
+
+// New function to show user profile
+function showUserProfile() {
+    if (!currentUser || currentUser.isAnonymous) {
+        debugLog("Cannot show profile - user not signed in or is guest");
+        showToast('Please sign in with Google to view your profile');
+        return;
+    }
+    
+    debugLog("Showing user profile");
+    
+    // Set profile username
+    const username = currentUser.displayName || currentUser.email || 'PixCrab User';
+    const profileUsername = document.getElementById('profileUsername');
+    const profileDisplayName = document.getElementById('profileDisplayName');
+    
+    if (profileUsername) profileUsername.textContent = username;
+    if (profileDisplayName) profileDisplayName.textContent = username;
+    
+    // Set profile picture
+    const profilePic = document.getElementById('userProfilePic');
+    if (profilePic) {
+        if (currentUser.photoURL) {
+            profilePic.innerHTML = `<img src="${currentUser.photoURL}" alt="Profile" class="w-full h-full object-cover">`;
+        } else {
+            // Use initials if no photo
+            const initials = username.split(' ').map(n => n[0]).join('').toUpperCase();
+            profilePic.textContent = initials;
+        }
+    }
+    
+    // Load photos
+    const userId = currentUser.uid;
+    database.ref(`users/${userId}/photos`).once('value')
+        .then(snapshot => {
+            const photoCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+            const profilePhotoCount = document.getElementById('profilePhotoCount');
+            if (profilePhotoCount) {
+                profilePhotoCount.textContent = photoCount;
+            }
+            
+            if (snapshot.exists()) {
+                const photoEntries = Object.entries(snapshot.val())
+                    .filter(([_, photo]) => photo.url)
+                    .sort((a, b) => b[1].timestamp - a[1].timestamp);
+                
+                loadProfilePhotos(photoEntries);
+            }
+        })
+        .catch(error => {
+            debugLog(`Error loading photo count: ${error.message}`);
+        });
+    
+    // Show profile page
+    const userProfilePage = document.getElementById('userProfilePage');
+    if (userProfilePage) {
+        userProfilePage.classList.remove('hidden');
+    }
+    
+    // Hide gallery if open
+    const galleryFullScreen = document.getElementById('galleryFullScreen');
+    if (galleryFullScreen) {
+        galleryFullScreen.classList.add('hidden');
     }
 }
 
@@ -2804,6 +2922,63 @@ function saveCombinedPhoto(combinedDataUrl) {
         margin: 0 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
+
+    /* Instagram-style Gallery Grid */
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        padding: 2px;
+    }
+    
+    .gallery-grid-item {
+        aspect-ratio: 1/1;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .gallery-grid-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Profile page styles */
+    #userProfilePage {
+        background-color: white;
+        color: black;
+    }
+    
+    .profile-photos {
+        background-color: white;
+    }
+    
+    .profile-photos .photo-item {
+        aspect-ratio: 1/1;
+        overflow: hidden;
+    }
+    
+    .profile-photos .photo-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    /* Updated gallery grid responsive design */
+    @media (min-width: 640px) {
+        .gallery-grid {
+            gap: 4px;
+            padding: 4px;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .gallery-grid {
+            gap: 6px;
+            padding: 6px;
+        }
+    }
+
 </style>
 </head>
 <body>
@@ -2916,12 +3091,104 @@ function saveCombinedPhoto(combinedDataUrl) {
             </div>
             
             <div class="p-4">
-                <div id="galleryGrid" class="grid grid-cols-2 gap-4">
+                <div id="galleryGrid" class="gallery-grid">
                     <!-- Gallery items will be added here -->
                     <div class="text-center text-secondary p-8 col-span-2">
                         No photos yet. Take some photos with a friend to see them here!
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- New User Profile Page -->
+        <div id="userProfilePage" class="hidden fixed inset-0 bg-white z-50 overflow-y-auto text-black">
+            <div class="profile-header p-4 flex justify-between items-center border-b border-gray-200">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lock-icon mr-2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span id="profileUsername" class="text-lg font-semibold"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <button id="closeProfileBtn" class="text-black">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="profile-info p-4">
+                <div class="flex mb-4">
+                    <div class="profile-pic mr-8">
+                        <div id="userProfilePic" class="w-20 h-20 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center text-gray-600 text-3xl font-bold">
+                            <!-- Will be filled with user initials or photo -->
+                        </div>
+                    </div>
+                    <div class="profile-stats flex-grow">
+                        <div class="flex justify-around text-center">
+                            <div class="stat">
+                                <div id="profilePhotoCount" class="font-bold">0</div>
+                                <div class="text-sm">Posts</div>
+                            </div>
+                            <div class="stat">
+                                <div class="font-bold">0</div>
+                                <div class="text-sm">Followers</div>
+                            </div>
+                            <div class="stat">
+                                <div class="font-bold">0</div>
+                                <div class="text-sm">Following</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-bio mb-4">
+                    <div id="profileDisplayName" class="font-bold"></div>
+                    <div class="text-sm">PixCrab user</div>
+                    <div class="text-sm mt-1">Capture moments together with friends in real-time.</div>
+                </div>
+                
+                <button id="editProfileBtn" class="w-full py-1 border border-gray-300 rounded-md text-sm font-semibold mb-4">Edit Profile</button>
+                
+                <div class="profile-highlights flex overflow-x-auto mb-4 pb-2">
+                    <div class="highlight-item flex flex-col items-center mr-4">
+                        <div class="w-16 h-16 rounded-full border border-gray-300 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </div>
+                        <span class="text-xs mt-1">New</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-tabs border-t border-gray-200">
+                <div class="flex">
+                    <div class="flex-1 py-2 text-center border-b-2 border-black">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <line x1="15" y1="3" x2="15" y2="21"></line>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="3" y1="15" x2="21" y2="15"></line>
+                        </svg>
+                    </div>
+                    <div class="flex-1 py-2 text-center text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="profilePhotoGrid" class="profile-photos grid grid-cols-3 gap-1">
+                <!-- Profile photos will be added here -->
             </div>
         </div>
         
