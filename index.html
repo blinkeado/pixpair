@@ -2709,7 +2709,7 @@ function saveCombinedPhoto(combinedDataUrl) {
         }
     }
 
-    @media (max-width: 360px) {
+    @media (max-width: 480px) {
         /* Small phone improvements */
         .camera-header {
             padding: 0.5rem;
@@ -2727,6 +2727,23 @@ function saveCombinedPhoto(combinedDataUrl) {
         .btn-secondary {
             padding: 0.25rem 0.5rem !important;
             font-size: 0.75rem !important;
+        }
+        
+        /* Adjust spacing for smaller screens */
+        .camera-feed-container {
+            margin-top: 50px;
+        }
+        
+        /* Make gallery thumbnails smaller */
+        .gallery-photo-wrapper {
+            width: 70px !important;
+            height: 70px !important;
+        }
+        
+        /* Ensure session badge fits */
+        .session-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
         }
     }
 
