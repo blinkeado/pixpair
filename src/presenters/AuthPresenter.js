@@ -19,6 +19,9 @@ class AuthPresenter extends BasePresenter {
         // Session setup elements
         this.sessionSetup = document.getElementById('sessionSetup');
         this.signOutBtn = document.getElementById('signOutBtn');
+        this.joinSessionBtn = document.getElementById('joinSession');
+        this.createSessionBtn = document.getElementById('createSession');
+        this.viewGalleryBtn = document.getElementById('viewGalleryBtn');
         
         // Camera section elements
         this.cameraSection = document.getElementById('cameraSection');
@@ -90,6 +93,11 @@ class AuthPresenter extends BasePresenter {
             if (this.authSection) this.authSection.classList.add('hidden');
             if (this.sessionSetup) this.sessionSetup.classList.remove('hidden');
             
+            // Enable session buttons when user is authenticated
+            if (this.createSessionBtn) this.createSessionBtn.disabled = false;
+            if (this.joinSessionBtn) this.joinSessionBtn.disabled = false;
+            if (this.viewGalleryBtn) this.viewGalleryBtn.disabled = false;
+            
             // Update profile button visibility (show for registered users, hide for guests)
             this._updateProfileButton(userModel);
             
@@ -101,6 +109,11 @@ class AuthPresenter extends BasePresenter {
             if (this.sessionSetup) this.sessionSetup.classList.add('hidden');
             if (this.cameraSection) this.cameraSection.classList.add('hidden');
             if (this.userProfilePage) this.userProfilePage.classList.add('hidden');
+            
+            // Disable session buttons when user is not authenticated
+            if (this.createSessionBtn) this.createSessionBtn.disabled = true;
+            if (this.joinSessionBtn) this.joinSessionBtn.disabled = true;
+            if (this.viewGalleryBtn) this.viewGalleryBtn.disabled = true;
         }
     }
 
