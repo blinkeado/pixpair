@@ -30,7 +30,6 @@
         },
         "participants": {
           ".read": "auth !== null",
-          ".write": "auth !== null",
           "$userId": {
             ".write": "auth !== null && auth.uid === $userId"
           }

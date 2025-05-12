@@ -2,10 +2,32 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Temporarily allow all authenticated users to read/write everywhere
-    // We'll make this more restrictive once we confirm functionality
+    // Users can access their own photos
+    match /users/{userId}/photos/{photoId} {
+      // Users can only read/write their own photos
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Session photos can be read by any authenticated user in that session
+    // But only the owner can write to their own photos
+    match /sessions/{sessionId}/photos/{photoPath=**} {
+      // Allow reading of session photos by any authenticated user
+      allow read: if request.auth != null;
+      
+      // Users can only upload photos with their own userId in the filename
+      allow write: if request.auth != null && 
+                   (photoPath.matches(request.auth.uid + '_.*') || 
+                    photoPath.contains('/' + request.auth.uid + '/'));
+    }
+    
+    // Allow combined photos storage for authenticated users
+    match /users/{userId}/combined/{photoId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Default deny
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 } 
