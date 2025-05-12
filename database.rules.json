@@ -1,5 +1,7 @@
 {
   "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
     "users": {
       "$userId": {
         ".read": true,
@@ -28,13 +30,11 @@
       "$sessionId": {
         ".read": true,
         ".write": true,
-        "photos": {
-          "$userId": {
-            ".read": true,
-            ".write": true
-          }
+        "members": {
+          ".read": true,
+          ".write": true
         },
-        "participants": {
+        "photos": {
           ".read": true,
           ".write": true
         },
@@ -46,11 +46,9 @@
           ".read": true,
           ".write": true
         },
-        "members": {
-          "$userId": {
-            ".read": true,
-            ".write": true
-          }
+        "participants": {
+          ".read": true,
+          ".write": true
         }
       }
     },

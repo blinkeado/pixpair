@@ -7,6 +7,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [cameraReady, setCameraReady] = useState(false);
   const [photosTaken, setPhotosTaken] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+  const [participants, setParticipants] = useState({});
+  const [participantCount, setParticipantCount] = useState(0);
+  const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -21,6 +25,28 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setPhotosTaken((prevPhotos) => [...prevPhotos, photo]);
     });
     
+    // Listen for participants in this session
+    const participantsRef = firebase.database().ref(`sessions/${sessionId}/members`);
+    participantsRef.on('value', (snapshot) => {
+      const members = snapshot.val() || {};
+      setParticipants(members);
+      setParticipantCount(Object.keys(members).length);
+      
+      // Auto-start countdown when 2 participants join
+      if (Object.keys(members).length === 2) {
+        initiateCapture();
+      }
+    });
+    
+    // Listen for capture time updates
+    const captureRef = firebase.database().ref(`sessions/${sessionId}/capture`);
+    captureRef.on('value', (snapshot) => {
+      const captureData = snapshot.val();
+      if (captureData && captureData.captureTime) {
+        startCountdown(captureData.captureTime);
+      }
+    });
+    
     // Add CORS headers to Firebase Storage
     addCorsHeaders();
     
@@ -28,6 +54,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Clean up
       stopCamera();
       photosRef.off();
+      participantsRef.off();
+      captureRef.off();
+      clearInterval(countdownRef.current);
     };
   }, [sessionId]);
   
@@ -67,6 +96,69 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+  };
+  
+  // Function to initiate synchronized capture
+  const initiateCapture = async () => {
+    try {
+      // Set capture time 3 seconds in the future
+      const captureTime = Date.now() + 3000;
+      
+      // Save to Firebase
+      await firebase.database().ref(`sessions/${sessionId}/capture`).set({
+        captureTime,
+        initiatedBy: firebase.auth().currentUser?.uid || 'anonymous',
+        initiated: firebase.database.ServerValue.TIMESTAMP
+      });
+      
+      console.log(`Initiated capture for time: ${new Date(captureTime).toISOString()}`);
+    } catch (error) {
+      console.error('Error initiating capture:', error);
+      setError('Failed to initiate synchronized capture.');
+    }
+  };
+  
+  // Function to start countdown
+  const startCountdown = (captureTime) => {
+    // Clear any existing countdown
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    
+    const now = Date.now();
+    const timeUntilCapture = captureTime - now;
+    
+    if (timeUntilCapture <= 0) {
+      console.log("Capture time already passed");
+      return;
+    }
+    
+    console.log(`Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
+    
+    // Calculate initial count (round up to nearest second)
+    const initialCount = Math.ceil(timeUntilCapture / 1000);
+    setCountdown(initialCount);
+    
+    // Set interval for countdown
+    countdownRef.current = setInterval(() => {
+      setCountdown((prevCount) => {
+        if (prevCount <= 1) {
+          // Time to take the photo
+          clearInterval(countdownRef.current);
+          takePhoto();
+          return null;
+        }
+        return prevCount - 1;
+      });
+    }, 1000);
+    
+    // Safety timeout to ensure the photo is taken
+    setTimeout(() => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        setCountdown(null);
+      }
+    }, timeUntilCapture + 100);
   };
   
   const takePhoto = async () => {
@@ -170,10 +262,18 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   return (
     <div className="camera-screen">
       <h2>Session: {sessionId}</h2>
+      <div className="participants-count">
+        Participants: {participantCount}/2
+      </div>
       
       {error && <div className="error">{error}</div>}
       
       <div className="camera-container">
+        {countdown !== null && (
+          <div className="countdown-overlay">
+            <div className="countdown-number">{countdown}</div>
+          </div>
+        )}
         <video 
           ref={videoRef} 
           autoPlay 
@@ -186,10 +286,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       <div className="camera-controls">
         <button 
           className="btn btn-primary" 
-          onClick={takePhoto} 
-          disabled={!cameraReady || uploading}
+          onClick={initiateCapture} 
+          disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
         >
-          {uploading ? 'Uploading...' : 'Take Photo'}
+          {uploading ? 'Uploading...' : countdown !== null ? 'Taking photo...' : 'Take Synchronized Photo'}
         </button>
         
         <div className="session-controls">
