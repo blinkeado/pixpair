@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PixCrab - Synchronized Photo Capture</title>
     
+    <!-- Base path for GitHub Pages -->
+    <base href="/pixpair/">
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
@@ -15,14 +18,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Firebase configuration -->
-    
-    
-    <!-- App configuration constant - needed for QR generation -->
     <script>
+        // Firebase configuration
+        window.firebaseConfig = {
+            apiKey: "AIzaSyBzKwHZ5Qa4NfxeBUn5-KoymCUI1Z0EyXE",
+            authDomain: "pixpair.firebaseapp.com",
+            databaseURL: "https://pixpair-default-rtdb.firebaseio.com",
+            projectId: "pixpair",
+            storageBucket: "pixpair.appspot.com",
+            messagingSenderId: "743134014753",
+            appId: "1:743134014753:web:da56b2391f4eb69a63a260",
+            measurementId: "G-08ST8X93R2"
+        };
+        
+        // App configuration constant - needed for QR generation
         window.APP_BASE_URL = 'https://blinkeado.github.io/pixpair';
     </script>
-  <script type="module" crossorigin src="/pixpair/assets/main-60855079.js"></script>
-  <link rel="stylesheet" href="/pixpair/assets/index-24ab8ffb.css">
+  <script type="module" crossorigin src="/pixpair/assets/main-38ff54a0.js"></script>
+  <link rel="stylesheet" href="/pixpair/assets/index-bd193e41.css">
 </head>
 <body>
     <div id="root"></div>
