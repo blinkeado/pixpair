@@ -118,6 +118,11 @@ h2 {
   background-color: #1976d2;
 }
 
+.copy-btn {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 /* Forms */
 .form-group {
   margin-bottom: 1rem;
@@ -214,7 +219,6 @@ input {
   padding: 0.5rem;
   background-color: #f5f5f5;
   border-radius: 0.25rem;
-  width: 100%;
 }
 
 .session-id-label {
@@ -256,6 +260,23 @@ input {
   align-items: center;
   width: 100%;
   max-width: 800px;
+}
+
+.session-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.session-header h2 {
+  margin: 0;
+  margin-right: 0.5rem;
+}
+
+.session-header .session-id-container {
+  margin: 0;
+  flex: 1;
 }
 
 .participants-count {

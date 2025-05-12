@@ -10,6 +10,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [countdown, setCountdown] = useState(null);
   const [participants, setParticipants] = useState({});
   const [participantCount, setParticipantCount] = useState(0);
+  const [copySuccess, setCopySuccess] = useState('');
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -32,10 +33,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setParticipants(members);
       setParticipantCount(Object.keys(members).length);
       
-      // Auto-start countdown when 2 participants join
-      if (Object.keys(members).length === 2) {
-        initiateCapture();
-      }
+      // Don't auto-start countdown when 2 participants join anymore
+      // This is now triggered only by the Take Synchronized Photo button
     });
     
     // Listen for capture time updates
@@ -95,6 +94,28 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const tracks = videoRef.current.srcObject.getTracks();
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
+      setCameraReady(false);
+    }
+  };
+  
+  // Enhanced exit session to ensure camera is stopped
+  const handleExitSession = () => {
+    stopCamera();
+    onExitSession();
+  };
+  
+  // Function to copy session ID to clipboard
+  const copySessionIdToClipboard = () => {
+    if (sessionId) {
+      navigator.clipboard.writeText(sessionId)
+        .then(() => {
+          setCopySuccess('Copied!');
+          setTimeout(() => setCopySuccess(''), 2000); // Reset after 2 seconds
+        })
+        .catch(err => {
+          console.error('Failed to copy:', err);
+          setCopySuccess('Failed to copy');
+        });
     }
   };
   
@@ -261,7 +282,21 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   return (
     <div className="camera-screen">
-      <h2>Session: {sessionId}</h2>
+      <div className="session-header">
+        <h2>Session: </h2>
+        <div className="session-id-container">
+          <span className="session-id">{sessionId}</span>
+          <button 
+            className="btn btn-icon copy-btn" 
+            onClick={copySessionIdToClipboard}
+            title="Copy Session ID"
+          >
+            Copy
+          </button>
+          {copySuccess && <span className="copy-status">{copySuccess}</span>}
+        </div>
+      </div>
+      
       <div className="participants-count">
         Participants: {participantCount}/2
       </div>
@@ -293,7 +328,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         </button>
         
         <div className="session-controls">
-          <button className="btn btn-secondary" onClick={onExitSession}>
+          <button className="btn btn-secondary" onClick={handleExitSession}>
             Exit Session
           </button>
           <button className="btn btn-text" onClick={onSignOut}>
