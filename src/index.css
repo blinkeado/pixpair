@@ -443,16 +443,25 @@ input {
 }
 
 /* Logo container */
+.logo-wrapper {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 2rem;
+}
+
 .logo-container {
   position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 1rem;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logo-glow {
   position: absolute;
-  inset: -8px;
+  inset: -12px;
   background: conic-gradient(from 0deg, #00f0ff, #ff00ff, #ccf381, #4831d4, #00f0ff);
   border-radius: 50%;
   z-index: 0;
@@ -463,17 +472,19 @@ input {
 
 .logo-container:hover .logo-glow {
   opacity: 1;
+  filter: blur(16px);
 }
 
 .logo-image {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: 80%;
+  height: 80%;
   z-index: 1;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .logo-container:hover .logo-image {
   transform: scale(1.05);
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2));
 } 
