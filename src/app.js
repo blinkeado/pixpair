@@ -38,9 +38,6 @@ class PixCrabApp {
         this.userModel = new UserModel(this.firebaseService);
         this.sessionModel = new SessionModel(this.firebaseService);
         this.photoModel = new PhotoModel(this.firebaseService);
-        
-        // Set up model listeners
-        this.sessionModel.addListener(this._handleSessionModelUpdate.bind(this));
     }
     
     _initializePresenters() {
@@ -56,14 +53,22 @@ class PixCrabApp {
         AppUtils.debugLog('Initializing controllers');
         
         // Initialize controllers
-        const authController = new AuthController(this.userModel, this.authPresenter, this.firebaseService);
-        const photoController = new PhotoController(this.photoModel, this.photoPresenter, this.firebaseService);
-        const sessionController = new SessionController(this.sessionModel, this.sessionPresenter, this.firebaseService);
+        this.authController = new AuthController(this.userModel, this.authPresenter, this.firebaseService);
+        this.photoController = new PhotoController(this.photoModel, this.photoPresenter, this.firebaseService);
+        this.sessionController = new SessionController(
+            this.sessionModel, 
+            this.sessionPresenter, 
+            this.firebaseService,
+            this.photoController // Pass photo controller as dependency
+        );
         
         // Initialize controllers
-        authController.initialize();
-        photoController.initialize();
-        sessionController.initialize();
+        this.authController.initialize();
+        this.photoController.initialize();
+        this.sessionController.initialize();
+        
+        // Set up model listeners
+        this.sessionModel.addListener(this._handleSessionModelUpdate.bind(this));
     }
     
     _handleSessionModelUpdate(model) {

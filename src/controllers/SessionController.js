@@ -2,10 +2,11 @@ import BaseController from './BaseController.js';
 import AppUtils from '../utils/AppUtils.js';
 
 class SessionController extends BaseController {
-    constructor(sessionModel, sessionPresenter, photoController) {
+    constructor(sessionModel, sessionPresenter, firebaseService, photoController) {
         super(sessionModel, sessionPresenter);
         this.sessionModel = sessionModel; // For clarity
-        this.photoController = photoController; // Need to coordinate camera operations
+        this.firebaseService = firebaseService;
+        this.photoController = photoController;
     }
 
     async initialize() {
@@ -32,19 +33,15 @@ class SessionController extends BaseController {
                 break;
                 
             case 'joinSession':
-                await this._handleJoinSession(data?.sessionId);
+                await this._handleJoinSession(data);
                 break;
                 
-            case 'leaveSession':
-                await this._handleLeaveSession();
+            case 'exitSession':
+                await this._handleExitSession();
                 break;
                 
-            case 'initiateCapture':
-                await this._handleInitiateCapture();
-                break;
-                
-            case 'receiveCapture':
-                await this._handleReceiveCapture(data?.captureTime);
+            case 'setupCamera':
+                await this._handleSetupCamera();
                 break;
                 
             default:
@@ -55,97 +52,110 @@ class SessionController extends BaseController {
 
     async _handleCreateSession() {
         try {
-            AppUtils.showToast('Creating session...');
-            const sessionId = await this.sessionModel.createSession();
+            // Create a new session
+            await this.sessionModel.createSession();
             
-            // When a session is created, initialize the camera
-            await this.photoController.handleEvent('initCamera');
+            // Update presenter
+            this.presenter.update(this.sessionModel);
             
-            AppUtils.showToast('Session created');
+            // Initialize camera
+            await this._handleSetupCamera();
+            
+            return true;
         } catch (error) {
             AppUtils.debugLog(`Create session failed: ${error.message}`);
-            AppUtils.showToast('Failed to create session');
+            return false;
         }
     }
 
-    async _handleJoinSession(sessionId) {
+    async _handleJoinSession(data) {
         try {
+            const { sessionId } = data || {};
+            
             if (!sessionId) {
                 throw new Error('Session ID is required');
             }
             
-            AppUtils.showToast('Joining session...');
+            // Join the session
             await this.sessionModel.joinSession(sessionId);
             
-            // When joining a session, initialize the camera
-            await this.photoController.handleEvent('initCamera');
+            // Update presenter
+            this.presenter.update(this.sessionModel);
             
-            AppUtils.showToast('Joined session');
+            // Initialize camera
+            await this._handleSetupCamera();
+            
+            return true;
         } catch (error) {
             AppUtils.debugLog(`Join session failed: ${error.message}`);
-            AppUtils.showToast('Failed to join session');
+            AppUtils.showToast('Failed to join session. Please check the session ID.');
+            return false;
         }
     }
 
-    async _handleLeaveSession() {
+    async _handleExitSession() {
         try {
-            AppUtils.showToast('Leaving session...');
-            await this.sessionModel.leaveSession();
+            // Leave the current session
+            await this.sessionModel.exitSession();
             
-            // When leaving a session, stop the camera
-            this.photoController.handleEvent('stopCamera');
+            // Update presenter
+            this.presenter.update(this.sessionModel);
             
-            AppUtils.showToast('Session ended');
+            return true;
         } catch (error) {
-            AppUtils.debugLog(`Leave session failed: ${error.message}`);
-            AppUtils.showToast('Failed to leave session');
+            AppUtils.debugLog(`Exit session failed: ${error.message}`);
+            return false;
         }
     }
-    
-    async _handleInitiateCapture() {
+
+    async _handleSetupCamera() {
         try {
-            const now = Date.now();
-            
-            // Prevent frequent captures (minimum 5-second interval)
-            if (this.sessionModel.captureTime && now - this.sessionModel.captureTime < 5000) {
-                AppUtils.showToast('Please wait before capturing again');
-                return;
+            // Call the photo controller to handle camera setup
+            if (this.photoController) {
+                await this.photoController.handleEvent('initCamera');
+            } else {
+                throw new Error('Photo controller not available');
             }
             
-            // Set capture time and broadcast to all participants
-            const captureTime = await this.sessionModel.initiateCapture();
-            
-            // Start countdown on presenter
-            this.presenter.startCountdown(captureTime);
+            return true;
         } catch (error) {
-            AppUtils.debugLog(`Initiate capture failed: ${error.message}`);
-            AppUtils.showToast('Failed to initiate capture');
+            AppUtils.debugLog(`Camera setup failed: ${error.message}`);
+            return false;
         }
     }
-    
-    async _handleReceiveCapture(captureTime) {
-        try {
-            if (!captureTime) {
-                return;
-            }
-            
-            // Start countdown on presenter
-            this.presenter.startCountdown(captureTime);
-        } catch (error) {
-            AppUtils.debugLog(`Receive capture failed: ${error.message}`);
-        }
-    }
-    
-    // Method to notify from model when session updates occur
-    onSessionUpdate(sessionModel) {
-        // If capture time has been updated, handle it
-        if (sessionModel.captureTime && sessionModel.captureTime !== this._lastCaptureTime) {
-            this._lastCaptureTime = sessionModel.captureTime;
-            this._handleReceiveCapture(sessionModel.captureTime);
-        }
+
+    async onSessionUpdate(model) {
+        // Handle session model updates here
+        AppUtils.debugLog(`Participant count updated: ${model.participants.length}`);
         
-        // Update the presenter with the current model state
-        this.presenter.update(sessionModel);
+        // Update presenter
+        this.presenter.update(model);
+        
+        // If this is a new session with 2 participants, schedule a photo capture
+        if (model.participants.length === 2) {
+            this._scheduleCaptureEvent();
+        }
+    }
+
+    async _scheduleCaptureEvent() {
+        try {
+            // Calculate capture time (3 seconds from now)
+            const captureTime = Date.now() + 3000; 
+            
+            // Update the session with the capture time
+            await this.sessionModel.updateCaptureTime(captureTime);
+            
+            // Update the presenter for countdown
+            if (this.photoController) {
+                AppUtils.debugLog(`Received capture time: ${new Date(captureTime).toISOString()}`);
+                this.photoController.presenter.startCountdown(captureTime);
+            }
+            
+            // Update session presenter
+            this.presenter.update(this.sessionModel);
+        } catch (error) {
+            AppUtils.debugLog(`Schedule capture failed: ${error.message}`);
+        }
     }
 }
 
