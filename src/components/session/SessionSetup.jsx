@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import firebase from 'firebase/compat/app';
 
 const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');
   const [error, setError] = useState(null);
+  const [createdSessionId, setCreatedSessionId] = useState(null);
+  const [copySuccess, setCopySuccess] = useState('');
+  const qrCodeRef = useRef(null);
   
   useEffect(() => {
     if (initialSessionId) {
@@ -11,9 +14,17 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
     }
   }, [initialSessionId]);
   
+  useEffect(() => {
+    // Generate QR code if we have a session ID
+    if (createdSessionId && qrCodeRef.current) {
+      generateQRCode(createdSessionId);
+    }
+  }, [createdSessionId]);
+  
   const handleCreateNewSession = async () => {
     try {
       setError(null);
+      setCopySuccess('');
       
       // Generate a random session ID
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -32,6 +43,9 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
         }
       });
       
+      // Store the created session ID for QR code generation
+      setCreatedSessionId(sessionId);
+      
       // Call the onCreateSession callback with the new session ID
       onCreateSession(sessionId);
       
@@ -44,6 +58,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
   const handleJoinExistingSession = async (sessionId) => {
     try {
       setError(null);
+      setCopySuccess('');
       const sessionIdToJoin = sessionId || sessionIdInput;
       
       if (!sessionIdToJoin) {
@@ -66,12 +81,60 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
         joinedAt: firebase.database.ServerValue.TIMESTAMP
       });
       
+      // Store the joined session ID for QR code generation
+      setCreatedSessionId(sessionIdToJoin);
+      
       // Call the onJoinSession callback with the session ID
       onJoinSession(sessionIdToJoin);
       
     } catch (error) {
       console.error('Error joining session:', error);
       setError('Failed to join session. Please try again.');
+    }
+  };
+  
+  // Function to generate QR code
+  const generateQRCode = (sessionId) => {
+    // Clear previous QR code
+    if (qrCodeRef.current) {
+      qrCodeRef.current.innerHTML = '';
+      
+      // Create a URL with the session ID
+      const shareUrl = `${window.APP_BASE_URL}?sessionId=${sessionId}`;
+      
+      // Generate QR code
+      try {
+        // Check if QRCode is available (loaded via CDN in index.html)
+        if (window.QRCode) {
+          new window.QRCode(qrCodeRef.current, {
+            text: shareUrl,
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: window.QRCode.CorrectLevel.H
+          });
+        } else {
+          console.error('QRCode library not loaded');
+        }
+      } catch (err) {
+        console.error('Error generating QR code:', err);
+      }
+    }
+  };
+  
+  // Function to copy session ID to clipboard
+  const copySessionIdToClipboard = () => {
+    if (createdSessionId) {
+      navigator.clipboard.writeText(createdSessionId)
+        .then(() => {
+          setCopySuccess('Copied!');
+          setTimeout(() => setCopySuccess(''), 2000); // Reset after 2 seconds
+        })
+        .catch(err => {
+          console.error('Failed to copy:', err);
+          setCopySuccess('Failed to copy');
+        });
     }
   };
   
@@ -105,6 +168,25 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
           </button>
         </div>
       </div>
+      
+      {createdSessionId && (
+        <div className="session-info">
+          <div className="session-id-container">
+            <span className="session-id-label">Session ID:</span>
+            <span className="session-id">{createdSessionId}</span>
+            <button 
+              className="btn btn-icon" 
+              onClick={copySessionIdToClipboard}
+              title="Copy Session ID"
+            >
+              Copy
+            </button>
+            {copySuccess && <span className="copy-status">{copySuccess}</span>}
+          </div>
+          <p>Scan this QR code to join the session:</p>
+          <div className="qr-code-container" ref={qrCodeRef}></div>
+        </div>
+      )}
       
       <button className="btn btn-text" onClick={onSignOut}>
         Sign Out

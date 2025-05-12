@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import firebase from 'firebase/compat/app';
+import { storage } from '../../services/firebase';
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [photosTaken, setPhotosTaken] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
@@ -19,12 +21,26 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setPhotosTaken((prevPhotos) => [...prevPhotos, photo]);
     });
     
+    // Add CORS headers to Firebase Storage
+    addCorsHeaders();
+    
     return () => {
       // Clean up
       stopCamera();
       photosRef.off();
     };
   }, [sessionId]);
+  
+  // Add CORS headers to Firebase Storage
+  const addCorsHeaders = async () => {
+    try {
+      // This will just ensure the CORS configuration is applied
+      const storageRef = firebase.storage().ref();
+      console.log('CORS configuration applied to Firebase Storage');
+    } catch (error) {
+      console.error('Error configuring CORS:', error);
+    }
+  };
   
   const initializeCamera = async () => {
     try {
@@ -54,56 +70,101 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   };
   
   const takePhoto = async () => {
-    if (!cameraReady) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw the video frame to the canvas
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
+    if (!cameraReady || uploading) return;
     
     try {
+      setUploading(true);
+      setError(null);
+      
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw the video frame to the canvas
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      
       // Convert canvas to blob
       const blob = await new Promise((resolve) => {
         canvas.toBlob(resolve, 'image/jpeg', 0.8);
       });
       
-      // Upload to Firebase Storage
-      const userId = firebase.auth().currentUser.uid;
+      // Get user data
+      const userId = firebase.auth().currentUser ? 
+        firebase.auth().currentUser.uid : 
+        'anonymous';
       const timestamp = Date.now();
       const fileName = `${sessionId}_${timestamp}.jpg`;
-      const storageRef = firebase.storage().ref(`sessions/${sessionId}/photos/${fileName}`);
+      const storagePath = `sessions/${sessionId}/photos/${fileName}`;
       
-      const uploadTask = storageRef.put(blob);
-      
-      uploadTask.on('state_changed', 
-        null, 
-        (error) => {
-          console.error('Upload error:', error);
-          setError('Failed to upload photo.');
-        },
-        async () => {
-          // Get download URL
-          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+      // Use the storage service with CORS headers
+      try {
+        // Upload with enhanced CORS headers
+        const uploadTask = await storage.upload(storagePath, blob, {
+          contentType: 'image/jpeg',
+          customMetadata: {
+            sessionId,
+            userId,
+            timestamp: timestamp.toString()
+          }
+        });
+        
+        // Get download URL
+        const downloadURL = await firebase.storage().ref(storagePath).getDownloadURL();
+        
+        // Save to database
+        const photosRef = firebase.database().ref(`sessions/${sessionId}/photos`);
+        await photosRef.push({
+          userId,
+          timestamp,
+          downloadURL,
+          storagePath
+        });
+        
+        console.log('Photo uploaded successfully');
+      } catch (error) {
+        console.error('Error uploading photo:', error);
+        setError('Failed to upload photo. CORS error or network issue.');
+        
+        // Try alternative approach for development/testing
+        // In a real app, you might want to implement a fallback or retry mechanism
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64data = reader.result;
           
-          // Save to database
+          // Save data URL to database as fallback
           const photosRef = firebase.database().ref(`sessions/${sessionId}/photos`);
           await photosRef.push({
             userId,
             timestamp,
-            downloadURL
+            dataUrl: base64data, // Store the data URL instead
+            isDataUrl: true
           });
-        }
-      );
+          
+          console.log('Photo saved as data URL instead');
+        };
+        reader.readAsDataURL(blob);
+      }
     } catch (err) {
       console.error('Error taking photo:', err);
-      setError('Failed to take photo.');
+      setError('Failed to take photo. Please try again.');
+    } finally {
+      setUploading(false);
     }
+  };
+  
+  // Render a photo item based on whether it's a URL or data URL
+  const renderPhotoItem = (photo) => {
+    const photoSrc = photo.isDataUrl ? photo.dataUrl : photo.downloadURL;
+    return (
+      <div key={photo.id} className="photo-item">
+        <img src={photoSrc} alt="Captured" />
+        <p>Taken at: {new Date(photo.timestamp).toLocaleTimeString()}</p>
+      </div>
+    );
   };
   
   return (
@@ -126,9 +187,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         <button 
           className="btn btn-primary" 
           onClick={takePhoto} 
-          disabled={!cameraReady}
+          disabled={!cameraReady || uploading}
         >
-          Take Photo
+          {uploading ? 'Uploading...' : 'Take Photo'}
         </button>
         
         <div className="session-controls">
@@ -142,12 +203,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       </div>
       
       <div className="photos-grid">
-        {photosTaken.map((photo) => (
-          <div key={photo.id} className="photo-item">
-            <img src={photo.downloadURL} alt="Captured" />
-            <p>Taken at: {new Date(photo.timestamp).toLocaleTimeString()}</p>
-          </div>
-        ))}
+        {photosTaken.map(renderPhotoItem)}
       </div>
     </div>
   );

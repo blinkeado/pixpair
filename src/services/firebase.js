@@ -22,22 +22,49 @@ export const initializeFirebase = () => {
     const app = firebase.initializeApp(firebaseConfig);
     console.log('Firebase initialized successfully');
     
-    // Enable CORS for Storage
-    const storageRef = firebase.storage().ref();
-    const originalPut = storageRef.constructor.prototype.put;
-    storageRef.constructor.prototype.put = function(data, metadata) {
-      const corsMetadata = metadata || {};
-      if (!corsMetadata.customMetadata) {
-        corsMetadata.customMetadata = {};
-      }
-      corsMetadata.customMetadata['Access-Control-Allow-Origin'] = '*';
-      return originalPut.call(this, data, corsMetadata);
-    };
+    // Configure CORS for Firebase Storage
+    configureCorsForStorage();
     
     return app;
   } catch (error) {
     console.error('Error initializing Firebase:', error);
     return null;
+  }
+};
+
+// Configure CORS for Firebase Storage
+const configureCorsForStorage = () => {
+  // Make sure Firebase is initialized
+  if (!firebase.apps.length) return;
+  
+  // Get Firebase storage reference
+  const storage = firebase.storage();
+  
+  try {
+    // Add CORS metadata to all uploads
+    const storageRef = storage.ref();
+    const originalPut = storageRef.constructor.prototype.put;
+    
+    storageRef.constructor.prototype.put = function(data, metadata = {}) {
+      // Create metadata with CORS headers if it doesn't exist
+      const corsMetadata = { ...metadata };
+      
+      if (!corsMetadata.customMetadata) {
+        corsMetadata.customMetadata = {};
+      }
+      
+      // Set CORS headers
+      corsMetadata.customMetadata['Access-Control-Allow-Origin'] = '*';
+      corsMetadata.customMetadata['Access-Control-Allow-Methods'] = 'GET, PUT, POST, DELETE, OPTIONS';
+      corsMetadata.customMetadata['Access-Control-Allow-Headers'] = 'Content-Type, Accept, X-Requested-With, Authorization';
+      
+      // Call the original put method with the updated metadata
+      return originalPut.call(this, data, corsMetadata);
+    };
+    
+    console.log('CORS configuration for Firebase Storage completed');
+  } catch (error) {
+    console.error('Error configuring CORS for Firebase Storage:', error);
   }
 };
 
@@ -106,9 +133,21 @@ export const storage = {
     return firebase.storage().ref(path);
   },
   
-  // Upload a file
-  upload: async (path, file, metadata) => {
-    return firebase.storage().ref(path).put(file, metadata);
+  // Upload a file with CORS headers
+  upload: async (path, file, metadata = {}) => {
+    // Add CORS headers to metadata
+    const corsMetadata = { ...metadata };
+    
+    if (!corsMetadata.customMetadata) {
+      corsMetadata.customMetadata = {};
+    }
+    
+    // Set CORS headers
+    corsMetadata.customMetadata['Access-Control-Allow-Origin'] = '*';
+    corsMetadata.customMetadata['Access-Control-Allow-Methods'] = 'GET, PUT, POST, DELETE, OPTIONS';
+    corsMetadata.customMetadata['Access-Control-Allow-Headers'] = 'Content-Type, Accept, X-Requested-With, Authorization';
+    
+    return firebase.storage().ref(path).put(file, corsMetadata);
   },
   
   // Get a download URL
