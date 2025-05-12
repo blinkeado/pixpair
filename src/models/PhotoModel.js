@@ -238,8 +238,16 @@ class PhotoModel extends BaseModel {
             combinedPhoto.timestamp = Date.now();
             combinedPhoto.photoId = `combined_${combinedPhoto.timestamp}`;
             
-            // Save combined photo
-            await combinedPhoto.save();
+            // Save combined photo to Firebase
+            await this.firebaseService.database
+                .ref(`sessions/${this.sessionId}/combined_photos/${combinedPhoto.photoId}`)
+                .set({
+                    photoData: combinedPhotoData,
+                    timestamp: combinedPhoto.timestamp,
+                    userId: user.uid,
+                    photoId: combinedPhoto.photoId,
+                    status: 'combined'
+                });
             
             AppUtils.debugLog(`Photos combined successfully: ${combinedPhoto.photoId}`);
             return combinedPhoto;
@@ -315,11 +323,22 @@ class PhotoModel extends BaseModel {
                         canvas.width = img1.width + img2.width;
                         canvas.height = Math.max(img1.height, img2.height);
                         
+                        // Fill with black background
+                        ctx.fillStyle = "#000000";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
                         // Draw first image
                         ctx.drawImage(img1, 0, 0);
                         
                         // Draw second image
                         ctx.drawImage(img2, img1.width, 0);
+                        
+                        // Add watermark
+                        ctx.font = 'bold 48px Arial';
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText('PixCrab', canvas.width - 40, canvas.height - 40);
                         
                         // Get combined image data
                         const combinedData = canvas.toDataURL('image/jpeg', 0.9);

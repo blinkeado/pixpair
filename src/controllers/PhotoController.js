@@ -95,26 +95,37 @@ class PhotoController extends BaseController {
 
     async _handleCapturePhoto(data) {
         try {
-            const { videoElement, sessionId } = data || {};
+            AppUtils.debugLog("Handling photo capture");
             
-            if (!videoElement) {
-                throw new Error('Video element is required for capture');
-            }
+            // Capture photo from video element
+            const photoData = await this.photoModel.capturePhoto(data.videoElement, data.sessionId);
             
-            if (!sessionId) {
-                throw new Error('Session ID is required for capture');
-            }
-            
-            // Capture the photo
-            await this.photoModel.capturePhoto(videoElement, sessionId);
-            
-            // Save the photo
+            // Save the photo to Firebase
             await this.photoModel.save();
             
-            AppUtils.showToast('Photo captured and saved');
+            // Check if we have both photos for combination
+            const sessionRef = this.firebaseService.database.ref(`sessions/${data.sessionId}/photos`);
+            const snapshot = await sessionRef.once('value');
+            const photos = snapshot.val();
+            
+            if (photos) {
+                const photoEntries = Object.entries(photos);
+                if (photoEntries.length === 2) {
+                    // We have both photos, combine them
+                    const [photo1, photo2] = photoEntries;
+                    const combinedPhoto = await this.photoModel.combinePhotos(photo1[1].photoData, photo2[1].photoData);
+                    
+                    // Add the combined photo to the UI
+                    this.photoPresenter.addPhotoSlide(combinedPhoto.getPhotoUrl());
+                }
+            }
+            
+            // Update UI
+            this.photoPresenter.update(this.photoModel);
+            
         } catch (error) {
-            AppUtils.debugLog(`Photo capture failed: ${error.message}`);
-            AppUtils.showToast('Failed to capture photo');
+            AppUtils.debugLog(`Error handling photo capture: ${error.message}`);
+            throw error;
         }
     }
 
