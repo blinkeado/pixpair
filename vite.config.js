@@ -4,10 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: {
-    port: 3000,
-    open: true
-  },
+  base: '/pixpair/', // This should match your GitHub repository name
   build: {
     outDir: 'dist',
     sourcemap: true,
@@ -16,5 +13,8 @@ export default defineConfig({
         main: './index.html',
       }
     }
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom']
   }
-}) 
+})
