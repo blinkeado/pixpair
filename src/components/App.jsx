@@ -11,15 +11,35 @@ import { initializeFirebase } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
 
 // Initialize Firebase with the config from window.firebaseConfig
-initializeFirebase();
+const firebaseApp = initializeFirebase();
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('auth');
   const [user, setUser] = useState(null);
   const [sessionId, setSessionId] = useState(null);
+  const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Initialize Firebase
+  useEffect(() => {
+    if (!window.firebaseConfig) {
+      setError("Firebase configuration not found. Please check your setup.");
+      return;
+    }
+    
+    try {
+      // Firebase is already initialized in the import section
+      setInitialized(true);
+    } catch (err) {
+      console.error('Error initializing app:', err);
+      setError("Failed to initialize the application. Please try again later.");
+    }
+  }, []);
   
   // Handle auth state changes
   useEffect(() => {
+    if (!initialized) return;
+    
     const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
       setUser(user);
       if (user) {
@@ -37,7 +57,7 @@ function App() {
     }
     
     return () => unsubscribe();
-  }, []);
+  }, [initialized]);
   
   // Handle screen changes based on app state
   const handleCreateSession = (newSessionId) => {
@@ -64,6 +84,22 @@ function App() {
       console.error('Error signing out:', error);
     }
   };
+  
+  if (error) {
+    return (
+      <div className="app-container">
+        <div className="error">{error}</div>
+      </div>
+    );
+  }
+  
+  if (!initialized) {
+    return (
+      <div className="app-container">
+        <div>Loading...</div>
+      </div>
+    );
+  }
   
   // Render the current screen
   return (

@@ -10,11 +10,23 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        main: './index.html',
-      }
+        main: './index.html'
+      },
+      external: ['firebase']
     }
   },
   optimizeDeps: {
     include: ['react', 'react-dom']
+  },
+  server: {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/javascript'
+    }
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
   }
 })
