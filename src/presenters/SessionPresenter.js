@@ -294,6 +294,20 @@ class SessionPresenter extends BasePresenter {
             this.captureText.classList.add('hidden');
         }
     }
+
+    _hideAuthSection() {
+        const authSection = document.getElementById('authSection');
+        if (authSection) {
+            authSection.classList.add('hidden');
+        }
+    }
+
+    _showAuthSection() {
+        const authSection = document.getElementById('authSection');
+        if (authSection) {
+            authSection.classList.remove('hidden');
+        }
+    }
 }
 
 export default SessionPresenter; 
