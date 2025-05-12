@@ -89,66 +89,80 @@ class SessionPresenter extends BasePresenter {
     }
 
     update(sessionModel) {
-        this.render(sessionModel);
-    }
-
-    render(sessionModel) {
         AppUtils.debugLog('Rendering session UI');
         
-        // Update session UI based on model state
-        if (sessionModel.sessionId) {
-            // We have an active session
-            this._showActiveSession(sessionModel);
+        const isInSession = sessionModel.sessionId != null;
+        
+        // Show or hide appropriate UI sections
+        if (isInSession) {
+            this._showCameraSection();
+            this._hideAuthSection();
+            this._hideSessionSetup();
+            
+            // Display session ID
+            if (this.displaySessionId) {
+                this.displaySessionId.textContent = sessionModel.sessionId;
+            }
+            
+            // Display participant count
+            const participantCount = sessionModel.participants ? sessionModel.participants.length : 0;
+            this._updateParticipantCount(participantCount);
+            
+            // Show QR code if only one participant
+            if (participantCount === 1) {
+                this._showQRCode(sessionModel.sessionId);
+            } else {
+                this._hideQRCode();
+            }
         } else {
-            // No active session
+            this._hideAuthSection();
             this._showSessionSetup();
+            this._hideCameraSection();
+        }
+    }
+    
+    // Add this method to update participant count
+    _updateParticipantCount(count) {
+        // Look for existing participant count element or create one
+        let countElement = document.getElementById('participantCount');
+        if (!countElement) {
+            countElement = document.createElement('div');
+            countElement.id = 'participantCount';
+            countElement.className = 'participant-count';
+            countElement.style.position = 'fixed';
+            countElement.style.top = '70px';
+            countElement.style.right = '10px';
+            countElement.style.backgroundColor = 'rgba(72, 49, 212, 0.8)';
+            countElement.style.color = '#CCF381';
+            countElement.style.padding = '5px 10px';
+            countElement.style.borderRadius = '20px';
+            countElement.style.fontSize = '0.8rem';
+            countElement.style.zIndex = '100';
+            document.body.appendChild(countElement);
+        }
+        
+        countElement.textContent = `Participants: ${count}/2`;
+        
+        // Show or hide based on count
+        if (count > 0) {
+            countElement.style.display = 'block';
+        } else {
+            countElement.style.display = 'none';
         }
     }
 
-    _showActiveSession(sessionModel) {
-        // Show camera section, hide session setup
-        if (this.sessionSetup) this.sessionSetup.classList.add('hidden');
+    _showCameraSection() {
         if (this.cameraSection) this.cameraSection.classList.remove('hidden');
-        
-        // Update session ID display
-        if (this.displaySessionId) {
-            this.displaySessionId.textContent = sessionModel.sessionId;
-        }
-        
-        // Update connection status
-        if (this.statusText) {
-            this.statusText.textContent = sessionModel.status === 'connected' ? 'Connected' : 'Connecting...';
-        }
-        
-        if (this.connectionStatus) {
-            this.connectionStatus.className = `w-3 h-3 rounded-full status-${sessionModel.status} mr-2`;
-        }
-        
-        // Update participant count
-        if (this.peerCount) {
-            this.peerCount.textContent = `${sessionModel.participantCount} ${sessionModel.participantCount === 1 ? 'peer' : 'peers'} connected`;
-            
-            // Change color if there are multiple participants
-            if (sessionModel.participantCount > 1) {
-                this.peerCount.style.color = '#CCF381';
-                if (this.qrContainer) this.qrContainer.classList.add('hidden');
-            } else {
-                this.peerCount.style.color = '#999999';
-            }
-        }
-        
-        // If owner, show QR code
-        if (sessionModel.isOwner) {
-            this._generateQRCode(sessionModel.sessionId);
-        }
+    }
+
+    _hideCameraSection() {
+        if (this.cameraSection) this.cameraSection.classList.add('hidden');
     }
 
     _showSessionSetup() {
-        // Show session setup, hide camera section
         if (this.sessionSetup) this.sessionSetup.classList.remove('hidden');
         if (this.cameraSection) this.cameraSection.classList.add('hidden');
         
-        // Reset the QR code
         if (this.qrContainer) {
             this.qrContainer.innerHTML = '';
             this.qrContainer.classList.add('hidden');
@@ -159,7 +173,12 @@ class SessionPresenter extends BasePresenter {
         }
     }
 
-    _generateQRCode(sessionId) {
+    _hideSessionSetup() {
+        if (this.sessionSetup) this.sessionSetup.classList.add('hidden');
+        if (this.cameraSection) this.cameraSection.classList.remove('hidden');
+    }
+
+    _showQRCode(sessionId) {
         if (!this.qrContainer || !sessionId) return;
         
         try {
@@ -196,7 +215,18 @@ class SessionPresenter extends BasePresenter {
             }
         }
     }
-    
+
+    _hideQRCode() {
+        if (this.qrContainer) {
+            this.qrContainer.innerHTML = '';
+            this.qrContainer.classList.add('hidden');
+        }
+        
+        if (this.qrFallback) {
+            this.qrFallback.classList.add('hidden');
+        }
+    }
+
     startCountdown(captureTime) {
         if (!this.countdownOverlay || !this.countdownText || !this.captureText) {
             return;

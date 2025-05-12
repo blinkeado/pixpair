@@ -11,17 +11,32 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+if (!window.firebase || !window.firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 // Get Firebase services
-const auth = firebase.auth();
-const storage = firebase.storage();
 const database = firebase.database();
+const storage = firebase.storage();
+const auth = firebase.auth();
 
-// Make services available globally
+// Enable CORS for accessing Storage
+const storageRef = storage.ref();
+const originalPut = storageRef.constructor.prototype.put;
+storageRef.constructor.prototype.put = function(data, metadata) {
+    const corsMetadata = metadata || {};
+    if (!corsMetadata.customMetadata) {
+        corsMetadata.customMetadata = {};
+    }
+    corsMetadata.customMetadata['Access-Control-Allow-Origin'] = '*';
+    return originalPut.call(this, data, corsMetadata);
+};
+
+// Make Firebase services available globally for convenience
 window.auth = auth;
 window.storage = storage;
 window.database = database;
+window.firebaseConfig = firebaseConfig;
 
 // Session management
 class SessionManager {

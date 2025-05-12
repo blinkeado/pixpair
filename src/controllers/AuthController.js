@@ -83,12 +83,38 @@ class AuthController extends BaseController {
 
     async _handleSignOut() {
         try {
-            AppUtils.showToast('Signing out...');
+            AppUtils.debugLog('Attempting sign out');
+            
+            // Close any open sessions first
+            try {
+                const sessionController = window.app.sessionController;
+                if (sessionController) {
+                    await sessionController.handleEvent('exitSession');
+                }
+            } catch (error) {
+                AppUtils.debugLog(`Error handling session exit: ${error.message}`);
+            }
+            
+            // Stop the camera if it's running
+            try {
+                const photoController = window.app.photoController;
+                if (photoController) {
+                    await photoController.handleEvent('stopCamera');
+                }
+            } catch (error) {
+                AppUtils.debugLog(`Error stopping camera: ${error.message}`);
+            }
+            
+            // Sign out and reset the model
             await this.userModel.signOut();
-            AppUtils.showToast('Signed out successfully');
+            
+            // Update UI
+            this.presenter.update(this.userModel);
+            
+            return true;
         } catch (error) {
-            AppUtils.debugLog(`Sign-out failed: ${error.message}`);
-            AppUtils.showToast('Failed to sign out');
+            AppUtils.debugLog(`Sign out failed: ${error.message}`);
+            return false;
         }
     }
 }

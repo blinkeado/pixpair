@@ -112,25 +112,42 @@ class PhotoController extends BaseController {
             AppUtils.debugLog("Photo saved to Firebase");
             
             // Check if we have both photos for combination
-            const sessionRef = this.firebaseService.database.ref(`sessions/${data.sessionId}/photos`);
-            const snapshot = await sessionRef.once('value');
-            const photos = snapshot.val();
-            
-            AppUtils.debugLog(`Found ${Object.keys(photos || {}).length} photos in session`);
-            
-            if (photos) {
-                const photoEntries = Object.entries(photos);
-                if (photoEntries.length === 2) {
-                    AppUtils.debugLog("Both photos available, starting combination");
-                    // We have both photos, combine them
-                    const [photo1, photo2] = photoEntries;
-                    const combinedPhoto = await this.photoModel.combinePhotos(photo1[1].photoData, photo2[1].photoData);
-                    AppUtils.debugLog("Photos combined successfully");
+            try {
+                const sessionRef = this.firebaseService.database.ref(`sessions/${data.sessionId}/photos`);
+                const snapshot = await sessionRef.once('value');
+                const photos = snapshot.val();
+                
+                if (photos) {
+                    const photoCount = Object.keys(photos).length;
+                    AppUtils.debugLog(`Found ${photoCount} photos in session`);
                     
-                    // Add the combined photo to the UI
-                    this.photoPresenter.addPhotoSlide(combinedPhoto.getPhotoUrl());
-                    AppUtils.debugLog("Combined photo added to UI");
+                    if (photoCount >= 2) {
+                        AppUtils.debugLog("Both photos available, starting combination");
+                        // Get photo data from both entries
+                        const photoEntries = Object.values(photos);
+                        const photo1 = photoEntries[0].photoData;
+                        const photo2 = photoEntries[1].photoData;
+                        
+                        // Combine the photos
+                        const combinedPhoto = await this.photoModel.combinePhotos(photo2);
+                        AppUtils.debugLog("Photos combined successfully");
+                        
+                        // Add the combined photo to the UI
+                        this.photoPresenter.addPhotoSlide(combinedPhoto.getPhotoUrl());
+                        AppUtils.debugLog("Combined photo added to UI");
+                        
+                        // Save combined photo to the session
+                        await this.firebaseService.database
+                            .ref(`sessions/${data.sessionId}/combinedPhotos/combined_${Date.now()}`)
+                            .set({
+                                photoData: combinedPhoto.photoData,
+                                timestamp: Date.now(),
+                                status: 'combined'
+                            });
+                    }
                 }
+            } catch (combinationError) {
+                AppUtils.debugLog(`Error during photo combination: ${combinationError.message}`);
             }
             
             // Update UI
