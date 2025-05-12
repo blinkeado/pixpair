@@ -16,14 +16,9 @@ git status
 echo -e "\n${YELLOW}Staging changes...${NC}"
 git add .
 
-# Ask for commit message
-echo -e "\n${YELLOW}Enter commit message:${NC}"
-read COMMIT_MESSAGE
-
-if [ -z "$COMMIT_MESSAGE" ]; then
-  COMMIT_MESSAGE="Update PixCrab app with MCP architecture"
-  echo -e "${YELLOW}Using default commit message: ${COMMIT_MESSAGE}${NC}"
-fi
+# Use default commit message without user input
+COMMIT_MESSAGE="Update PixCrab app with MCP architecture"
+echo -e "\n${YELLOW}Using commit message: ${COMMIT_MESSAGE}${NC}"
 
 # Commit changes
 echo -e "\n${YELLOW}Committing changes...${NC}"
