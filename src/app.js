@@ -56,21 +56,14 @@ class PixCrabApp {
         AppUtils.debugLog('Initializing controllers');
         
         // Initialize controllers
-        this.photoController = new PhotoController(this.photoModel, this.photoPresenter);
-        
-        // Note: SessionController needs access to PhotoController for camera operations
-        this.sessionController = new SessionController(
-            this.sessionModel, 
-            this.sessionPresenter,
-            this.photoController
-        );
-        
-        this.authController = new AuthController(this.userModel, this.authPresenter);
+        const authController = new AuthController(this.userModel, this.authPresenter, this.firebaseService);
+        const photoController = new PhotoController(this.photoModel, this.photoPresenter, this.firebaseService);
+        const sessionController = new SessionController(this.sessionModel, this.sessionPresenter, this.firebaseService);
         
         // Initialize controllers
-        this.authController.initialize();
-        this.photoController.initialize();
-        this.sessionController.initialize();
+        authController.initialize();
+        photoController.initialize();
+        sessionController.initialize();
     }
     
     _handleSessionModelUpdate(model) {

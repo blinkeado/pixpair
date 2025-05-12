@@ -2,9 +2,11 @@ import BaseController from './BaseController.js';
 import AppUtils from '../utils/AppUtils.js';
 
 class PhotoController extends BaseController {
-    constructor(photoModel, photoPresenter) {
+    constructor(photoModel, photoPresenter, firebaseService) {
         super(photoModel, photoPresenter);
-        this.photoModel = photoModel; // For clarity
+        this.photoModel = photoModel;
+        this.photoPresenter = photoPresenter;
+        this.firebaseService = firebaseService;
         this._handleVisibilityChange = this._handleVisibilityChange.bind(this);
     }
 
@@ -97,26 +99,37 @@ class PhotoController extends BaseController {
         try {
             AppUtils.debugLog("Handling photo capture");
             
+            if (!data || !data.videoElement || !data.sessionId) {
+                throw new Error('Missing required data for photo capture');
+            }
+            
             // Capture photo from video element
             const photoData = await this.photoModel.capturePhoto(data.videoElement, data.sessionId);
+            AppUtils.debugLog("Photo captured successfully");
             
             // Save the photo to Firebase
             await this.photoModel.save();
+            AppUtils.debugLog("Photo saved to Firebase");
             
             // Check if we have both photos for combination
             const sessionRef = this.firebaseService.database.ref(`sessions/${data.sessionId}/photos`);
             const snapshot = await sessionRef.once('value');
             const photos = snapshot.val();
             
+            AppUtils.debugLog(`Found ${Object.keys(photos || {}).length} photos in session`);
+            
             if (photos) {
                 const photoEntries = Object.entries(photos);
                 if (photoEntries.length === 2) {
+                    AppUtils.debugLog("Both photos available, starting combination");
                     // We have both photos, combine them
                     const [photo1, photo2] = photoEntries;
                     const combinedPhoto = await this.photoModel.combinePhotos(photo1[1].photoData, photo2[1].photoData);
+                    AppUtils.debugLog("Photos combined successfully");
                     
                     // Add the combined photo to the UI
                     this.photoPresenter.addPhotoSlide(combinedPhoto.getPhotoUrl());
+                    AppUtils.debugLog("Combined photo added to UI");
                 }
             }
             
