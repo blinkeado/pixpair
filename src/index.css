@@ -443,18 +443,17 @@ input {
 }
 
 /* Logo container */
-.logo-wrapper-glow {
+.logo-container {
   position: relative;
   width: 150px;
   height: 150px;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.logo-wrapper-glow::before {
-  content: '';
+.logo-glow-effect {
   position: absolute;
   inset: -8px;
   background: conic-gradient(from 0deg, #00f0ff, #ff00ff, #ccf381, #4831d4, #00f0ff);
@@ -463,15 +462,14 @@ input {
   opacity: 0.75;
   filter: blur(12px);
   animation: spin-slow 4s linear infinite;
-  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
-.logo-wrapper-glow:hover::before {
+.logo-container:hover .logo-glow-effect {
   opacity: 1;
   filter: blur(16px);
 }
 
-.logo-wrapper-glow img {
+.logo-image {
   position: relative;
   width: 100%;
   height: 100%;
@@ -480,7 +478,7 @@ input {
   transition: transform 0.3s ease;
 }
 
-.logo-wrapper-glow:hover img {
+.logo-container:hover .logo-image {
   transform: scale(1.05);
 }
 
