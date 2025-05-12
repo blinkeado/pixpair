@@ -107,9 +107,23 @@ class PhotoController extends BaseController {
             const photoData = await this.photoModel.capturePhoto(data.videoElement, data.sessionId);
             AppUtils.debugLog("Photo captured successfully");
             
-            // Save the photo to Firebase
-            await this.photoModel.save();
-            AppUtils.debugLog("Photo saved to Firebase");
+            // Get the current user
+            const user = this.firebaseService.auth.currentUser;
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+            
+            // Save the photo directly to Realtime Database for immediate access
+            // This is faster than going through Storage for session functionality
+            await this.firebaseService.database
+                .ref(`sessions/${data.sessionId}/photos/${user.uid}`)
+                .set({
+                    photoData: photoData,
+                    timestamp: Date.now(),
+                    userId: user.uid
+                });
+            
+            AppUtils.debugLog("Photo saved to Realtime Database");
             
             // Check if we have both photos for combination
             try {
@@ -123,38 +137,171 @@ class PhotoController extends BaseController {
                     
                     if (photoCount >= 2) {
                         AppUtils.debugLog("Both photos available, starting combination");
-                        // Get photo data from both entries
+                        
+                        // Get all photo data entries
                         const photoEntries = Object.values(photos);
-                        const photo1 = photoEntries[0].photoData;
-                        const photo2 = photoEntries[1].photoData;
                         
                         // Combine the photos
-                        const combinedPhoto = await this.photoModel.combinePhotos(photo2);
+                        const combinedPhotoData = await this._combineTwoPhotos(
+                            photoEntries[0].photoData,
+                            photoEntries[1].photoData
+                        );
+                        
                         AppUtils.debugLog("Photos combined successfully");
                         
+                        // Save combined photo to the session
+                        const combinedPhotoId = `combined_${Date.now()}`;
+                        await this.firebaseService.database
+                            .ref(`sessions/${data.sessionId}/combinedPhotos/${combinedPhotoId}`)
+                            .set({
+                                photoData: combinedPhotoData,
+                                timestamp: Date.now(),
+                                participantIds: Object.keys(photos)
+                            });
+                        
                         // Add the combined photo to the UI
-                        this.photoPresenter.addPhotoSlide(combinedPhoto.getPhotoUrl());
+                        this.photoPresenter.addPhotoSlide(combinedPhotoData);
                         AppUtils.debugLog("Combined photo added to UI");
                         
-                        // Save combined photo to the session
-                        await this.firebaseService.database
-                            .ref(`sessions/${data.sessionId}/combinedPhotos/combined_${Date.now()}`)
-                            .set({
-                                photoData: combinedPhoto.photoData,
-                                timestamp: Date.now(),
-                                status: 'combined'
-                            });
+                        // Also save to Storage for long-term gallery view (async, don't wait)
+                        this._savePhotoToStorage(combinedPhotoData, data.sessionId, combinedPhotoId)
+                            .then(() => AppUtils.debugLog("Combined photo saved to Storage"))
+                            .catch(err => AppUtils.debugLog(`Error saving to Storage: ${err.message}`));
                     }
                 }
             } catch (combinationError) {
                 AppUtils.debugLog(`Error during photo combination: ${combinationError.message}`);
             }
             
-            // Update UI
+            // Update UI with the captured photo
+            this.photoModel.photoData = photoData;
             this.photoPresenter.update(this.photoModel);
+            
+            // Also save to Storage for gallery view (async, don't wait)
+            const photoId = `photo_${Date.now()}`;
+            this._savePhotoToStorage(photoData, data.sessionId, photoId)
+                .then(() => AppUtils.debugLog("Photo saved to Storage"))
+                .catch(err => AppUtils.debugLog(`Error saving to Storage: ${err.message}`));
             
         } catch (error) {
             AppUtils.debugLog(`Error handling photo capture: ${error.message}`);
+            throw error;
+        }
+    }
+    
+    // Function to combine two photos
+    async _combineTwoPhotos(photo1Data, photo2Data) {
+        return new Promise((resolve, reject) => {
+            try {
+                AppUtils.debugLog("Starting photo combination process");
+                const img1 = new Image();
+                const img2 = new Image();
+                let loadedImages = 0;
+                
+                const checkBothLoaded = () => {
+                    loadedImages++;
+                    if (loadedImages === 2) {
+                        // Create canvas for combined image
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Set canvas size to stack photos vertically
+                        const width = Math.max(img1.width, img2.width);
+                        const height = img1.height + img2.height;
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        // Fill with black background
+                        ctx.fillStyle = "#000000";
+                        ctx.fillRect(0, 0, width, height);
+                        
+                        // Center images horizontally if needed
+                        const img1X = (width - img1.width) / 2;
+                        const img2X = (width - img2.width) / 2;
+                        
+                        // Draw images stacked vertically
+                        ctx.drawImage(img1, img1X, 0);
+                        ctx.drawImage(img2, img2X, img1.height);
+                        
+                        // Add watermark
+                        ctx.font = 'bold 24px Arial';
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText('PixCrab', width - 20, height - 20);
+                        
+                        // Get combined image data
+                        const combinedData = canvas.toDataURL('image/jpeg', 0.9);
+                        AppUtils.debugLog("Image combination complete");
+                        resolve(combinedData);
+                    }
+                };
+                
+                img1.onload = checkBothLoaded;
+                img2.onload = checkBothLoaded;
+                
+                img1.onerror = (e) => {
+                    AppUtils.debugLog(`Error loading first image: ${e}`);
+                    reject(new Error('Failed to load first image'));
+                };
+                img2.onerror = (e) => {
+                    AppUtils.debugLog(`Error loading second image: ${e}`); 
+                    reject(new Error('Failed to load second image'));
+                };
+                
+                img1.src = photo1Data;
+                img2.src = photo2Data;
+            } catch (error) {
+                AppUtils.debugLog(`Photo combination error: ${error.message}`);
+                reject(error);
+            }
+        });
+    }
+    
+    // Helper function to save photos to Storage
+    async _savePhotoToStorage(photoData, sessionId, photoId) {
+        try {
+            const user = this.firebaseService.auth.currentUser;
+            if (!user) return;
+            
+            // Convert data URL to blob
+            const response = await fetch(photoData);
+            const blob = await response.blob();
+            
+            // Save to Storage
+            const photoPath = `sessions/${sessionId}/photos/${photoId}.jpg`;
+            const photoRef = this.firebaseService.storage.ref(photoPath);
+            
+            // Upload with proper metadata
+            const metadata = {
+                contentType: 'image/jpeg',
+                customMetadata: {
+                    sessionId: sessionId,
+                    userId: user.uid,
+                    timestamp: Date.now().toString(),
+                    photoId: photoId
+                }
+            };
+            
+            // Upload blob with metadata
+            await photoRef.put(blob, metadata);
+            
+            // Get download URL
+            const downloadURL = await photoRef.getDownloadURL();
+            
+            // Update database reference with storage URL
+            await this.firebaseService.database
+                .ref(`sessions/${sessionId}/photoRefs/${photoId}`)
+                .set({
+                    url: downloadURL,
+                    path: photoPath,
+                    timestamp: Date.now(),
+                    userId: user.uid
+                });
+                
+            return downloadURL;
+        } catch (error) {
+            AppUtils.debugLog(`Error saving to Storage: ${error.message}`);
             throw error;
         }
     }

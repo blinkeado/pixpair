@@ -500,30 +500,83 @@ class PhotoPresenter extends BasePresenter {
         const sessionId = document.getElementById('displaySessionId')?.textContent;
         if (!sessionId) return;
         
-        // Reference to the photos in the current session
+        AppUtils.debugLog(`Loading gallery photos for session: ${sessionId}`);
+        
+        // First, check for combined photos in the realtime database
+        const combinedPhotosRef = firebase.database().ref(`sessions/${sessionId}/combinedPhotos`);
+        
+        combinedPhotosRef.on('value', (snapshot) => {
+            const combinedPhotos = snapshot.val();
+            
+            // If there are no combined photos yet, check for individual photos
+            if (!combinedPhotos) {
+                AppUtils.debugLog("No combined photos found, looking for individual photos");
+                this._checkForIndividualPhotos(sessionId);
+                return;
+            }
+            
+            // Add combined photos to gallery
+            this.galleryGrid.innerHTML = '';
+            let photosAdded = 0;
+            
+            Object.values(combinedPhotos).forEach(photo => {
+                if (photo.photoData) {
+                    this._addPhotoToGallery(photo.photoData);
+                    photosAdded++;
+                }
+            });
+            
+            if (photosAdded === 0) {
+                this._checkForIndividualPhotos(sessionId);
+            } else {
+                AppUtils.debugLog(`Added ${photosAdded} combined photos to gallery`);
+            }
+        });
+    }
+    
+    _checkForIndividualPhotos(sessionId) {
+        // Check for individual photos in the realtime database
         const photosRef = firebase.database().ref(`sessions/${sessionId}/photos`);
         
-        // Listen for photos
         photosRef.on('value', (snapshot) => {
             const photos = snapshot.val();
+            
             if (!photos) {
                 this.galleryGrid.innerHTML = '<div class="text-center text-secondary p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
                 return;
             }
             
-            // Clear the grid
+            // Add individual photos to gallery
             this.galleryGrid.innerHTML = '';
+            let photosAdded = 0;
             
-            // Add each photo to the grid
             Object.values(photos).forEach(photo => {
                 if (photo.photoData) {
-                    const photoElement = document.createElement('div');
-                    photoElement.className = 'gallery-grid-item';
-                    photoElement.innerHTML = `<img src="${photo.photoData}" alt="Gallery photo" onclick="document.getElementById('modalFullImg').src = '${photo.photoData}'; document.getElementById('photoModal').classList.remove('hidden');">`;
-                    this.galleryGrid.appendChild(photoElement);
+                    this._addPhotoToGallery(photo.photoData);
+                    photosAdded++;
                 }
             });
+            
+            if (photosAdded === 0) {
+                this.galleryGrid.innerHTML = '<div class="text-center text-secondary p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
+            } else {
+                AppUtils.debugLog(`Added ${photosAdded} individual photos to gallery`);
+            }
         });
+    }
+    
+    _addPhotoToGallery(photoData) {
+        const photoElement = document.createElement('div');
+        photoElement.className = 'gallery-grid-item';
+        
+        // Create the image element with click handler for modal
+        photoElement.innerHTML = `
+            <img src="${photoData}" alt="Gallery photo" 
+                 onclick="document.getElementById('modalFullImg').src = '${photoData}'; 
+                         document.getElementById('photoModal').classList.remove('hidden');">
+        `;
+        
+        this.galleryGrid.appendChild(photoElement);
     }
 
     _hideGallery() {

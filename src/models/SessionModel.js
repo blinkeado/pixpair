@@ -75,39 +75,41 @@ class SessionModel extends BaseModel {
         }
     }
 
-    async leaveSession() {
+    async exitSession() {
         try {
             if (!this.sessionId) {
-                return;
+                throw new Error('No active session');
             }
             
+            // Get the current user
             const user = this.firebaseService.auth.currentUser;
-            if (user) {
-                // Remove the participant from the session
-                await this.firebaseService.database
-                    .ref(`sessions/${this.sessionId}/participants/${user.uid}`)
-                    .remove();
-                
-                // If owner, remove the entire session
-                if (this.isOwner) {
-                    await this.firebaseService.database
-                        .ref(`sessions/${this.sessionId}`)
-                        .remove();
-                }
+            if (!user) {
+                throw new Error('User not authenticated');
             }
             
-            // Unsubscribe from all listeners
-            this._unsubscribeAll();
+            // Remove the user from the participants list
+            await this.firebaseService.database
+                .ref(`sessions/${this.sessionId}/participants/${user.uid}`)
+                .remove();
             
-            // Reset the model
-            this.reset();
+            // Reset session state
+            this.sessionId = null;
+            this.participants = {};
+            this.captureTime = null;
+            
+            // Notify listeners
             this.notifyListeners();
             
-            AppUtils.debugLog('Left session');
+            return true;
         } catch (error) {
-            AppUtils.debugLog(`Error leaving session: ${error.message}`);
+            AppUtils.debugLog(`Exit session failed: ${error.message}`);
             throw error;
         }
+    }
+
+    // Alias for exitSession to ensure compatibility
+    async leaveSession() {
+        return this.exitSession();
     }
 
     async initiateCapture() {
