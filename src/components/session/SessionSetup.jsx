@@ -100,25 +100,25 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       qrCodeRef.current.innerHTML = '';
       
       // Create a URL with the session ID
-      const shareUrl = `${window.APP_BASE_URL}?sessionId=${sessionId}`;
+      const shareUrl = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
       
       // Generate QR code
       try {
-        // Check if QRCode is available (loaded via CDN in index.html)
-        if (window.QRCode) {
-          new window.QRCode(qrCodeRef.current, {
-            text: shareUrl,
-            width: 256,
-            height: 256,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: window.QRCode.CorrectLevel.H
-          });
-        } else {
-          console.error('QRCode library not loaded');
-        }
+        // Directly use QRCode library since it's loaded via script tag
+        // eslint-disable-next-line no-undef
+        new QRCode(qrCodeRef.current, {
+          text: shareUrl,
+          width: 256,
+          height: 256,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
       } catch (err) {
         console.error('Error generating QR code:', err);
+        if (qrCodeRef.current) {
+          qrCodeRef.current.innerHTML = '<p style="color: red;">Failed to generate QR code</p>';
+        }
       }
     }
   };
