@@ -60,18 +60,29 @@ h2 {
   }
 }
 
+/* Button glow animation */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 4s linear infinite;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border: none;
   margin: 0.5rem 0;
+  position: relative;
 }
 
 .btn:disabled {
@@ -79,36 +90,34 @@ h2 {
   cursor: not-allowed;
 }
 
+/* Primary button with glow effect */
 .btn-primary {
-  background: linear-gradient(45deg, #1e88e5, #4831D4, #1e88e5);
-  background-size: 200% 200%;
-  animation: glow 3s ease infinite;
+  background-color: var(--primary-color);
   color: var(--text-light);
   position: relative;
-  z-index: 1;
-  overflow: hidden;
-  box-shadow: 0 0 15px rgba(30, 136, 229, 0.5);
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary::before {
   content: '';
   position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #1e88e5, #4831D4, #1e88e5);
-  background-size: 200% 200%;
-  animation: glow 3s ease infinite;
+  inset: -4px;
+  background: conic-gradient(from 0deg, #00f0ff, #ff00ff, #ccf381, #4831d4, #00f0ff);
+  border-radius: 0.875rem;
   z-index: -1;
-  border-radius: 0.5rem;
+  opacity: 0.75;
   filter: blur(8px);
-  opacity: 0.7;
+  animation: spin-slow 4s linear infinite;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(30, 136, 229, 0.7);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 .btn-secondary {
