@@ -1,8 +1,11 @@
 #!/bin/bash
 
-# Comprehensive build and deploy script for GitHub Pages
+# Comprehensive build and deploy script for GitHub Pages or Netlify
 
-echo "⚡ Starting build and deployment process"
+# Default to GitHub Pages if no platform is specified
+PLATFORM=${1:-"github"}
+
+echo "⚡ Starting build and deployment process for $PLATFORM"
 
 # Clean up any previous builds
 echo "🧹 Cleaning up previous builds..."
@@ -14,9 +17,14 @@ if [ ! -d "node_modules" ]; then
   npm install
 fi
 
-# Build the application
-echo "🔨 Building the application..."
-npm run build
+# Build the application based on platform
+if [ "$PLATFORM" = "netlify" ]; then
+  echo "🔨 Building the application for Netlify..."
+  npm run build:netlify
+else
+  echo "🔨 Building the application for GitHub Pages..."
+  npm run build
+fi
 
 # Check if build was successful
 if [ ! -d "dist" ]; then
@@ -24,9 +32,23 @@ if [ ! -d "dist" ]; then
   exit 1
 fi
 
-# Deploy to GitHub Pages
-echo "🚀 Deploying to GitHub Pages..."
-npm run deploy
+# Deploy based on platform
+if [ "$PLATFORM" = "netlify" ]; then
+  # Deploy to Netlify
+  if command -v netlify &> /dev/null; then
+    echo "🚀 Deploying to Netlify..."
+    netlify deploy --prod
+  else
+    echo "⚠️ Netlify CLI not found! Please install it with: npm install -g netlify-cli"
+    echo "Then login with: netlify login"
+    echo "After that, run: netlify deploy --prod"
+  fi
+  echo "📱 Once deployed, visit your site at your Netlify domain"
+else
+  # Deploy to GitHub Pages
+  echo "🚀 Deploying to GitHub Pages..."
+  npm run deploy
+  echo "📱 Visit your site at: https://blinkeado.github.io/pixpair/"
+fi
 
-echo "✅ Deployment completed!"
-echo "📱 Visit your site at: https://blinkeado.github.io/pixpair/" 
+echo "✅ Deployment completed!" 

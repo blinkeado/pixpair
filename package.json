@@ -7,6 +7,7 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
+    "build:netlify": "NETLIFY=true vite build",
     "preview": "vite preview",
     "test": "jest",
     "predeploy": "npm run build",

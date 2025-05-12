@@ -1,10 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Determine the base URL based on the deployment target
+const baseUrl = process.env.NETLIFY ? '/' : '/pixpair/'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/pixpair/', // This should match your GitHub repository name
+  base: baseUrl,
   build: {
     outDir: 'dist',
     sourcemap: true,
