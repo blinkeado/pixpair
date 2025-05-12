@@ -123,6 +123,16 @@ export const database = {
   get: async (path) => {
     const snapshot = await firebase.database().ref(path).once('value');
     return snapshot.val();
+  },
+
+  // Get server timestamp
+  getServerTimestamp: () => {
+    return firebase.database.ServerValue.TIMESTAMP;
+  },
+
+  // Get current user
+  getCurrentUser: () => {
+    return firebase.auth().currentUser;
   }
 };
 

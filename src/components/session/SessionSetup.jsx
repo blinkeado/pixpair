@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import firebase from 'firebase/compat/app';
+import { database } from '../../services/firebase';
 
 const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');
@@ -30,15 +30,15 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       // Create session in Firebase
-      const sessionRef = firebase.database().ref(`sessions/${sessionId}`);
-      const userId = firebase.auth().currentUser.uid;
+      const sessionRef = database.getRef(`sessions/${sessionId}`);
+      const userId = database.getCurrentUser().uid;
       
-      await sessionRef.set({
+      await database.set(`sessions/${sessionId}`, {
         createdBy: userId,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        createdAt: database.getServerTimestamp(),
         members: {
           [userId]: {
-            joinedAt: firebase.database.ServerValue.TIMESTAMP
+            joinedAt: database.getServerTimestamp()
           }
         }
       });
@@ -67,18 +67,17 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       }
       
       // Check if session exists
-      const sessionRef = firebase.database().ref(`sessions/${sessionIdToJoin}`);
-      const snapshot = await sessionRef.once('value');
+      const sessionData = await database.get(`sessions/${sessionIdToJoin}`);
       
-      if (!snapshot.exists()) {
+      if (!sessionData) {
         setError('Session not found. Please check the ID and try again.');
         return;
       }
       
       // Join the session
-      const userId = firebase.auth().currentUser.uid;
-      await sessionRef.child(`members/${userId}`).set({
-        joinedAt: firebase.database.ServerValue.TIMESTAMP
+      const userId = database.getCurrentUser().uid;
+      await database.set(`sessions/${sessionIdToJoin}/members/${userId}`, {
+        joinedAt: database.getServerTimestamp()
       });
       
       // Store the joined session ID for QR code generation
