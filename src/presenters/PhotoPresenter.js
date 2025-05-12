@@ -483,15 +483,53 @@ class PhotoPresenter extends BasePresenter {
     }
 
     _showGallery() {
-        if (!this.galleryFullScreen) return;
+        if (this.galleryFullScreen) {
+            this.galleryFullScreen.classList.remove('hidden');
+            // Load gallery photos
+            this._loadGalleryPhotos();
+        }
+    }
+
+    _loadGalleryPhotos() {
+        if (!this.galleryGrid) return;
         
-        this.galleryFullScreen.classList.remove('hidden');
+        // Clear existing photos
+        this.galleryGrid.innerHTML = '';
+        
+        // Get the current session ID
+        const sessionId = document.getElementById('displaySessionId')?.textContent;
+        if (!sessionId) return;
+        
+        // Reference to the photos in the current session
+        const photosRef = firebase.database().ref(`sessions/${sessionId}/photos`);
+        
+        // Listen for photos
+        photosRef.on('value', (snapshot) => {
+            const photos = snapshot.val();
+            if (!photos) {
+                this.galleryGrid.innerHTML = '<div class="text-center text-secondary p-8 col-span-2">No photos yet. Take some photos with a friend to see them here!</div>';
+                return;
+            }
+            
+            // Clear the grid
+            this.galleryGrid.innerHTML = '';
+            
+            // Add each photo to the grid
+            Object.values(photos).forEach(photo => {
+                if (photo.photoData) {
+                    const photoElement = document.createElement('div');
+                    photoElement.className = 'gallery-grid-item';
+                    photoElement.innerHTML = `<img src="${photo.photoData}" alt="Gallery photo" onclick="document.getElementById('modalFullImg').src = '${photo.photoData}'; document.getElementById('photoModal').classList.remove('hidden');">`;
+                    this.galleryGrid.appendChild(photoElement);
+                }
+            });
+        });
     }
 
     _hideGallery() {
-        if (!this.galleryFullScreen) return;
-        
-        this.galleryFullScreen.classList.add('hidden');
+        if (this.galleryFullScreen) {
+            this.galleryFullScreen.classList.add('hidden');
+        }
     }
     
     showGalleryIndicator() {

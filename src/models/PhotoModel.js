@@ -302,95 +302,37 @@ class PhotoModel extends BaseModel {
             try {
                 const img1 = new Image();
                 const img2 = new Image();
-                
-                let img1Loaded = false;
-                let img2Loaded = false;
+                let loadedImages = 0;
                 
                 const checkBothLoaded = () => {
-                    if (img1Loaded && img2Loaded) {
-                        try {
-                            AppUtils.debugLog(`Both images loaded successfully for combination`);
-            
-                            const individualWidth = 2160;
-                            const individualHeight = 1920;
-                            
-                            const combinedWidth = 2160;
-                            const combinedHeight = 3840;
-                            
-                            const canvas = document.createElement('canvas');
-                            canvas.width = combinedWidth;
-                            canvas.height = combinedHeight;
-                            const ctx = canvas.getContext('2d');
-                            
-                            // Fill with black background
-                            ctx.fillStyle = "#000000";
-                            ctx.fillRect(0, 0, combinedWidth, combinedHeight);
-                            
-                            // Draw first image
-                            ctx.drawImage(
-                                img1, 
-                                0, 0, img1.width, img1.height,
-                                0, 0, individualWidth, individualHeight
-                            );
-                            
-                            // Draw second image
-                            ctx.drawImage(
-                                img2, 
-                                0, 0, img2.width, img2.height,
-                                0, individualHeight, individualWidth, individualHeight
-                            );
-                            
-                            // Add watermark
-                            ctx.font = 'bold 48px Arial';
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                            ctx.textAlign = 'right';
-                            ctx.textBaseline = 'bottom';
-                            ctx.fillText('PixCrab', combinedWidth - 40, combinedHeight - 40);
-                            
-                            AppUtils.debugLog("Canvas rendering complete for photo combination");
-                            
-                            // Get the data URL
-                            const combinedUrl = canvas.toDataURL('image/jpeg', 0.95);
-                            resolve(combinedUrl);
-                        } catch (error) {
-                            AppUtils.debugLog(`Error in canvas operations: ${error.message}`);
-                            reject(error);
-                        }
+                    loadedImages++;
+                    if (loadedImages === 2) {
+                        // Create canvas for combined image
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Set canvas size to accommodate both images side by side
+                        canvas.width = img1.width + img2.width;
+                        canvas.height = Math.max(img1.height, img2.height);
+                        
+                        // Draw first image
+                        ctx.drawImage(img1, 0, 0);
+                        
+                        // Draw second image
+                        ctx.drawImage(img2, img1.width, 0);
+                        
+                        // Get combined image data
+                        const combinedData = canvas.toDataURL('image/jpeg', 0.9);
+                        resolve(combinedData);
                     }
                 };
                 
-                // Image 1 load handlers
-                img1.onload = () => {
-                    img1Loaded = true;
-                    checkBothLoaded();
-                };
+                img1.onload = checkBothLoaded;
+                img2.onload = checkBothLoaded;
                 
-                img1.onerror = (error) => {
-                    reject(new Error("Failed to load first image"));
-                };
+                img1.onerror = () => reject(new Error('Failed to load first image'));
+                img2.onerror = () => reject(new Error('Failed to load second image'));
                 
-                // Image 2 load handlers
-                img2.onload = () => {
-                    img2Loaded = true;
-                    checkBothLoaded();
-                };
-                
-                img2.onerror = (error) => {
-                    reject(new Error("Failed to load second image"));
-                };
-                
-                // Set a timeout
-                setTimeout(() => {
-                    if (!img1Loaded || !img2Loaded) {
-                        reject(new Error("Image loading timed out"));
-                    }
-                }, 15000);
-                
-                // Set cross-origin to anonymous
-                img1.crossOrigin = "anonymous";
-                img2.crossOrigin = "anonymous";
-                
-                // Start loading the images
                 img1.src = photo1Data;
                 img2.src = photo2Data;
             } catch (error) {
