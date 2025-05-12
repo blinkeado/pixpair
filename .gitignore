@@ -85,3 +85,6 @@ firebase-service-account.json
 
 # Node dependencies for scripts
 package-lock.json
+
+# Auto-commit script
+auto-commit.sh
