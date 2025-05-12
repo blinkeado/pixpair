@@ -98,6 +98,22 @@ class FirebaseService {
         return () => sessionRef.off('value');
     }
 
+    onSessionUpdate(sessionId, callback) {
+        const sessionRef = this.database.ref(`sessions/${sessionId}`);
+        sessionRef.on('value', callback);
+        
+        // Return unsubscribe function
+        return () => sessionRef.off('value');
+    }
+
+    onParticipantsUpdate(sessionId, callback) {
+        const participantsRef = this.database.ref(`sessions/${sessionId}/participants`);
+        participantsRef.on('value', callback);
+        
+        // Return unsubscribe function
+        return () => participantsRef.off('value');
+    }
+
     async saveCaptureTiming(sessionId, captureTime) {
         return this.database.ref(`sessions/${sessionId}/captureTime`).set(captureTime);
     }
