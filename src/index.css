@@ -47,6 +47,19 @@ h2 {
   margin-bottom: 1rem;
 }
 
+/* Glow effect keyframes */
+@keyframes glow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -67,12 +80,35 @@ h2 {
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background: linear-gradient(45deg, #1e88e5, #4831D4, #1e88e5);
+  background-size: 200% 200%;
+  animation: glow 3s ease infinite;
   color: var(--text-light);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(30, 136, 229, 0.5);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #1e88e5, #4831D4, #1e88e5);
+  background-size: 200% 200%;
+  animation: glow 3s ease infinite;
+  z-index: -1;
+  border-radius: 0.5rem;
+  filter: blur(8px);
+  opacity: 0.7;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(30, 136, 229, 0.7);
 }
 
 .btn-secondary {
