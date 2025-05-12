@@ -76,3 +76,12 @@ index-standalone.html
 
 # Editor settings
 .vscode/
+
+# Firebase service account
+firebase-service-account.json
+
+# Environment variables
+.env.local
+
+# Node dependencies for scripts
+package-lock.json
