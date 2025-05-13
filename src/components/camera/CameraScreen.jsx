@@ -234,18 +234,18 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   return (
     <div className="camera-screen">
-      <div className="participants-count">
+      <div className="participants-count" style={{ top: 'calc(env(safe-area-inset-top) + 70px)' }}>
         Participants: {participantCount}/2
       </div>
       
       {error && <div className="error">{error}</div>}
       
       <div className="camera-container">
-        <div className="logo-container">
+        <div className="logo-container" style={{ top: 'calc(env(safe-area-inset-top) + 10px)' }}>
           <Logo />
         </div>
 
-        <div className="session-header absolute top-0 left-0 right-0 z-10 p-4">
+        <div className="session-header absolute left-0 right-0 z-10 p-4" style={{ top: 'env(safe-area-inset-top)' }}>
           <h2>Session: </h2>
           <div className="session-id-container">
             <span className="session-id">{sessionId}</span>
@@ -278,12 +278,13 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           <button 
             className="
               btn-circle btn-circle-rainbow
-              absolute bottom-4 left-1/2 transform -translate-x-1/2
+              absolute left-1/2 transform -translate-x-1/2
               w-16 h-16 bg-white shadow-lg border-4 border-gray-200
               z-10 hover:translate-y-[-2px] hover:scale-[1.02]
               active:translate-y-0 active:scale-[0.98]
               transition-transform disabled:opacity-50 disabled:cursor-not-allowed
             "
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
             onClick={initiateCapture} 
             disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
           >
@@ -291,7 +292,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           </button>
         )}
 
-        <div className="camera-controls absolute bottom-0 left-0 right-0 z-10 p-4 flex justify-between">
+        <div 
+          className="camera-controls absolute left-0 right-0 z-10 p-4 flex justify-between"
+          style={{ bottom: 'env(safe-area-inset-bottom)' }}
+        >
           <button className="btn btn-secondary" onClick={handleExitSession}>
             Exit Session
           </button>
