@@ -574,3 +574,28 @@ input {
   border-radius: 10px;
   z-index: -1;
 }
+
+/* Camera button rainbow styles */
+.btn-circle {
+  @apply inline-flex items-center justify-center;
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.btn-circle-rainbow::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  background: conic-gradient(from 0deg, #00f0ff, #ff00ff, #ccf381, #4831d4, #00f0ff);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0.75;
+  filter: blur(12px);
+  animation: spin-slow 4s linear infinite;
+}
+
+.btn-circle-rainbow:hover::before {
+  opacity: 1;
+}

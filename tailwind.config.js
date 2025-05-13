@@ -4,6 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
+  safelist: [
+    'btn-circle',
+    'btn-circle-rainbow'
+  ],
   theme: {
     extend: {
       colors: {

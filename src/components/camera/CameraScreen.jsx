@@ -269,7 +269,14 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         {cameraReady && (
           <button 
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full bg-white shadow-lg border-4 border-gray-200 z-10 disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-2px] hover:scale-[1.02] active:translate-y-0 active:scale-[0.98] transition-transform"
+            className="
+              btn-circle btn-circle-rainbow
+              absolute bottom-4 left-1/2 transform -translate-x-1/2
+              w-16 h-16 bg-white shadow-lg border-4 border-gray-200
+              z-10 hover:translate-y-[-2px] hover:scale-[1.02]
+              active:translate-y-0 active:scale-[0.98]
+              transition-transform disabled:opacity-50 disabled:cursor-not-allowed
+            "
             onClick={initiateCapture} 
             disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
           >
