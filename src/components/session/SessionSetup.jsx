@@ -138,7 +138,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
   };
   
   return (
-    <div className="session-setup">
+    <div className="session-setup pt-20">
       <h1 className="text-3xl font-bold mt-4">PixCrab</h1>
       <p className="text-gray-600 mt-2">Create a new session or join an existing one</p>
       
