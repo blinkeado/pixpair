@@ -307,6 +307,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
               z-50 disabled:opacity-50 disabled:cursor-not-allowed
             "
             style={{
+              /* fallback to 0px when safe-area inset is undefined */
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
             }}
             onClick={initiateCapture}
