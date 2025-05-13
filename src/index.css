@@ -38,6 +38,11 @@ body {
   padding: 1rem;
 }
 
+/* Remove padding when in camera mode to prevent overflow */
+.app-container.camera-mode {
+  padding: 0;
+}
+
 h1 {
   font-size: 2rem;
   font-weight: bold;

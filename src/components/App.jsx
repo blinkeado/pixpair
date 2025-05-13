@@ -100,7 +100,7 @@ function App() {
   // Render the current screen
   return (
     <PixCrabProvider value={{ user, sessionId }}>
-      <div className="app-container">
+      <div className={`app-container ${currentScreen === 'camera' ? 'camera-mode' : ''}`}>
         {/* Only show logo on auth and session screens, not on camera screen */}
         {currentScreen !== 'camera' && (
           <div className="flex justify-center p-4">
