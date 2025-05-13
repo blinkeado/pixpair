@@ -204,6 +204,7 @@ input {
   align-items: center;
   width: 100%;
   max-width: 400px;
+  padding-top: 80px; /* Added to prevent logo overlap */
 }
 
 .auth-options {
