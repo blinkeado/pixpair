@@ -91,12 +91,13 @@ const AuthScreen = () => {
         </div>
         
         <button 
-          type="submit" 
-          className="btn btn-primary"
-          disabled={loading}
-        >
-          {isSignUp ? 'Sign Up' : 'Sign In'}
-        </button>
+  type="submit" 
+  className="rainbow-button w-full"
+  disabled={loading}
+>
+  {isSignUp ? 'Sign Up' : 'Sign In'}
+</button>
+
       </form>
       
       <div className="auth-options">
