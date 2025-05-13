@@ -16,6 +16,32 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
+  // Viewport height polyfill for iOS
+  useEffect(() => {
+    function updateViewportHeight() {
+      const vh = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+      document.documentElement.style.setProperty(
+        '--viewport-height',
+        `${vh}px`
+      );
+      console.log('📏 Updated viewport height:', vh);
+    }
+    
+    // Update on mount
+    updateViewportHeight();
+    
+    // Update on resize and orientation change
+    window.visualViewport?.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('resize', updateViewportHeight);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('resize', updateViewportHeight);
+    };
+  }, []);
+  
   // Enhanced debug logging
   useEffect(() => {
     console.log('🔍 BUTTON RENDER CONDITIONS:', {
@@ -261,6 +287,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   return (
     <div className="camera-screen">
+      {/* Debug elements for safe area insets */}
+      {/* <div className="debug-safe-area"></div> */}
+      {/* <div className="debug-safe-area-bottom"></div> */}
+      
       {/* Camera container with video feed */}
       <div className="camera-container">
         <video 

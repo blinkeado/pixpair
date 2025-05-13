@@ -13,7 +13,7 @@
 }
 
 html, body {
-  height: 100%; /* Simpler height setting */
+  height: 100%; /* Changed from 100vh */
   margin: 0;
   overflow: hidden;
   box-sizing: border-box;
@@ -30,7 +30,7 @@ body {
 
 /* Common Layout */
 .app-container {
-  min-height: 100vh;
+  min-height: 100%; /* Changed from 100vh */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -313,7 +313,7 @@ input {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh;
+  height: var(--viewport-height, 100%); /* Use JS polyfill with fallback */
   background-color: black;
   overflow: hidden;
 }
@@ -327,8 +327,8 @@ input {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: visible;
   z-index: 1;
 }
@@ -341,23 +341,28 @@ input {
 
 .viewfinder-area {
   flex-grow: 1;
-  min-height: 0;    /* allow it to shrink below its content's intrinsic height */
+  min-height: 0; /* Critical: allows it to shrink below content height */
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 .controls-area {
-  position: relative;
+  position: fixed; /* Changed from relative to fixed */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 20px)); /* Added fallback */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-  min-height: 80px; /* keep a minimum height for desktop */
-  z-index: 10;
+  min-height: 80px;
+  z-index: 50; /* Increased z-index */
+  background-color: rgba(0, 0, 0, 0.5); /* Added semi-transparent background */
 }
 
 /* Centered container for shutter button */
@@ -365,13 +370,34 @@ input {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: env(safe-area-inset-bottom, 0px); /* Just align with safe area */
-  padding-bottom: 16px; /* Add padding within the container */
+  bottom: env(safe-area-inset-bottom, 20px); /* Added fallback */
+  padding-bottom: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
   pointer-events: none;
   z-index: 60;
+}
+
+/* Debug elements for safe area insets */
+.debug-safe-area {
+  position: fixed;
+  top: 0; 
+  left: 0; 
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: rgba(255, 0, 0, 0.5);
+  z-index: 9999;
+}
+
+.debug-safe-area-bottom {
+  position: fixed;
+  bottom: 0; 
+  left: 0; 
+  right: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: rgba(0, 0, 255, 0.5);
+  z-index: 9999;
 }
 
 /* Make the button itself receive pointer events */
