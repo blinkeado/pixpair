@@ -315,12 +315,16 @@ input {
 
 .camera-screen-content {
   position: absolute;
-  top: env(safe-area-inset-top, 0px);
+  top: 0;
   left: 0;
   right: 0;
-  bottom: env(safe-area-inset-bottom, 0px);
+  bottom: 0;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow-y: visible;
   z-index: 1;
 }
 
@@ -331,7 +335,8 @@ input {
 }
 
 .viewfinder-area {
-  flex: 1;
+  flex-grow: 1;
+  min-height: 0;    /* allow it to shrink below its content's intrinsic height */
   position: relative;
   overflow: hidden;
   display: flex;
@@ -341,12 +346,12 @@ input {
 
 .controls-area {
   position: relative;
-  padding: 1rem;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); /* Add safe area inset padding */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 100px; /* Space for the shutter button */
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  min-height: 80px; /* keep a minimum height for desktop */
   z-index: 10;
 }
 
@@ -355,11 +360,11 @@ input {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); /* Add safe area inset padding */
+  bottom: env(safe-area-inset-bottom, 0px); /* Just align with safe area */
+  padding-bottom: 16px; /* Add padding within the container */
   display: flex;
   justify-content: center;
   align-items: center;
-  /* Ensure this container doesn't affect the layout of other controls */
   pointer-events: none;
   z-index: 60;
 }
