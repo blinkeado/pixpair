@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import firebase from 'firebase/compat/app';
 import { storage } from '../../services/firebase';
+import Logo from '../../components/Logo';
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
@@ -233,21 +234,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   return (
     <div className="camera-screen">
-      <div className="session-header">
-        <h2>Session: </h2>
-        <div className="session-id-container">
-          <span className="session-id">{sessionId}</span>
-          <button 
-            className="btn btn-icon copy-btn" 
-            onClick={copySessionIdToClipboard}
-            title="Copy Session ID"
-          >
-            Copy
-          </button>
-          {copySuccess && <span className="copy-status">{copySuccess}</span>}
-        </div>
-      </div>
-      
       <div className="participants-count">
         Participants: {participantCount}/2
       </div>
@@ -255,11 +241,31 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       {error && <div className="error">{error}</div>}
       
       <div className="camera-container">
+        <div className="logo-container">
+          <Logo />
+        </div>
+
+        <div className="session-header absolute top-0 left-0 right-0 z-10 p-4">
+          <h2>Session: </h2>
+          <div className="session-id-container">
+            <span className="session-id">{sessionId}</span>
+            <button 
+              className="btn btn-icon copy-btn" 
+              onClick={copySessionIdToClipboard}
+              title="Copy Session ID"
+            >
+              Copy
+            </button>
+            {copySuccess && <span className="copy-status">{copySuccess}</span>}
+          </div>
+        </div>
+
         {countdown !== null && (
           <div className="countdown-overlay">
             <div className="countdown-number">{countdown}</div>
           </div>
         )}
+        
         <video 
           ref={videoRef} 
           autoPlay 
@@ -267,6 +273,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           muted
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
+        
         {cameraReady && (
           <button 
             className="
@@ -283,10 +290,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
           </button>
         )}
-      </div>
-      
-      <div className="camera-controls">
-        <div className="session-controls">
+
+        <div className="camera-controls absolute bottom-0 left-0 right-0 z-10 p-4 flex justify-between">
           <button className="btn btn-secondary" onClick={handleExitSession}>
             Exit Session
           </button>
