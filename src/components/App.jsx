@@ -103,7 +103,7 @@ function App() {
       <div className={`app-container ${currentScreen === 'camera' ? 'camera-mode' : ''}`}>
         {/* Only show logo on auth and session screens, not on camera screen */}
         {currentScreen !== 'camera' && (
-          <div className="flex justify-center p-4">
+          <div className="flex justify-center items-center w-full mb-4">
             <Logo />
           </div>
         )}

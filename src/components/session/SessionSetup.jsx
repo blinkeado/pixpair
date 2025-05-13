@@ -139,14 +139,6 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
   
   return (
     <div className="session-setup">
-      <div className="logo-container">
-        <div className="logo-glow-effect"></div>
-        <img 
-          src="https://firebasestorage.googleapis.com/v0/b/pixpair.firebasestorage.app/o/crab5.svg?alt=media&token=93592dde-03d2-4140-bf36-c4cb0ca39f85" 
-          alt="PixCrab logo" 
-          className="logo-image"
-        />
-      </div>
       <h1 className="text-3xl font-bold mt-4">PixCrab</h1>
       <p className="text-gray-600 mt-2">Create a new session or join an existing one</p>
       
