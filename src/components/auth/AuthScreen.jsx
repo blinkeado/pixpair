@@ -65,6 +65,28 @@ const AuthScreen = () => {
 
       {error && <div className="error">{error}</div>}
 
+      <div className="auth-options">
+        <button 
+          className="btn btn-google" 
+          onClick={handleGoogleAuth}
+          disabled={loading}
+        >
+          Continue with Google
+        </button>
+        
+        <button 
+          className="btn btn-text" 
+          onClick={handleAnonymousAuth}
+          disabled={loading}
+        >
+          Continue as Guest
+        </button>
+        
+        <div className="auth-separator">
+          <span>or</span>
+        </div>
+      </div>
+
       <form onSubmit={handleAuth}>
         <h2>{isSignUp ? 'Create Account' : 'Sign In'}</h2>
         
@@ -91,44 +113,21 @@ const AuthScreen = () => {
         </div>
         
         <button 
-  type="submit" 
-  className="rainbow-button w-full"
-  disabled={loading}
->
-  {isSignUp ? 'Sign Up' : 'Sign In'}
-</button>
-
+          type="submit" 
+          className="rainbow-button w-full"
+          disabled={loading}
+        >
+          {isSignUp ? 'Sign Up' : 'Sign In'}
+        </button>
       </form>
       
-      <div className="auth-options">
-        <button 
-          className="btn btn-secondary"
-          onClick={() => setIsSignUp(!isSignUp)}
-          disabled={loading}
-        >
-          {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-        </button>
-        
-        <div className="auth-separator">
-          <span>or</span>
-        </div>
-        
-        <button 
-          className="btn btn-google" 
-          onClick={handleGoogleAuth}
-          disabled={loading}
-        >
-          Continue with Google
-        </button>
-        
-        <button 
-          className="btn btn-text" 
-          onClick={handleAnonymousAuth}
-          disabled={loading}
-        >
-          Continue as Guest
-        </button>
-      </div>
+      <button 
+        className="btn btn-secondary"
+        onClick={() => setIsSignUp(!isSignUp)}
+        disabled={loading}
+      >
+        {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+      </button>
     </div>
   );
 };
