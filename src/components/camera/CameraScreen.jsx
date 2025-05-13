@@ -267,17 +267,18 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           muted
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
+        {cameraReady && (
+          <button 
+            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full bg-white shadow-lg border-4 border-gray-200 z-10 disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-2px] hover:scale-[1.02] active:translate-y-0 active:scale-[0.98] transition-transform"
+            onClick={initiateCapture} 
+            disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
+          >
+            <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
+          </button>
+        )}
       </div>
       
       <div className="camera-controls">
-        <button 
-          className="btn btn-primary" 
-          onClick={initiateCapture} 
-          disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
-        >
-          {uploading ? 'Uploading...' : countdown !== null ? 'Taking photo...' : 'Take Synchronized Photo'}
-        </button>
-        
         <div className="session-controls">
           <button className="btn btn-secondary" onClick={handleExitSession}>
             Exit Session
