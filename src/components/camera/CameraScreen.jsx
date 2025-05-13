@@ -261,38 +261,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   return (
     <div className="camera-screen">
-      <div className="participants-count" style={{ top: 'calc(env(safe-area-inset-top) + 70px)' }}>
-        Participants: {participantCount}/2
-      </div>
-      
-      {error && <div className="error">{error}</div>}
-      
+      {/* Camera container with video feed */}
       <div className="camera-container">
-        <div className="logo-container" style={{ top: 'calc(env(safe-area-inset-top) + 10px)' }}>
-          <Logo />
-        </div>
-
-        <div className="session-header absolute left-0 right-0 z-10 p-4" style={{ top: 'env(safe-area-inset-top)' }}>
-          <h2>Session: </h2>
-          <div className="session-id-container">
-            <span className="session-id">{sessionId}</span>
-            <button 
-              className="btn btn-icon copy-btn" 
-              onClick={copySessionIdToClipboard}
-              title="Copy Session ID"
-            >
-              Copy
-            </button>
-            {copySuccess && <span className="copy-status">{copySuccess}</span>}
-          </div>
-        </div>
-
-        {countdown !== null && (
-          <div className="countdown-overlay">
-            <div className="countdown-number">{countdown}</div>
-          </div>
-        )}
-        
         <video 
           ref={videoRef} 
           autoPlay 
@@ -301,32 +271,69 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         
-        {cameraReady && (
-          <button
-            className="
-              btn-circle btn-circle-rainbow
-              absolute left-1/2 transform -translate-x-1/2
-              w-16 h-16 bg-white shadow-lg
-              border-4 border-gray-200 z-50
-              disabled:opacity-50 disabled:cursor-not-allowed
-            "
-            style={{
-              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
-            }}
-            onClick={initiateCapture}
-            disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
-          >
-            <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
-          </button>
+        {countdown !== null && (
+          <div className="countdown-overlay">
+            <div className="countdown-number">{countdown}</div>
+          </div>
         )}
-
-        <div 
-          className="camera-controls absolute left-0 right-0 z-10 p-4 flex justify-between"
-          style={{ bottom: 'env(safe-area-inset-bottom)' }}
-        >
+      </div>
+      
+      {/* Content layer respecting safe areas */}
+      <div className="camera-screen-content">
+        {/* Header area with session info */}
+        <div className="header-area">
+          <div className="participants-count">
+            Participants: {participantCount}/2
+          </div>
+          
+          {error && <div className="error">{error}</div>}
+          
+          <div className="session-header">
+            <h2>Session: </h2>
+            <div className="session-id-container">
+              <span className="session-id">{sessionId}</span>
+              <button 
+                className="btn btn-icon copy-btn" 
+                onClick={copySessionIdToClipboard}
+                title="Copy Session ID"
+              >
+                Copy
+              </button>
+              {copySuccess && <span className="copy-status">{copySuccess}</span>}
+            </div>
+          </div>
+        </div>
+        
+        {/* Viewfinder area - empty space for camera view */}
+        <div className="viewfinder-area">
+          {/* Empty space for camera view, which is positioned behind in the camera-container */}
+        </div>
+        
+        {/* Controls area with buttons */}
+        <div className="controls-area">
           <button className="btn btn-secondary" onClick={handleExitSession}>
             Exit Session
           </button>
+          
+          {cameraReady && (
+            <button
+              className="
+                btn-circle btn-circle-rainbow
+                absolute left-1/2 transform -translate-x-1/2
+                w-16 h-16 bg-white shadow-lg
+                border-4 border-gray-200 z-50
+                disabled:opacity-50 disabled:cursor-not-allowed
+              "
+              style={{
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
+              }}
+              onClick={initiateCapture}
+              disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
+            >
+              <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
+            </button>
+          )}
+          
           <button className="btn btn-text" onClick={onSignOut}>
             Sign Out
           </button>
