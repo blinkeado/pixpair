@@ -4,6 +4,7 @@ import SessionSetup from './session/SessionSetup';
 import CameraScreen from './camera/CameraScreen';
 import { initializeFirebase, auth } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
+import Logo from './Logo';
 
 // Initialize Firebase with the config from window.firebaseConfig
 const firebaseApp = initializeFirebase();
@@ -100,6 +101,11 @@ function App() {
   return (
     <PixCrabProvider value={{ user, sessionId }}>
       <div className="app-container">
+        <div className="flex items-center space-x-2 p-4 border-b">
+          <Logo />
+          <h1 className="text-xl font-bold">PixCrab</h1>
+        </div>
+        
         {currentScreen === 'auth' && (
           <AuthScreen />
         )}
