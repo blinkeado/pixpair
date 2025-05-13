@@ -560,3 +560,17 @@ input {
   initial-value: 0deg;
   inherits: false;
 }
+.rainbow-button::after {
+  content: '';
+  position: absolute;
+  /* 2px de separación para dejar visible sólo el borde */
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  /* color de fondo interior idéntico al de tu UI */
+  background: #4831D4; /* o usa var(--primary-color) si lo prefieres */
+  /* radio interior = radio del botón menos 2px */
+  border-radius: 10px;
+  z-index: -1;
+}
