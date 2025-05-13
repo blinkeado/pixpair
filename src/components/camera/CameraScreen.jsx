@@ -16,14 +16,51 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
-  // Debug render conditions
+  // Enhanced debug logging
   useEffect(() => {
-    console.log('🔍 cameraReady=', cameraReady,
-                'uploading=', uploading,
-                'countdown=', countdown,
-                'participants=', participantCount,
-                'disabled=', !cameraReady || uploading || countdown!==null || participantCount<2);
+    console.log('🔍 BUTTON RENDER CONDITIONS:', {
+      cameraReady,
+      uploading,
+      countdown,
+      participantCount,
+      disabled: !cameraReady || uploading || countdown !== null || participantCount < 2,
+      videoRef: videoRef.current ? 'exists' : 'null',
+      videoSrcObject: videoRef.current?.srcObject ? 'stream active' : 'no stream'
+    });
   }, [cameraReady, uploading, countdown, participantCount]);
+  
+  // Debug camera initialization
+  const initializeCamera = async () => {
+    console.log('🎥 STARTING CAMERA INITIALIZATION');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      
+      console.log('🎥 CAMERA STREAM OBTAINED:', stream ? 'success' : 'failed');
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        console.log('🎥 ASSIGNED STREAM TO VIDEO ELEMENT');
+        
+        videoRef.current.onloadedmetadata = () => {
+          console.log('🎥 VIDEO METADATA LOADED, SETTING CAMERA READY');
+          setCameraReady(true);
+        };
+      } else {
+        console.error('🎥 VIDEO REF IS NULL');
+      }
+    } catch (err) {
+      console.error('🎥 ERROR ACCESSING CAMERA:', err);
+      setError('Could not access camera. Please check permissions.');
+    }
+  };
+  
+  // Debug camera readiness
+  useEffect(() => {
+    console.log('🎥 CAMERA READY STATE CHANGED:', cameraReady);
+  }, [cameraReady]);
   
   // Initialize camera on component mount
   useEffect(() => {
@@ -62,25 +99,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       clearInterval(countdownRef.current);
     };
   }, [sessionId]);
-  
-  const initializeCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          setCameraReady(true);
-        };
-      }
-    } catch (err) {
-      console.error('Error accessing camera:', err);
-      setError('Could not access camera. Please check permissions.');
-    }
-  };
   
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -283,21 +301,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         
-        {/* Force-show a test button */}
-        <button
-          style={{
-            position: 'absolute',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 9999,
-            background: 'red',
-            padding: '1rem'
-          }}
-        >
-          TEST
-        </button>
-        
         {cameraReady && (
           <button
             className="
@@ -307,7 +310,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
               z-50 disabled:opacity-50 disabled:cursor-not-allowed
             "
             style={{
-              /* fallback to 0px when safe-area inset is undefined */
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
             }}
             onClick={initiateCapture}
