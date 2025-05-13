@@ -101,7 +101,7 @@ function App() {
   return (
     <PixCrabProvider value={{ user, sessionId }}>
       <div className="app-container">
-      <div className="flex justify-center p-4 border-b">
+      <div className="flex justify-center p-4">
   <Logo />
 </div>
 
