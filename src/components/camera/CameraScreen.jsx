@@ -315,24 +315,23 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             Exit Session
           </button>
           
-          {cameraReady && (
-            <button
-              className="
-                btn-circle btn-circle-rainbow
-                absolute left-1/2 transform -translate-x-1/2
-                w-16 h-16 bg-white shadow-lg
-                border-4 border-gray-200 z-50
-                disabled:opacity-50 disabled:cursor-not-allowed
-              "
-              style={{
-                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
-              }}
-              onClick={initiateCapture}
-              disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
-            >
-              <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
-            </button>
-          )}
+          {/* Centered shutter button - positioned relative to the controls area */}
+          <div className="shutter-button-container">
+            {cameraReady && (
+              <button
+                className="
+                  btn-circle btn-circle-rainbow
+                  w-16 h-16 bg-white shadow-lg
+                  border-4 border-gray-200 z-50
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                "
+                onClick={initiateCapture}
+                disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
+              >
+                <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
+              </button>
+            )}
+          </div>
           
           <button className="btn btn-text" onClick={onSignOut}>
             Sign Out

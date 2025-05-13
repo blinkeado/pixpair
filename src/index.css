@@ -342,11 +342,31 @@ input {
 .controls-area {
   position: relative;
   padding: 1rem;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); /* Add safe area inset padding */
   display: flex;
   justify-content: space-between;
   align-items: center;
   min-height: 100px; /* Space for the shutter button */
   z-index: 10;
+}
+
+/* Centered container for shutter button */
+.shutter-button-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); /* Add safe area inset padding */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Ensure this container doesn't affect the layout of other controls */
+  pointer-events: none;
+  z-index: 60;
+}
+
+/* Make the button itself receive pointer events */
+.shutter-button-container button {
+  pointer-events: auto;
 }
 
 .camera-container {
