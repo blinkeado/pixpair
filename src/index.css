@@ -419,9 +419,9 @@ input {
 
 .session-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 1rem;
 }
 
 .session-header h2 {
@@ -703,4 +703,58 @@ input {
 /* Remove duplicate logo styles in camera screen */
 .camera-screen .logo-container {
   display: none;
+}
+
+/* Exit button (X icon) */
+.exit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.exit-btn:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+  transform: scale(1.05);
+}
+
+/* Session ID button */
+.session-id-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-family: monospace;
+  font-size: 1rem;
+  border-radius: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.session-id-btn:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.copy-icon {
+  margin-left: 0.5rem;
+  opacity: 0.7;
+}
+
+.session-id-btn:hover .copy-icon {
+  opacity: 1;
+}
+
+.copy-status {
+  margin-left: 0.5rem;
+  color: var(--success-color);
+  font-size: 0.75rem;
 }

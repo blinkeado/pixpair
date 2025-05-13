@@ -320,18 +320,31 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           {error && <div className="error">{error}</div>}
           
           <div className="session-header">
-            <h2>Session: </h2>
-            <div className="session-id-container">
-              <span className="session-id">{sessionId}</span>
-              <button 
-                className="btn btn-icon copy-btn" 
-                onClick={copySessionIdToClipboard}
-                title="Copy Session ID"
-              >
-                Copy
-              </button>
+            {/* Exit button (X icon) */}
+            <button 
+              className="btn-icon exit-btn" 
+              onClick={handleExitSession}
+              title="Exit Session"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            
+            {/* Combined session ID and copy button */}
+            <button 
+              className="session-id-btn" 
+              onClick={copySessionIdToClipboard}
+              title="Copy Session ID"
+            >
+              {sessionId}
+              <svg className="copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
               {copySuccess && <span className="copy-status">{copySuccess}</span>}
-            </div>
+            </button>
           </div>
         </div>
         
@@ -342,10 +355,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         {/* Controls area with buttons */}
         <div className="controls-area">
-          <button className="btn btn-secondary" onClick={handleExitSession}>
-            Exit Session
-          </button>
-          
           {/* Centered shutter button - positioned relative to the controls area */}
           <div className="shutter-button-container">
             {cameraReady && (
@@ -363,10 +372,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
               </button>
             )}
           </div>
-          
-          <button className="btn btn-text" onClick={onSignOut}>
-            Sign Out
-          </button>
         </div>
       </div>
       
