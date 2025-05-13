@@ -275,26 +275,22 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         
         {cameraReady && (
-  <button
-    className="
-      btn-circle btn-circle-rainbow
-      absolute left-1/2 transform -translate-x-1/2
-      bottom-[calc(env(safe-area-inset-bottom)+16px)]
-      w-16 h-16 bg-white shadow-lg border-4 border-gray-200
-      z-50 disabled:opacity-50 disabled:cursor-not-allowed
-    "
-    onClick={initiateCapture}
-    disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
-  >
-    <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
-  </button>
-)}
-
-
-
-
-
-
+          <button
+            className="
+              btn-circle btn-circle-rainbow
+              absolute left-1/2 transform -translate-x-1/2
+              w-16 h-16 bg-white shadow-lg border-4 border-gray-200
+              z-50 disabled:opacity-50 disabled:cursor-not-allowed
+            "
+            style={{
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
+            }}
+            onClick={initiateCapture}
+            disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
+          >
+            <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
+          </button>
+        )}
 
         <div 
           className="camera-controls absolute left-0 right-0 z-10 p-4 flex justify-between"

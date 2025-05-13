@@ -17,8 +17,14 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom);
   margin: 0;
   height: 100%;
-  overflow: hidden;
+  /* overflow: hidden; */    /* ← ya no recorta hijos */
 }
+
+body {
+  overflow-x: hidden;       /* opcional: previene scroll horizontal */
+  overflow-y: hidden;       /* opcional: previene scroll vertical */
+}
+
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -308,8 +314,8 @@ input {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  overflow: hidden;
+  height: 100vh;
+  overflow: visible;
   background-color: black;
 }
 
@@ -602,7 +608,7 @@ input {
   inset: -6px;
   background: conic-gradient(from 0deg, #00f0ff, #ff00ff, #ccf381, #4831d4, #00f0ff);
   border-radius: 50%;
-  z-index: -1;
+  z-index: 1;
   opacity: 0.75;
   filter: blur(12px);
   animation: spin-slow 4s linear infinite;

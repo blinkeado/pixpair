@@ -6,7 +6,8 @@ export default {
   ],
   safelist: [
     'btn-circle',
-    'btn-circle-rainbow'
+    'btn-circle-rainbow',
+    'bottom-[calc(env(safe-area-inset-bottom)+16px)]',
   ],
   theme: {
     extend: {
@@ -17,4 +18,4 @@ export default {
     },
   },
   plugins: [],
-} 
+}
