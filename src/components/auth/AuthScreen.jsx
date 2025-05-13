@@ -67,7 +67,7 @@ const AuthScreen = () => {
 
       <div className="auth-options">
         <button 
-          className="btn btn-google" 
+          className="btn btn-google rainbow-button w-full" 
           onClick={handleGoogleAuth}
           disabled={loading}
         >
