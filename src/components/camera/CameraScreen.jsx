@@ -16,6 +16,15 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   
+  // Debug render conditions
+  useEffect(() => {
+    console.log('🔍 cameraReady=', cameraReady,
+                'uploading=', uploading,
+                'countdown=', countdown,
+                'participants=', participantCount,
+                'disabled=', !cameraReady || uploading || countdown!==null || participantCount<2);
+  }, [cameraReady, uploading, countdown, participantCount]);
+  
   // Initialize camera on component mount
   useEffect(() => {
     initializeCamera();
@@ -273,6 +282,21 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           muted
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
+        
+        {/* Force-show a test button */}
+        <button
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: 'red',
+            padding: '1rem'
+          }}
+        >
+          TEST
+        </button>
         
         {cameraReady && (
           <button
