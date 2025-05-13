@@ -13,18 +13,13 @@
 }
 
 html, body {
+  height: -webkit-fill-available;              /* fill safe viewport on iOS */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   margin: 0;
-  height: 100%;
-  /* overflow: hidden; */    /* ← ya no recorta hijos */
+  overflow: hidden;
+  box-sizing: border-box;
 }
-
-body {
-  overflow-x: hidden;       /* opcional: previene scroll horizontal */
-  overflow-y: hidden;       /* opcional: previene scroll vertical */
-}
-
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -314,8 +309,11 @@ input {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: visible;
+  /* subtract safe-area top + bottom from 100vh */
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
   background-color: black;
 }
 
@@ -350,19 +348,19 @@ input {
 }
 
 .camera-container {
-  flex-grow: 1;
-  width: 100%;
+  flex: 1 1 auto;
   position: relative;
-  overflow: visible;
-  z-index: 1;
+  overflow: hidden;
+  /* reserve space for shutter button+glow: safe-area-bottom + 96px (button height + glow buffer) */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
 }
 
 .camera-container video {
-  object-fit: cover;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   width: 100%;
   height: 100%;
-  position: relative;
-  z-index: 1;
+  object-fit: cover;
 }
 
 .countdown-overlay {

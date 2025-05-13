@@ -306,8 +306,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             className="
               btn-circle btn-circle-rainbow
               absolute left-1/2 transform -translate-x-1/2
-              w-16 h-16 bg-white shadow-lg border-4 border-gray-200
-              z-50 disabled:opacity-50 disabled:cursor-not-allowed
+              w-16 h-16 bg-white shadow-lg
+              border-4 border-gray-200 z-50
+              disabled:opacity-50 disabled:cursor-not-allowed
             "
             style={{
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
