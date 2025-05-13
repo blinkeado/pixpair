@@ -280,11 +280,14 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
               btn-circle btn-circle-rainbow
               absolute left-1/2 transform -translate-x-1/2
               w-16 h-16 bg-white shadow-lg border-4 border-gray-200
-              z-10 hover:translate-y-[-2px] hover:scale-[1.02]
+              z-50 hover:translate-y-[-2px] hover:scale-[1.02]
               active:translate-y-0 active:scale-[0.98]
               transition-transform disabled:opacity-50 disabled:cursor-not-allowed
             "
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+            style={{ 
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+              transform: 'translateX(-50%)'
+            }}
             onClick={initiateCapture} 
             disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
           >

@@ -310,6 +310,7 @@ input {
   flex-direction: column;
   height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow: hidden;
+  background-color: black;
 }
 
 .session-header {
@@ -347,12 +348,15 @@ input {
   width: 100%;
   position: relative;
   overflow: visible;
+  z-index: 1;
 }
 
 .camera-container video {
   object-fit: cover;
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .countdown-overlay {
@@ -589,6 +593,7 @@ input {
   position: relative;
   cursor: pointer;
   transition: transform 0.2s ease;
+  z-index: 50;
 }
 
 .btn-circle-rainbow::before {
