@@ -268,6 +268,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           autoPlay 
           playsInline 
           muted
+          className="h-full w-auto object-cover mx-auto"
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         
