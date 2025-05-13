@@ -101,10 +101,12 @@ function App() {
   return (
     <PixCrabProvider value={{ user, sessionId }}>
       <div className="app-container">
-      <div className="flex justify-center p-4">
-  <Logo />
-</div>
-
+        {/* Only show logo on auth and session screens, not on camera screen */}
+        {currentScreen !== 'camera' && (
+          <div className="flex justify-center p-4">
+            <Logo />
+          </div>
+        )}
         
         {currentScreen === 'auth' && (
           <AuthScreen />
