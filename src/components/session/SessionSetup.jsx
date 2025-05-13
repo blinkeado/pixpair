@@ -154,7 +154,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       
       <div className="session-actions">
         <button 
-          className="btn btn-primary" 
+          className="btn btn-primary rainbow-button" 
           onClick={handleCreateNewSession}
         >
           Create New Session
