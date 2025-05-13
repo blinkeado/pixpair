@@ -101,10 +101,10 @@ function App() {
   return (
     <PixCrabProvider value={{ user, sessionId }}>
       <div className="app-container">
-        <div className="flex items-center space-x-2 p-4 border-b">
-          <Logo />
-          <h1 className="text-xl font-bold">PixCrab</h1>
-        </div>
+      <div className="flex justify-center p-4 border-b">
+  <Logo />
+</div>
+
         
         {currentScreen === 'auth' && (
           <AuthScreen />
