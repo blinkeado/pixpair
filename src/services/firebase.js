@@ -99,6 +99,11 @@ export const auth = {
   // Get current user
   getCurrentUser: () => {
     return firebase.auth().currentUser;
+  },
+
+  // Listen to auth state changes
+  onAuthStateChanged: (callback) => {
+    return firebase.auth().onAuthStateChanged(callback);
   }
 };
 

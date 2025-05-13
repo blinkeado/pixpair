@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/database';
-import 'firebase/compat/storage';
-
 import AuthScreen from './auth/AuthScreen';
 import SessionSetup from './session/SessionSetup';
 import CameraScreen from './camera/CameraScreen';
-import { initializeFirebase } from '../services/firebase';
+import { initializeFirebase, auth } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
 
 // Initialize Firebase with the config from window.firebaseConfig
@@ -40,7 +35,7 @@ function App() {
   useEffect(() => {
     if (!initialized) return;
     
-    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       if (user) {
         setCurrentScreen('session');
@@ -77,7 +72,7 @@ function App() {
   
   const handleSignOut = async () => {
     try {
-      await firebase.auth().signOut();
+      await auth.signOut();
       setCurrentScreen('auth');
       setSessionId(null);
     } catch (error) {
