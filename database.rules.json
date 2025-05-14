@@ -4,22 +4,22 @@
     ".write": "auth != null",
     "users": {
       "$userId": {
-        ".read": true,
-        ".write": true,
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId",
         "photos": {
           "$photoId": {
-            ".read": true,
-            ".write": true
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $userId"
           }
         },
         "sessions": {
           "$sessionId": {
-            ".read": true,
-            ".write": true,
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $userId",
             "photoIds": {
               "$photoId": {
-                ".read": true,
-                ".write": true
+                ".read": "auth != null",
+                ".write": "auth != null && auth.uid === $userId"
               }
             }
           }
@@ -28,27 +28,27 @@
     },
     "sessions": {
       "$sessionId": {
-        ".read": true,
-        ".write": true,
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid != null",
         "members": {
-          ".read": true,
-          ".write": true
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid != null"
         },
         "photos": {
-          ".read": true,
-          ".write": true
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid != null"
         },
         "capture": {
-          ".read": true,
-          ".write": true
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid != null"
         },
         "pictures": {
-          ".read": true,
-          ".write": true
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid != null"
         },
         "participants": {
-          ".read": true,
-          ".write": true
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid != null"
         }
       }
     },

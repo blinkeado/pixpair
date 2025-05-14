@@ -254,6 +254,7 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
           className="btn btn-google rainbow-button w-full" 
           onClick={handleGoogleAuth}
           disabled={loading}
+          aria-label="Continue with Google"
         >
           Continue with Google
         </button>
@@ -262,6 +263,7 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
           className="btn btn-text" 
           onClick={handleAnonymousAuth}
           disabled={loading}
+          aria-label="Continue as Guest"
         >
           Continue as Guest
         </button>
@@ -279,9 +281,12 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
           <input
             type="email"
             id="email"
+            name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
+            aria-required="true"
           />
         </div>
         
@@ -290,9 +295,12 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
           <input
             type="password"
             id="password"
+            name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            aria-required="true"
           />
         </div>
         

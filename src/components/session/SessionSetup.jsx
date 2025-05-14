@@ -155,20 +155,27 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
         <button 
           className="btn btn-primary rainbow-button" 
           onClick={handleCreateNewSession}
+          aria-label="Create New Session"
         >
           Create New Session
         </button>
         
         <div className="session-join">
+          <label htmlFor="sessionId" className="sr-only">Enter Session ID</label>
           <input 
+            id="sessionId"
+            name="sessionId"
             type="text" 
             placeholder="Enter Session ID" 
             value={sessionIdInput}
             onChange={(e) => setSessionIdInput(e.target.value)}
+            autoComplete="off"
+            aria-label="Session ID"
           />
           <button 
             className="btn btn-secondary" 
             onClick={() => handleJoinExistingSession()}
+            aria-label="Join Session"
           >
             Join Session
           </button>
@@ -184,17 +191,18 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
               className="btn btn-icon" 
               onClick={copySessionIdToClipboard}
               title="Copy Session ID"
+              aria-label="Copy Session ID"
             >
               Copy
             </button>
-            {copySuccess && <span className="copy-status">{copySuccess}</span>}
+            {copySuccess && <span className="copy-status" aria-live="polite">{copySuccess}</span>}
           </div>
           <p>Scan this QR code to join the session:</p>
-          <div className="qr-code-container" ref={qrCodeRef}></div>
+          <div className="qr-code-container" ref={qrCodeRef} aria-label="QR code to join session"></div>
         </div>
       )}
       
-      <button className="btn btn-text" onClick={onSignOut}>
+      <button className="btn btn-text" onClick={onSignOut} aria-label="Sign Out">
         Sign Out
       </button>
     </div>
