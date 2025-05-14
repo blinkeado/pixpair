@@ -105,6 +105,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
           <div className={`photos-container layout-${layout}`}>
             {groupPhotos.map((photo, index) => {
               // If it's a combined photo (contains multiple participant photos)
+              console.log(`🖼️ GALLERY DEBUG: Mapping photo at index ${index}, ID: ${photo.id || photo.userId}, Type: ${photo.type}, isCombined: ${photo.isCombined}`);
               if (photo.isCombined) {
                 console.log(`🖼️ GALLERY DEBUG: Rendering combined photo at index ${index}`);
                 return (
