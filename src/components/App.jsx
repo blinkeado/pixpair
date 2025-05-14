@@ -110,7 +110,11 @@ function App() {
         )}
         
         {currentScreen === 'auth' && (
-          <AuthScreen />
+          <AuthScreen 
+            onCreateSession={handleCreateSession}
+            onJoinSession={handleJoinSession}
+            onSignOut={handleSignOut}
+          />
         )}
         
         {currentScreen === 'session' && (

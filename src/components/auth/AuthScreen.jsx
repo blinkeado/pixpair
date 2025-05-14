@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import firebase, { auth, authMethods } from '../../services/firebase';
-import { useNavigate } from 'react-router-dom';
 
 const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
   const [email, setEmail] = useState('');
@@ -9,15 +8,6 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   
-  // Wrap navigate in try/catch as Router context might not be fully established
-  let navigate;
-  try {
-    navigate = useNavigate();
-  } catch (routerError) {
-    console.error('Router context not available:', routerError);
-    // We'll handle navigation errors later
-  }
-
   // Check for existing session in URL
   useEffect(() => {
     try {
@@ -86,10 +76,7 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         onJoinSession(sessionId);
       }
       
-      // Navigate to camera screen if navigation is available
-      if (navigate) {
-        navigate('/camera');
-      }
+      // No longer need to navigate, as onJoinSession will handle screen changes
       
     } catch (error) {
       console.error('Error joining session:', error);
@@ -138,10 +125,7 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         onCreateSession(sessionId);
       }
       
-      // Navigate to camera screen if navigation is available
-      if (navigate) {
-        navigate('/camera');
-      }
+      // No longer need to navigate, as onCreateSession will handle screen changes
       
     } catch (error) {
       console.error('Authentication error:', error);
@@ -184,10 +168,7 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         onCreateSession(sessionId);
       }
       
-      // Navigate to camera screen if navigation is available
-      if (navigate) {
-        navigate('/camera');
-      }
+      // No longer need to navigate, as onCreateSession will handle screen changes
       
     } catch (error) {
       console.error('Google auth error:', error);
@@ -229,10 +210,7 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         onCreateSession(sessionId);
       }
       
-      // Navigate to camera screen if navigation is available
-      if (navigate) {
-        navigate('/camera');
-      }
+      // No longer need to navigate, as onCreateSession will handle screen changes
       
     } catch (error) {
       console.error('Anonymous auth error:', error);

@@ -26,14 +26,40 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       setError(null);
       setCopySuccess('');
       
+      // Make sure Firebase auth is initialized and ready
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        // If not authenticated, wait for a moment and try again
+        setTimeout(() => {
+          // Re-attempt with a user verification
+          const retryUser = firebase.auth().currentUser;
+          if (!retryUser) {
+            setError('Authentication required. Please sign in before creating a session.');
+            return;
+          }
+          // Once authenticated, proceed
+          createSessionWithUser(retryUser);
+        }, 1000);
+        return;
+      }
+      
+      // If we have a user, proceed with creation
+      createSessionWithUser(currentUser);
+      
+    } catch (error) {
+      console.error('Error creating session:', error);
+      setError('Failed to create session. Please try again.');
+    }
+  };
+  
+  // Helper function to create a session with a verified user
+  const createSessionWithUser = async (user) => {
+    try {
       // Generate a random session ID
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       // Create session in Firebase
-      const userId = firebase.auth().currentUser?.uid;
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
+      const userId = user.uid;
       
       await firebase.database().ref(`sessions/${sessionId}`).set({
         createdBy: userId,
@@ -49,11 +75,12 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       setCreatedSessionId(sessionId);
       
       // Call the onCreateSession callback with the new session ID
-      onCreateSession(sessionId);
-      
+      if (typeof onCreateSession === 'function') {
+        onCreateSession(sessionId);
+      }
     } catch (error) {
-      console.error('Error creating session:', error);
-      setError('Failed to create session. Please try again.');
+      console.error('Error in session creation:', error);
+      setError('Database permission denied. Please try again or contact support.');
     }
   };
   
@@ -68,6 +95,13 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
         return;
       }
       
+      // Make sure Firebase auth is initialized and ready
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        setError('Authentication required. Please sign in before joining a session.');
+        return;
+      }
+      
       // Check if session exists
       const snapshot = await firebase.database().ref(`sessions/${sessionIdToJoin}`).once('value');
       const sessionData = snapshot.val();
@@ -78,10 +112,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       }
       
       // Join the session
-      const userId = firebase.auth().currentUser?.uid;
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
+      const userId = currentUser.uid;
       
       await firebase.database().ref(`sessions/${sessionIdToJoin}/members/${userId}`).set({
         joinedAt: firebase.database.ServerValue.TIMESTAMP
@@ -91,7 +122,9 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       setCreatedSessionId(sessionIdToJoin);
       
       // Call the onJoinSession callback with the session ID
-      onJoinSession(sessionIdToJoin);
+      if (typeof onJoinSession === 'function') {
+        onJoinSession(sessionIdToJoin);
+      }
       
     } catch (error) {
       console.error('Error joining session:', error);
