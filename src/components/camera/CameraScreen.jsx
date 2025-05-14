@@ -95,7 +95,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     });
   }, [cameraReady]);
   
-  // Initialize camera and Firebase listeners only if we have a sessionId
+  // Set up Firebase listeners when component mounts
   useEffect(() => {
     if (!sessionId) return;
 
@@ -104,58 +104,36 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Stop any existing camera stream first
     stopCamera();
     
-    // Then initialize new camera
+    // Then initialize the camera
     initializeCamera();
     
-    // Listen for new photos in this session
-    console.log('📊 DEBUG: Setting up all Firebase listeners for path:', `sessions/${sessionId}`);
+    // Set up initial session data check
     const sessionRef = database.ref(`sessions/${sessionId}`);
-    
-    // Verify the session exists and check its structure
     sessionRef.once('value', (snapshot) => {
-      const sessionData = snapshot.val();
-      console.log('📊 DEBUG: Initial session data check:', JSON.stringify(sessionData));
+      console.log('📊 DEBUG: Initial session data check:', JSON.stringify(snapshot.val()));
       
-      if (!sessionData) {
-        console.error('📊 DEBUG: Session data not found! Session ID may be invalid');
+      if (snapshot.exists()) {
+        const fields = Object.keys(snapshot.val());
+        console.log('📊 DEBUG: Session exists with fields:', fields);
       } else {
-        console.log('📊 DEBUG: Session exists with fields:', Object.keys(sessionData));
+        console.log('📊 DEBUG: Session does not exist');
       }
-    }).catch(error => {
-      console.error('📊 DEBUG: Error checking session data:', error);
     });
     
-    const photosRef = database.ref(`sessions/${sessionId}/photos`);
-    console.log('📊 DEBUG: Setting up child_added listener for photos');
+    // Set up all Firebase listeners
+    console.log('📊 DEBUG: Setting up all Firebase listeners for path:', `sessions/${sessionId}`);
     
-    // Test that the listener works by writing a test value
-    console.log('📊 DEBUG: Testing Firebase write permission...');
-    const testPath = database.ref(`sessions/${sessionId}/test`);
-    testPath.set({
-      timestamp: Date.now(),
-      test: 'write-test'
-    }).then(() => {
-      console.log('📊 DEBUG: Firebase test write successful');
-      
-      // Now try to read it back
-      return testPath.once('value');
-    }).then((snapshot) => {
-      console.log('📊 DEBUG: Firebase test read successful:', snapshot.val());
-    }).catch(error => {
-      console.error('📊 DEBUG: Firebase permission test failed:', error);
-    });
-    
-    // Add event handlers for connection state
+    // Firebase realtime status check
     const connectedRef = database.ref('.info/connected');
-    connectedRef.on('value', (snap) => {
-      if (snap.val() === true) {
-        console.log('📊 DEBUG: Connected to Firebase');
-      } else {
-        console.log('📊 DEBUG: Disconnected from Firebase');
-      }
-    });
     
-    // Set up child_added listener for individual photos
+    // Reference to session photos
+    const photosRef = database.ref(`sessions/${sessionId}/photos`);
+    
+    // Reference to combined photos
+    const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+    
+    // Set up child_added listener for photos
+    console.log('📊 DEBUG: Setting up child_added listener for photos');
     photosRef.on('child_added', (snapshot) => {
       const photo = { id: snapshot.key, ...snapshot.val() };
       console.log('📊 DEBUG: New photo detected in Firebase -', snapshot.key, 'with timestamp:', photo.timestamp);
@@ -167,10 +145,66 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.error('📊 DEBUG: Error in child_added listener:', error);
     });
     
+    // Test database write permission to verify connection
+    console.log('📊 DEBUG: Testing Firebase write permission...');
+    sessionRef.child('test').set({
+      test: 'write-test',
+      timestamp: Date.now()
+    }).then(() => {
+      console.log('📊 DEBUG: Firebase test write successful');
+      
+      // Read it back to verify read permission
+      return sessionRef.child('test').once('value');
+    }).then((snapshot) => {
+      console.log('📊 DEBUG: Firebase test read successful:', snapshot.val());
+    }).catch((error) => {
+      console.error('📊 DEBUG: Firebase permission error:', error.message);
+    });
+    
+    // Check connection status
+    connectedRef.on('value', (snap) => {
+      if (snap.val() === true) {
+        console.log('📊 DEBUG: Connected to Firebase');
+      } else {
+        console.log('📊 DEBUG: Disconnected from Firebase');
+      }
+    });
+    
     // Set up value listener for combined photos
     console.log('📊 DEBUG: Setting up value listener for combined photos');
-    photosRef.on('value', (snapshot) => {
+    combinedPhotosRef.on('value', (snapshot) => {
       console.log('📊 DEBUG: Combined photos value event triggered');
+      const combinedPhotosData = snapshot.val() || {};
+      console.log('📊 DEBUG: Combined photos data structure:', JSON.stringify(combinedPhotosData));
+      
+      // Transform combinedPhotos data into an array of photos
+      const combinedPhotosList = Object.entries(combinedPhotosData).map(([photoId, photoData]) => {
+        console.log(`📊 DEBUG: Processing combined photo ${photoId}`);
+        return {
+          id: photoId,
+          isCombined: true, // Add explicit combined flag
+          ...photoData
+        };
+      });
+      
+      if (combinedPhotosList.length > 0) {
+        console.log(`📊 DEBUG: Found ${combinedPhotosList.length} combined photos`);
+        console.log('📊 DEBUG: Combined photo list:', JSON.stringify(combinedPhotosList.map(p => ({ 
+          id: p.id, 
+          hasDataUrl: !!p.dataUrl, 
+          dataUrlLength: p.dataUrl ? p.dataUrl.length : 0,
+          timestamp: p.timestamp,
+          participantIds: p.participantIds
+        }))));
+        
+        // Update state with combined photos - replace the entire array
+        setCombinedPhotos(combinedPhotosList);
+      }
+    });
+    
+    // Set up value listener for individual photos (to show in gallery)
+    photosRef.on('value', (snapshot) => {
+      console.log('📊 DEBUG: Photos value event triggered');
       const photosData = snapshot.val() || {};
       console.log('📊 DEBUG: Photos data structure:', JSON.stringify(photosData));
       
@@ -203,11 +237,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       });
       
       // Sort by timestamp
-      photoList.sort((a, b) => a.timestamp - b.timestamp);
+      photoList.sort((a, b) => b.timestamp - a.timestamp); // Newest first
       
       console.log(`📊 DEBUG: Combined photos state update: ${photoList.length} photos from ${Object.keys(photosData).length} participants`);
       console.log('📊 DEBUG: Full photo list:', JSON.stringify(photoList));
-      setCombinedPhotos(photoList);
+      
+      // Update with individual photos only if we don't have any combined photos yet
+      // This ensures the user sees something while waiting for the combined photo to be created
+      if (combinedPhotos.length === 0) {
+        setCombinedPhotos(photoList);
+      }
     }, (error) => {
       console.error('📊 DEBUG: Error in value listener:', error);
     });
@@ -244,6 +283,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Cancel all listeners
       sessionRef.off();
       photosRef.off();
+      combinedPhotosRef.off();
       connectedRef.off();
       participantsRef.off();
       captureRef.off();
@@ -558,7 +598,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       });
   };
   
-  // Modify the takePhotoImplementation function to include the debug check
+  // Modified takePhotoImplementation function to include the debug check
   const takePhotoImplementation = async () => {
     console.log('📸 DEBUG: Starting actual photo capture implementation');
     try {
@@ -618,9 +658,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       
       console.log('📸 DEBUG: Photo saved successfully to Firebase');
       
-      // Add a short delay then check Firebase structure
+      // Add a short delay then check Firebase structure and create combined photo if needed
       setTimeout(() => {
         debugCheckFirebasePhotos(sessionId, userId);
+        checkAndCreateCombinedPhoto(sessionId);
       }, 1000);
       
     } catch (err) {
@@ -629,6 +670,339 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     } finally {
       setUploading(false);
       console.log('📸 DEBUG: Photo capture process completed');
+    }
+  };
+  
+  // Add a function to check for photos from all participants and create a combined photo
+  const checkAndCreateCombinedPhoto = (sessionId) => {
+    console.log('🔄 DEBUG: Checking if a combined photo needs to be created');
+    console.log(`🔄 DEBUG: Current session ID: ${sessionId}`);
+    
+    if (!sessionId) {
+      console.log('🔄 DEBUG: No session ID provided, skipping combined photo check');
+      return;
+    }
+    
+    if (!canvasRef.current) {
+      console.error('🔄 ERROR: Canvas reference is not available for creating combined photo');
+      return;
+    }
+    
+    console.log(`🔄 DEBUG: Canvas dimensions: ${canvasRef.current.width}x${canvasRef.current.height}`);
+    
+    // Track execution time
+    const startTime = Date.now();
+    
+    // Get photos for all participants
+    const photosRef = database.ref(`sessions/${sessionId}/photos`);
+    console.log(`🔄 DEBUG: Checking photos at Firebase path: ${photosRef.toString()}`);
+    
+    photosRef.once('value')
+      .then(snapshot => {
+        console.log(`🔄 DEBUG: Successfully retrieved photos data from Firebase (${Date.now() - startTime}ms)`);
+        
+        const photos = snapshot.val() || {};
+        const participantIds = Object.keys(photos);
+        
+        console.log(`🔄 DEBUG: Found photos from ${participantIds.length} participants:`, participantIds);
+        console.log('🔄 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photos).map(id => ({
+          id,
+          hasDataUrl: !!photos[id].dataUrl,
+          dataUrlLength: photos[id].dataUrl ? photos[id].dataUrl.length : 0,
+          timestamp: photos[id].timestamp
+        }))));
+        
+        // Check all photos have dataUrl property
+        const validPhotos = Object.entries(photos).every(([id, photo]) => photo && photo.dataUrl);
+        console.log(`🔄 DEBUG: All photos valid and contain dataUrl: ${validPhotos}`);
+        
+        if (!validPhotos) {
+          console.error('🔄 ERROR: Some photos are missing dataUrl property');
+          return;
+        }
+        
+        // Only proceed if we have multiple photos to combine
+        if (participantIds.length < 2) {
+          console.log('🔄 DEBUG: Not enough photos to create a combined photo yet');
+          return;
+        }
+        
+        // Check if a combined photo already exists with these participants
+        console.log('🔄 DEBUG: Checking for existing combined photos with these participants');
+        const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+        console.log(`🔄 DEBUG: Checking combined photos at Firebase path: ${combinedPhotosRef.toString()}`);
+        
+        combinedPhotosRef.once('value')
+          .then(combinedSnapshot => {
+            console.log(`🔄 DEBUG: Successfully retrieved combined photos data from Firebase (${Date.now() - startTime}ms)`);
+            
+            const combinedPhotos = combinedSnapshot.val() || {};
+            console.log(`🔄 DEBUG: Found ${Object.keys(combinedPhotos).length} existing combined photos`);
+            
+            if (Object.keys(combinedPhotos).length > 0) {
+              console.log('🔄 DEBUG: Existing combined photos:', JSON.stringify(Object.keys(combinedPhotos).map(id => ({
+                id,
+                hasDataUrl: !!combinedPhotos[id].dataUrl,
+                hasParticipantIds: !!combinedPhotos[id].participantIds,
+                participantCount: combinedPhotos[id].participantIds ? combinedPhotos[id].participantIds.length : 0
+              }))));
+            }
+            
+            // Check if we already have a combined photo with these exact participants
+            const alreadyExists = Object.values(combinedPhotos).some(photo => {
+              if (!photo.participantIds) {
+                console.log('🔄 DEBUG: Found a combined photo without participantIds field');
+                return false;
+              }
+              
+              // Check if the participantIds arrays have the same content (order doesn't matter)
+              const sameLength = photo.participantIds.length === participantIds.length;
+              const sameMembers = participantIds.every(id => photo.participantIds.includes(id));
+              
+              if (sameLength && sameMembers) {
+                console.log('🔄 DEBUG: Found existing combined photo with same participants:', JSON.stringify({
+                  participantIds: photo.participantIds,
+                  timestamp: photo.timestamp
+                }));
+              }
+              
+              return sameLength && sameMembers;
+            });
+            
+            if (alreadyExists) {
+              console.log('🔄 DEBUG: A combined photo with these participants already exists, skipping creation');
+              return;
+            }
+            
+            console.log('🔄 DEBUG: No existing combined photo found with these participants, creating new one');
+            console.log('🔄 DEBUG: Creating combined photo from participant photos');
+            
+            createCombinedPhoto(sessionId, photos, participantIds)
+              .then(photoId => {
+                const totalTime = Date.now() - startTime;
+                if (photoId) {
+                  console.log(`🔄 DEBUG: Successfully created combined photo with ID: ${photoId} (total time: ${totalTime}ms)`);
+                } else {
+                  console.log(`🔄 DEBUG: Failed to create combined photo (total time: ${totalTime}ms)`);
+                }
+              })
+              .catch(error => {
+                console.error('🔄 ERROR in createCombinedPhoto promise:', error);
+              });
+          })
+          .catch(error => {
+            console.error('🔄 ERROR checking existing combined photos:', error);
+          });
+      })
+      .catch(error => {
+        console.error('🔄 ERROR checking for photos:', error);
+      });
+  };
+  
+  // Create a combined photo from multiple participant photos
+  const createCombinedPhoto = async (sessionId, photos, participantIds) => {
+    try {
+      console.log('🔄 DEBUG: Starting combined photo creation');
+      console.log(`🔄 DEBUG: Creating combined photo for ${participantIds.length} participants`);
+      console.log('🔄 DEBUG: Participant IDs:', JSON.stringify(participantIds));
+      
+      // Extract the dataUrls from the participant photos
+      const photoDataUrls = participantIds.map(id => {
+        console.log(`🔄 DEBUG: Processing photo from participant ${id}`);
+        const photo = photos[id];
+        console.log(`🔄 DEBUG: Photo data structure:`, JSON.stringify({
+          hasDataUrl: !!photo.dataUrl,
+          dataUrlLength: photo.dataUrl ? photo.dataUrl.length : 0,
+          timestamp: photo.timestamp
+        }));
+        return photos[id].dataUrl;
+      });
+      
+      console.log('🔄 DEBUG: Extracted data URLs for all participants');
+      
+      // Create a canvas to combine the photos
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        throw new Error('Canvas reference is not available');
+      }
+      console.log(`🔄 DEBUG: Canvas dimensions before setup: ${canvas.width}x${canvas.height}`);
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas 2D context');
+      }
+      console.log('🔄 DEBUG: Canvas 2D context obtained successfully');
+      
+      // Load all images
+      console.log('🔄 DEBUG: Loading images from data URLs');
+      const imagePromises = photoDataUrls.map((url, index) => {
+        return new Promise((resolve, reject) => {
+          console.log(`🔄 DEBUG: Creating image object for URL ${index+1}`);
+          const img = new Image();
+          
+          img.onload = () => {
+            console.log(`🔄 DEBUG: Image ${index+1} loaded successfully: ${img.width}x${img.height}`);
+            resolve(img);
+          };
+          
+          img.onerror = (err) => {
+            console.error(`🔄 ERROR: Failed to load image ${index+1}:`, err);
+            reject(new Error(`Failed to load image ${index+1}`));
+          };
+          
+          console.log(`🔄 DEBUG: Setting source for image ${index+1}`);
+          img.src = url;
+        });
+      });
+      
+      console.log(`🔄 DEBUG: Waiting for all ${imagePromises.length} images to load`);
+      const images = await Promise.all(imagePromises);
+      console.log(`🔄 DEBUG: All ${images.length} images loaded successfully`);
+      
+      // Log dimensions of all loaded images
+      images.forEach((img, i) => {
+        console.log(`🔄 DEBUG: Image ${i+1} dimensions: ${img.width}x${img.height}`);
+      });
+      
+      // Choose layout based on number of images
+      if (images.length === 2) {
+        // For side-by-side layout (the most common case with 2 participants)
+        console.log('🔄 DEBUG: Using side-by-side layout for 2 images');
+        
+        // Get the max dimensions to maintain aspect ratio
+        const W = Math.max(images[0].width, images[1].width);
+        const H = Math.max(images[0].height, images[1].height);
+        
+        console.log(`🔄 DEBUG: Maximum image dimensions: ${W}x${H}`);
+        console.log(`🔄 DEBUG: Setting canvas dimensions to: ${W*2}x${H}`);
+        
+        // Set canvas dimensions for side-by-side layout
+        canvas.width = W * 2; // Two images side by side
+        canvas.height = H;
+        
+        // Clear canvas with black background
+        console.log('🔄 DEBUG: Clearing canvas with black background');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw images side by side, centered in their half
+        images.forEach((img, index) => {
+          // Calculate scaling to fit while maintaining aspect ratio
+          const scale = Math.min(W / img.width, H / img.height);
+          const scaledWidth = img.width * scale;
+          const scaledHeight = img.height * scale;
+          
+          // Center in the allocated space
+          const x = (index * W) + (W - scaledWidth) / 2;
+          const y = (H - scaledHeight) / 2;
+          
+          console.log(`🔄 DEBUG: Drawing image ${index+1} at (${x},${y}) with size ${scaledWidth}x${scaledHeight}`);
+          
+          try {
+            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+            console.log(`🔄 DEBUG: Successfully drew image ${index+1}`);
+          } catch (drawError) {
+            console.error(`🔄 ERROR: Failed to draw image ${index+1}:`, drawError);
+            throw drawError;
+          }
+        });
+      } else {
+        // For grid layout (3 or more participants)
+        console.log(`🔄 DEBUG: Using grid layout for ${images.length} images`);
+        
+        const columns = Math.ceil(Math.sqrt(images.length));
+        const rows = Math.ceil(images.length / columns);
+        console.log(`🔄 DEBUG: Grid layout: ${columns} columns x ${rows} rows`);
+        
+        // Find the maximum dimensions
+        let maxWidth = 0;
+        let maxHeight = 0;
+        images.forEach(img => {
+          maxWidth = Math.max(maxWidth, img.width);
+          maxHeight = Math.max(maxHeight, img.height);
+        });
+        
+        console.log(`🔄 DEBUG: Maximum image dimensions: ${maxWidth}x${maxHeight}`);
+        console.log(`🔄 DEBUG: Setting canvas dimensions to: ${maxWidth * columns}x${maxHeight * rows}`);
+        
+        canvas.width = maxWidth * columns;
+        canvas.height = maxHeight * rows;
+        
+        // Clear canvas
+        console.log('🔄 DEBUG: Clearing canvas with black background');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw images in a grid
+        images.forEach((img, i) => {
+          const col = i % columns;
+          const row = Math.floor(i / columns);
+          
+          // Calculate position
+          const x = col * maxWidth;
+          const y = row * maxHeight;
+          
+          console.log(`🔄 DEBUG: Drawing image ${i+1} at grid position (${col},${row}) coordinates (${x},${y})`);
+          
+          try {
+            ctx.drawImage(img, x, y);
+            console.log(`🔄 DEBUG: Successfully drew image ${i+1}`);
+          } catch (drawError) {
+            console.error(`🔄 ERROR: Failed to draw image ${i+1}:`, drawError);
+            throw drawError;
+          }
+        });
+      }
+      
+      // Add watermark
+      console.log('🔄 DEBUG: Adding watermark');
+      try {
+        ctx.font = 'bold 48px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('PixCrab', canvas.width - 40, canvas.height - 40);
+        console.log('🔄 DEBUG: Successfully added watermark');
+      } catch (watermarkError) {
+        console.error('🔄 ERROR: Failed to add watermark:', watermarkError);
+        // Continue even if watermark fails
+      }
+      
+      // Convert to data URL
+      console.log('🔄 DEBUG: Converting canvas to data URL');
+      let combinedDataUrl;
+      try {
+        combinedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        console.log(`🔄 DEBUG: Combined photo created, data URL length: ${combinedDataUrl.length}`);
+      } catch (dataUrlError) {
+        console.error('🔄 ERROR: Failed to convert canvas to data URL:', dataUrlError);
+        throw dataUrlError;
+      }
+      
+      // Save to Firebase under combinedPhotos
+      console.log('🔄 DEBUG: Saving combined photo to Firebase');
+      try {
+        const combinedPhotoId = firebase.database().ref().push().key;
+        console.log(`🔄 DEBUG: Generated Firebase key: ${combinedPhotoId}`);
+        
+        const combinedPhotoRef = database.ref(`sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
+        console.log(`🔄 DEBUG: Created Firebase reference at: sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
+        
+        await combinedPhotoRef.set({
+          dataUrl: combinedDataUrl,
+          timestamp: firebase.database.ServerValue.TIMESTAMP,
+          participantIds: participantIds
+        });
+        
+        console.log(`🔄 DEBUG: Combined photo saved to Firebase with ID: ${combinedPhotoId}`);
+        return combinedPhotoId;
+      } catch (firebaseError) {
+        console.error('🔄 ERROR: Failed to save combined photo to Firebase:', firebaseError);
+        throw firebaseError;
+      }
+    } catch (error) {
+      console.error('🔄 ERROR creating combined photo:', error);
+      return null;
     }
   };
   
@@ -723,13 +1097,35 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   // Debug for combined photos state changes
   useEffect(() => {
     console.log('🖼️ DEBUG: combinedPhotos state changed:', combinedPhotos.length, 'photos now in state');
+    
+    // Track what type of photos we have
+    const combined = combinedPhotos.filter(p => p.isCombined || p.participantIds).length;
+    const individual = combinedPhotos.length - combined;
+    console.log(`🖼️ DEBUG: Photo breakdown - ${combined} combined photos, ${individual} individual photos`);
+    
     if (combinedPhotos.length > 0) {
+      const firstPhoto = combinedPhotos[0];
       console.log('🖼️ DEBUG: First photo in combined photos:', JSON.stringify({
-        userId: combinedPhotos[0].userId,
-        timestamp: combinedPhotos[0].timestamp,
-        hasDataUrl: !!combinedPhotos[0].dataUrl,
-        dataUrlLength: combinedPhotos[0].dataUrl ? combinedPhotos[0].dataUrl.length : 0
+        id: firstPhoto.id,
+        userId: firstPhoto.userId,
+        timestamp: firstPhoto.timestamp,
+        hasDataUrl: !!firstPhoto.dataUrl,
+        dataUrlLength: firstPhoto.dataUrl ? firstPhoto.dataUrl.length : 0,
+        isCombined: !!firstPhoto.isCombined,
+        hasParticipantIds: !!firstPhoto.participantIds,
+        participantIds: firstPhoto.participantIds
       }));
+      
+      // Check dimensions of photo when rendered
+      setTimeout(() => {
+        const galleryImages = document.querySelectorAll('.participant-photo img');
+        if (galleryImages.length > 0) {
+          console.log(`🖼️ DEBUG: Found ${galleryImages.length} rendered gallery images`);
+          Array.from(galleryImages).forEach((img, index) => {
+            console.log(`🖼️ DEBUG: Rendered image ${index+1} dimensions: ${img.naturalWidth}x${img.naturalHeight}, displayed: ${img.offsetWidth}x${img.offsetHeight}`);
+          });
+        }
+      }, 500); // Give time for rendering
     }
   }, [combinedPhotos]);
   
