@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { database } from '../../services/firebase';
+import firebase from '../../services/firebase';
 
 const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');
@@ -30,15 +30,13 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       // Create session in Firebase
-      const sessionRef = database.getRef(`sessions/${sessionId}`);
-      const userId = database.getCurrentUser().uid;
-      
-      await database.set(`sessions/${sessionId}`, {
+      const userId = firebase.auth().currentUser.uid;
+      await firebase.database().ref(`sessions/${sessionId}`).set({
         createdBy: userId,
-        createdAt: database.getServerTimestamp(),
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
         members: {
           [userId]: {
-            joinedAt: database.getServerTimestamp()
+            joinedAt: firebase.database.ServerValue.TIMESTAMP
           }
         }
       });
@@ -67,7 +65,8 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       }
       
       // Check if session exists
-      const sessionData = await database.get(`sessions/${sessionIdToJoin}`);
+      const snapshot = await firebase.database().ref(`sessions/${sessionIdToJoin}`).once('value');
+      const sessionData = snapshot.val();
       
       if (!sessionData) {
         setError('Session not found. Please check the ID and try again.');
@@ -75,9 +74,9 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       }
       
       // Join the session
-      const userId = database.getCurrentUser().uid;
-      await database.set(`sessions/${sessionIdToJoin}/members/${userId}`, {
-        joinedAt: database.getServerTimestamp()
+      const userId = firebase.auth().currentUser.uid;
+      await firebase.database().ref(`sessions/${sessionIdToJoin}/members/${userId}`).set({
+        joinedAt: firebase.database.ServerValue.TIMESTAMP
       });
       
       // Store the joined session ID for QR code generation
