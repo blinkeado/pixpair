@@ -136,7 +136,6 @@ h2 {
 .btn-secondary {
   background-color: var(--secondary-color);
   color: var(--text-dark);
-  border: 1px solid #ddd;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
