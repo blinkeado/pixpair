@@ -39,13 +39,13 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
       photos.forEach((photo, index) => {
         console.log(`🖼️ GALLERY DEBUG: Photo ${index+1} details:`, JSON.stringify({
           id: photo.id,
-          userId: photo.userId,
+          // userId: photo.userId, // Not needed for combined display primarily
           isCombined: !!photo.isCombined,
-          hasParticipantIds: !!photo.participantIds,
-          participantCount: photo.participantIds ? photo.participantIds.length : 0,
+          // hasParticipantIds: !!photo.participantIds,
+          // participantCount: photo.participantIds ? photo.participantIds.length : 0,
           timestamp: photo.timestamp,
-          type: photo.type || 'unspecified',
-          hasThumbnail: !!photo.thumbnailDataUrl, // Check for thumbnail
+          // type: photo.type || 'unspecified', // We will filter for combined anyway
+          hasThumbnail: !!photo.thumbnailDataUrl,
           thumbnailLength: photo.thumbnailDataUrl ? photo.thumbnailDataUrl.length : 0,
           hasFullImage: !!photo.dataUrl,
           fullImageLength: photo.dataUrl ? photo.dataUrl.length : 0,
@@ -63,75 +63,40 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     );
   }
 
-  const processedPhotos = photos.map((photo, index) => {
-    if (photo.participantIds || photo.isCombined) {
-      console.log(`🖼️ GALLERY DEBUG: Photo ${index+1} identified as a COMBINED photo`);
-      return {
-        ...photo,
-        isCombined: true,
-        timestamp: photo.timestamp || Date.now(),
-        type: 'combined'
-      };
-    }
-    console.log(`🖼️ GALLERY DEBUG: Photo ${index+1} identified as an INDIVIDUAL photo from user ${photo.userId || 'unknown'}`);
-    return {
-      ...photo,
-      timestamp: photo.timestamp || Date.now(),
-      type: 'individual'
-    };
-  });
+  // Filter for combined photos directly and sort them by timestamp (newest first)
+  const combinedPhotos = photos
+    .filter(photo => photo.isCombined || photo.participantIds) // Ensure it's a combined photo
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-  const groupedPhotos = processedPhotos.reduce((groups, photo) => {
-    const timestamp = photo.timestamp;
-    const groupKey = Object.keys(groups).find(key => 
-      Math.abs(parseInt(key) - timestamp) < 5000 // Group within 5s
-    ) || timestamp.toString();
-    
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-      console.log(`🖼️ GALLERY DEBUG: Created new time group at ${new Date(parseInt(groupKey)).toLocaleTimeString()}`);
-    }
-    groups[groupKey].push(photo);
-    return groups;
-  }, {});
-
-  console.log(`🖼️ GALLERY DEBUG: Grouped photos into ${Object.keys(groupedPhotos).length} time groups`);
-
-  // Debug log for selectedFullImageUrl state
   console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state before render:', selectedFullImageUrl);
 
   return (
-    <div className="combined-photo-gallery p-2">
-      {Object.entries(groupedPhotos).sort(([tsA], [tsB]) => parseInt(tsB) - parseInt(tsA)).map(([timestamp, groupPhotos]) => (
-        <div key={timestamp} className="photo-capture-group mb-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">
-            Captured around {new Date(parseInt(timestamp)).toLocaleTimeString()}
-          </h3>
-          
-          <div className="gallery-grid-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-1 sm:gap-2">
-            {groupPhotos.filter(p => p.type === 'combined').map((photo, index) => ( // Only show combined photos in the grid
-              <div 
-                key={`combined-${photo.id || index}`} 
-                className="gallery-thumbnail-item w-[100px] h-[177px] bg-gray-200 rounded overflow-hidden cursor-pointer relative group"
-                onClick={() => {
-                  console.warn('!!! THUMBNAIL CLICKED !!! Setting full image URL to:', photo.dataUrl); 
-                  alert('Thumbnail clicked! Check console.');
-                  setSelectedFullImageUrl(photo.dataUrl);
-                }}
-              >
-                <img 
-                  src={photo.thumbnailDataUrl || photo.dataUrl} // Fallback to full if no thumbnail
-                  alt="Combined photo thumbnail" 
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
-                  onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300"></div>
-              </div>
-            ))}
+    <div className="combined-photo-gallery p-0.5"> {/* Reduced padding for screen edge */} 
+      <div className="gallery-grid-container grid grid-cols-3 gap-0.5"> {/* 3 columns, very small gap */} 
+        {combinedPhotos.map((photo, index) => ( 
+          <div 
+            key={`combined-${photo.id || index}`} 
+            className="gallery-thumbnail-item relative bg-gray-200 cursor-pointer group overflow-hidden"
+            // Aspect ratio 270:480 is 9:16. So padding-top will be (16/9)*100% 
+            style={{ paddingTop: '177.78%' }} // 16/9 = 1.7778 => 177.78%
+            onClick={() => {
+              console.warn('!!! THUMBNAIL CLICKED !!! Setting full image URL to:', photo.dataUrl);
+              alert('Thumbnail clicked! Check console.');
+              setSelectedFullImageUrl(photo.dataUrl);
+            }}
+          >
+            <img 
+              src={photo.thumbnailDataUrl || photo.dataUrl} 
+              alt="Combined photo thumbnail" 
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
+              onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
+            />
+            {/* Overlay for hover effect - now allows clicks to pass through */}
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 pointer-events-none"></div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       <PhotoModal imageUrl={selectedFullImageUrl} onClose={() => setSelectedFullImageUrl(null)} />
     </div>
   );
