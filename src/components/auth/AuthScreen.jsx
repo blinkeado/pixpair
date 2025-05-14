@@ -1,12 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import firebase from 'firebase/compat/app';
+import { useNavigate } from 'react-router-dom';
 
-const AuthScreen = () => {
+const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Check for existing session in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('sessionId');
+    if (sessionId) {
+      handleJoinExistingSession(sessionId);
+    }
+  }, []);
+
+  const handleJoinExistingSession = async (sessionId) => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Check if session exists
+      const snapshot = await firebase.database().ref(`sessions/${sessionId}`).once('value');
+      const sessionData = snapshot.val();
+      
+      if (!sessionData) {
+        setError('Session not found. Please check the ID and try again.');
+        return;
+      }
+      
+      // Join the session
+      const userId = firebase.auth().currentUser?.uid;
+      if (!userId) {
+        setError('You must be signed in to join a session.');
+        return;
+      }
+      
+      await firebase.database().ref(`sessions/${sessionId}/members/${userId}`).set({
+        joinedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+      
+      // Call the onJoinSession callback
+      onJoinSession(sessionId);
+      
+      // Navigate to camera screen
+      navigate('/camera');
+      
+    } catch (error) {
+      console.error('Error joining session:', error);
+      setError('Failed to join session. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -21,6 +71,27 @@ const AuthScreen = () => {
         // Sign in existing user
         await firebase.auth().signInWithEmailAndPassword(email, password);
       }
+      
+      // After successful auth, create a new session
+      const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const userId = firebase.auth().currentUser.uid;
+      
+      await firebase.database().ref(`sessions/${sessionId}`).set({
+        createdBy: userId,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        members: {
+          [userId]: {
+            joinedAt: firebase.database.ServerValue.TIMESTAMP
+          }
+        }
+      });
+      
+      // Call the onCreateSession callback
+      onCreateSession(sessionId);
+      
+      // Navigate to camera screen
+      navigate('/camera');
+      
     } catch (error) {
       console.error('Authentication error:', error);
       setError(error.message);
@@ -36,6 +107,27 @@ const AuthScreen = () => {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       await firebase.auth().signInWithPopup(provider);
+      
+      // After successful auth, create a new session
+      const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const userId = firebase.auth().currentUser.uid;
+      
+      await firebase.database().ref(`sessions/${sessionId}`).set({
+        createdBy: userId,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        members: {
+          [userId]: {
+            joinedAt: firebase.database.ServerValue.TIMESTAMP
+          }
+        }
+      });
+      
+      // Call the onCreateSession callback
+      onCreateSession(sessionId);
+      
+      // Navigate to camera screen
+      navigate('/camera');
+      
     } catch (error) {
       console.error('Google auth error:', error);
       setError(error.message);
@@ -50,6 +142,27 @@ const AuthScreen = () => {
 
     try {
       await firebase.auth().signInAnonymously();
+      
+      // After successful auth, create a new session
+      const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const userId = firebase.auth().currentUser.uid;
+      
+      await firebase.database().ref(`sessions/${sessionId}`).set({
+        createdBy: userId,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        members: {
+          [userId]: {
+            joinedAt: firebase.database.ServerValue.TIMESTAMP
+          }
+        }
+      });
+      
+      // Call the onCreateSession callback
+      onCreateSession(sessionId);
+      
+      // Navigate to camera screen
+      navigate('/camera');
+      
     } catch (error) {
       console.error('Anonymous auth error:', error);
       setError(error.message);

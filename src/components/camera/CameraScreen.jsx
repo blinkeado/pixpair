@@ -18,6 +18,15 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
   
+  // Redirect if no sessionId
+  useEffect(() => {
+    if (!sessionId) {
+      console.log('No session ID provided, redirecting to home');
+      navigate('/');
+      return;
+    }
+  }, [sessionId, navigate]);
+  
   // Viewport height polyfill for iOS
   useEffect(() => {
     function updateViewportHeight() {
@@ -90,8 +99,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     console.log('🎥 CAMERA READY STATE CHANGED:', cameraReady);
   }, [cameraReady]);
   
-  // Initialize camera on component mount
+  // Initialize camera and Firebase listeners only if we have a sessionId
   useEffect(() => {
+    if (!sessionId) return;
+
+    console.log('Initializing camera and Firebase listeners for session:', sessionId);
+    
     initializeCamera();
     
     // Listen for new photos in this session
