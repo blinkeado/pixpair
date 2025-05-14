@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import firebase, { database } from '../../services/firebase';
 import Logo from '../../components/Logo';
-import { useNavigate } from 'react-router-dom';
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
@@ -15,16 +14,17 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const navigate = useNavigate();
   
   // Redirect if no sessionId
   useEffect(() => {
     if (!sessionId) {
-      console.log('No session ID provided, redirecting to home');
-      navigate('/');
+      console.log('No session ID provided, exiting session');
+      if (typeof onExitSession === 'function') {
+        onExitSession();
+      }
       return;
     }
-  }, [sessionId, navigate]);
+  }, [sessionId, onExitSession]);
   
   // Viewport height polyfill for iOS
   useEffect(() => {
@@ -152,7 +152,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   // Enhanced exit session to ensure camera is stopped
   const handleExitSession = () => {
     stopCamera();
-    onExitSession();
+    if (typeof onExitSession === 'function') {
+      onExitSession();
+    }
   };
   
   // Function to copy session ID to clipboard
@@ -314,16 +316,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     savePhotoToAlbum(photoUrl);
   };
   
+  // Handle gallery view with callbacks instead of direct navigation
   const handleGalleryClick = () => {
-    navigate('/album');
+    // Instead of using navigate, call onExitSession
+    if (typeof onExitSession === 'function') {
+      onExitSession();
+    }
   };
   
   return (
     <div className="camera-screen">
-      {/* Debug elements for safe area insets */}
-      {/* <div className="debug-safe-area"></div> */}
-      {/* <div className="debug-safe-area-bottom"></div> */}
-      
       {/* Camera container with video feed */}
       <div className="camera-container">
         <video 
@@ -357,7 +359,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             <button 
               className="btn btn-primary rainbow-button"
               onClick={handleGalleryClick}
-              title="View Gallery"
+              title="Exit to Gallery"
             >
               Gallery
             </button>
