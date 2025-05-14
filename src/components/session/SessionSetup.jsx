@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import firebase from '../../services/firebase';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/database';
 
 const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');
@@ -30,7 +32,11 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       // Create session in Firebase
-      const userId = firebase.auth().currentUser.uid;
+      const userId = firebase.auth().currentUser?.uid;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
       await firebase.database().ref(`sessions/${sessionId}`).set({
         createdBy: userId,
         createdAt: firebase.database.ServerValue.TIMESTAMP,
@@ -74,7 +80,11 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       }
       
       // Join the session
-      const userId = firebase.auth().currentUser.uid;
+      const userId = firebase.auth().currentUser?.uid;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
       await firebase.database().ref(`sessions/${sessionIdToJoin}/members/${userId}`).set({
         joinedAt: firebase.database.ServerValue.TIMESTAMP
       });
