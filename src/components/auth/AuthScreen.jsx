@@ -8,18 +8,53 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  
+  // Wrap navigate in try/catch as Router context might not be fully established
+  let navigate;
+  try {
+    navigate = useNavigate();
+  } catch (routerError) {
+    console.error('Router context not available:', routerError);
+    // We'll handle navigation errors later
+  }
 
   // Check for existing session in URL
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('sessionId');
-    if (sessionId) {
-      handleJoinExistingSession(sessionId);
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('sessionId');
+      
+      // Only try to join if we have sessionId and user is already logged in
+      if (sessionId && firebase.auth().currentUser) {
+        handleJoinExistingSession(sessionId);
+      } else if (sessionId) {
+        // Save the session ID for after login
+        localStorage.setItem('pendingSessionId', sessionId);
+      }
+    } catch (err) {
+      console.error('Error in session URL processing:', err);
+      setError('Could not process session information from URL.');
     }
   }, []);
 
+  // Check for pending session after login
+  useEffect(() => {
+    try {
+      const pendingSessionId = localStorage.getItem('pendingSessionId');
+      const currentUser = firebase.auth().currentUser;
+      
+      if (pendingSessionId && currentUser) {
+        handleJoinExistingSession(pendingSessionId);
+        localStorage.removeItem('pendingSessionId');
+      }
+    } catch (err) {
+      console.error('Error checking pending session:', err);
+    }
+  }, [firebase.auth().currentUser]);
+
   const handleJoinExistingSession = async (sessionId) => {
+    if (!sessionId) return;
+    
     try {
       setError(null);
       setLoading(true);
@@ -34,7 +69,9 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
       }
       
       // Join the session
-      const userId = firebase.auth().currentUser?.uid;
+      const currentUser = firebase.auth().currentUser;
+      const userId = currentUser?.uid;
+      
       if (!userId) {
         setError('You must be signed in to join a session.');
         return;
@@ -44,11 +81,15 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         joinedAt: firebase.database.ServerValue.TIMESTAMP
       });
       
-      // Call the onJoinSession callback
-      onJoinSession(sessionId);
+      // Call the onJoinSession callback if provided
+      if (typeof onJoinSession === 'function') {
+        onJoinSession(sessionId);
+      }
       
-      // Navigate to camera screen
-      navigate('/camera');
+      // Navigate to camera screen if navigation is available
+      if (navigate) {
+        navigate('/camera');
+      }
       
     } catch (error) {
       console.error('Error joining session:', error);
@@ -72,9 +113,15 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         await firebase.auth().signInWithEmailAndPassword(email, password);
       }
       
+      // Get current user - added safety check
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        throw new Error('Authentication succeeded but user is not available.');
+      }
+      
       // After successful auth, create a new session
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = firebase.auth().currentUser.uid;
+      const userId = currentUser.uid;
       
       await firebase.database().ref(`sessions/${sessionId}`).set({
         createdBy: userId,
@@ -86,15 +133,19 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         }
       });
       
-      // Call the onCreateSession callback
-      onCreateSession(sessionId);
+      // Call the onCreateSession callback if provided
+      if (typeof onCreateSession === 'function') {
+        onCreateSession(sessionId);
+      }
       
-      // Navigate to camera screen
-      navigate('/camera');
+      // Navigate to camera screen if navigation is available
+      if (navigate) {
+        navigate('/camera');
+      }
       
     } catch (error) {
       console.error('Authentication error:', error);
-      setError(error.message);
+      setError(error.message || 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -108,9 +159,15 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
       const provider = new firebase.auth.GoogleAuthProvider();
       await firebase.auth().signInWithPopup(provider);
       
+      // Get current user - added safety check
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        throw new Error('Google authentication succeeded but user is not available.');
+      }
+      
       // After successful auth, create a new session
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = firebase.auth().currentUser.uid;
+      const userId = currentUser.uid;
       
       await firebase.database().ref(`sessions/${sessionId}`).set({
         createdBy: userId,
@@ -122,15 +179,19 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         }
       });
       
-      // Call the onCreateSession callback
-      onCreateSession(sessionId);
+      // Call the onCreateSession callback if provided
+      if (typeof onCreateSession === 'function') {
+        onCreateSession(sessionId);
+      }
       
-      // Navigate to camera screen
-      navigate('/camera');
+      // Navigate to camera screen if navigation is available
+      if (navigate) {
+        navigate('/camera');
+      }
       
     } catch (error) {
       console.error('Google auth error:', error);
-      setError(error.message);
+      setError(error.message || 'Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -143,9 +204,15 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
     try {
       await firebase.auth().signInAnonymously();
       
+      // Get current user - added safety check
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        throw new Error('Anonymous authentication succeeded but user is not available.');
+      }
+      
       // After successful auth, create a new session
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = firebase.auth().currentUser.uid;
+      const userId = currentUser.uid;
       
       await firebase.database().ref(`sessions/${sessionId}`).set({
         createdBy: userId,
@@ -157,15 +224,19 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         }
       });
       
-      // Call the onCreateSession callback
-      onCreateSession(sessionId);
+      // Call the onCreateSession callback if provided
+      if (typeof onCreateSession === 'function') {
+        onCreateSession(sessionId);
+      }
       
-      // Navigate to camera screen
-      navigate('/camera');
+      // Navigate to camera screen if navigation is available
+      if (navigate) {
+        navigate('/camera');
+      }
       
     } catch (error) {
       console.error('Anonymous auth error:', error);
-      setError(error.message);
+      setError(error.message || 'Guest sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
