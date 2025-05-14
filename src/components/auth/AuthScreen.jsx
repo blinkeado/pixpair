@@ -114,7 +114,7 @@ const AuthScreen = () => {
         
         <button 
           type="submit" 
-          className="rainbow-button w-full"
+          className="auth-form-button"
           disabled={loading}
         >
           {isSignUp ? 'Sign Up' : 'Sign In'}
