@@ -3,14 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #1e88e5;
-  --secondary-color: #f5f5f5;
-  --accent-color: #ff8f00;
-  --error-color: #f44336;
-  --success-color: #4caf50;
-  --text-dark: #333333;
-  --text-light: #ffffff;
+  --primary-color:   #4831D4;  /* your purple */
+  --secondary-color: #F5F5F5;  /* light gray */
+  --accent-color:    #FF8F00;  /* your orange */
+  --error-color:     #E11D74;  /* magenta, complements purple */
+  --success-color:   #FFA726;  /* soft amber, warmer than green */
+  --text-dark:       #333333;
+  --text-light:      #FFFFFF;
 }
+
 
 html, body {
   height: 100%; /* Changed from 100vh */
@@ -628,13 +629,12 @@ input {
   padding: 0.75rem 1.25rem;
   border-radius: 12px;
   background: transparent;
-  color: #CCF381;
+  color: #4831d4;
   font-weight: bold;
-  text-transform: uppercase;
   overflow: hidden;
   z-index: 1;
   border: none;
-  transition: all 0.3s ease;
+  transition: all 0.5s ease;
 }
 
 .rainbow-button::before {
