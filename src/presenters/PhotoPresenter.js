@@ -2,6 +2,31 @@ import BasePresenter from './BasePresenter.js';
 import AppUtils from '../utils/AppUtils.js';
 
 class PhotoPresenter extends BasePresenter {
+    static addPhotoSlide(dataUrl) {
+        const slide = document.createElement('div');
+        slide.className = 'photo-slide p-4 flex flex-col items-center';
+
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.alt = 'Combined Photo';
+        img.className = 'rounded-lg shadow-lg mb-2';
+        slide.appendChild(img);
+
+        const btn = document.createElement('button');
+        btn.innerText = 'Download';
+        btn.className = 'px-4 py-2 rounded-lg bg-primary text-text-light';
+        btn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `PixCrab_${Date.now()}.jpg`;
+            a.click();
+        };
+        slide.appendChild(btn);
+
+        document.querySelector('#photoGallery').appendChild(slide);
+        console.log('Combined photo added to UI');
+    }
+
     constructor() {
         super();
         this.eventCallback = null;
