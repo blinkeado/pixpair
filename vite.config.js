@@ -30,8 +30,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/src',
-      '../firebase-config.js': path.resolve(__dirname, './firebase-config.js')
+      '@': '/src'
     }
   }
 })
