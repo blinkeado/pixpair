@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import firebase, { auth } from '../../services/firebase';
+import firebase, { auth, authMethods } from '../../services/firebase';
 import { useNavigate } from 'react-router-dom';
 
 const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
