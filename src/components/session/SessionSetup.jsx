@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/database';
+import firebase, { auth, database } from '../../services/firebase';
 
 const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');

@@ -1,7 +1,6 @@
 import BaseController from './BaseController.js';
 import AppUtils from '../utils/AppUtils.js';
-import firebase from 'firebase/app';
-import 'firebase/database';
+import firebase, { database } from '../services/firebase';
 
 class PhotoController extends BaseController {
     constructor(photoModel, photoPresenter, firebaseService) {

@@ -1,9 +1,6 @@
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/database';
-import 'firebase/compat/storage';
+import firebase, { auth, database } from './services/firebase';
 import AuthScreen from './components/auth/AuthScreen';
 import CameraScreen from './components/camera/CameraScreen';
 import AlbumScreen from './components/album/AlbumScreen';

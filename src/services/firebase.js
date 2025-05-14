@@ -3,6 +3,24 @@ import 'firebase/compat/auth';
 import 'firebase/compat/database';
 import 'firebase/compat/storage';
 
+const firebaseConfig = {
+  apiKey:      'YOUR_API_KEY',
+  authDomain:  'YOUR_AUTH_DOMAIN',
+  databaseURL: 'YOUR_DATABASE_URL',
+  projectId:   'YOUR_PROJECT_ID',
+  storageBucket:'YOUR_STORAGE_BUCKET',
+  messagingSenderId:'YOUR_SENDER_ID',
+  appId:       'YOUR_APP_ID'
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+export const auth     = firebase.auth();
+export const database = firebase.database();
+export default firebase;
+
 // Initialize Firebase with the config from window.firebaseConfig
 export const initializeFirebase = () => {
   // Check if Firebase is already initialized
@@ -69,7 +87,7 @@ const configureCorsForStorage = () => {
 };
 
 // Export auth methods for convenience
-export const auth = {
+export const authMethods = {
   // Sign in with Google
   signInWithGoogle: async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -108,7 +126,7 @@ export const auth = {
 };
 
 // Export database methods
-export const database = {
+export const databaseMethods = {
   // Get a database reference
   getRef: (path) => {
     return firebase.database().ref(path);
@@ -142,7 +160,7 @@ export const database = {
 };
 
 // Export storage methods
-export const storage = {
+export const storageMethods = {
   // Get a storage reference
   getRef: (path) => {
     return firebase.storage().ref(path);
@@ -169,11 +187,4 @@ export const storage = {
   getDownloadURL: async (path) => {
     return firebase.storage().ref(path).getDownloadURL();
   }
-};
-
-export default {
-  initializeFirebase,
-  auth,
-  database,
-  storage
 };

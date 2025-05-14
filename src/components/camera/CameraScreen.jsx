@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import firebase from 'firebase/compat/app';
-import { storage } from '../../services/firebase';
+import firebase, { database } from '../../services/firebase';
 import Logo from '../../components/Logo';
 import { useNavigate } from 'react-router-dom';
 
@@ -108,14 +107,14 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     initializeCamera();
     
     // Listen for new photos in this session
-    const photosRef = firebase.database().ref(`sessions/${sessionId}/photos`);
+    const photosRef = database.ref(`sessions/${sessionId}/photos`);
     photosRef.on('child_added', (snapshot) => {
       const photo = { id: snapshot.key, ...snapshot.val() };
       setPhotosTaken((prevPhotos) => [...prevPhotos, photo]);
     });
     
     // Listen for participants in this session
-    const participantsRef = firebase.database().ref(`sessions/${sessionId}/members`);
+    const participantsRef = database.ref(`sessions/${sessionId}/members`);
     participantsRef.on('value', (snapshot) => {
       const members = snapshot.val() || {};
       setParticipants(members);
@@ -123,7 +122,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     });
     
     // Listen for capture time updates
-    const captureRef = firebase.database().ref(`sessions/${sessionId}/capture`);
+    const captureRef = database.ref(`sessions/${sessionId}/capture`);
     captureRef.on('value', (snapshot) => {
       const captureData = snapshot.val();
       if (captureData && captureData.captureTime) {
@@ -178,7 +177,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const captureTime = Date.now() + 3000;
       
       // Save to Firebase
-      await firebase.database().ref(`sessions/${sessionId}/capture`).set({
+      await database.ref(`sessions/${sessionId}/capture`).set({
         captureTime,
         initiatedBy: firebase.auth().currentUser?.uid || 'anonymous',
         initiated: firebase.database.ServerValue.TIMESTAMP
@@ -262,7 +261,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const timestamp = Date.now();
       
       // Save data URL directly to the database
-      const photosRef = firebase.database().ref(`sessions/${sessionId}/photos/${firebase.auth().currentUser.uid}`);
+      const photosRef = database.ref(`sessions/${sessionId}/photos/${firebase.auth().currentUser.uid}`);
       await photosRef.set({
         dataUrl: canvas.toDataURL('image/jpeg', 0.8),
         timestamp: firebase.database.ServerValue.TIMESTAMP
