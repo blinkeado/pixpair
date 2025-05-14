@@ -14,6 +14,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [copySuccess, setCopySuccess] = useState('');
   const [combinedPhotos, setCombinedPhotos] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
+  const [sessionOwnerId, setSessionOwnerId] = useState(null);
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -111,10 +112,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     const sessionRef = database.ref(`sessions/${sessionId}`);
     sessionRef.once('value', (snapshot) => {
       console.log('📊 DEBUG: Initial session data check:', JSON.stringify(snapshot.val()));
-      
-      if (snapshot.exists()) {
-        const fields = Object.keys(snapshot.val());
+      const sessionData = snapshot.val();
+      if (sessionData) {
+        const fields = Object.keys(sessionData);
         console.log('📊 DEBUG: Session exists with fields:', fields);
+        if (sessionData.owner) {
+          console.log('📊 DEBUG: Setting session owner ID:', sessionData.owner);
+          setSessionOwnerId(sessionData.owner);
+        } else {
+          console.log('📊 DEBUG: Session data does not contain owner ID');
+        }
       } else {
         console.log('📊 DEBUG: Session does not exist');
       }
@@ -661,8 +668,15 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Add a short delay then check Firebase structure and create combined photo if needed
       setTimeout(() => {
         debugCheckFirebasePhotos(sessionId, userId);
-        checkAndCreateCombinedPhoto(sessionId);
-      }, 1000);
+        // Only the session owner should create the combined photo
+        if (currentUser.uid === sessionOwnerId) {
+          console.log('📸 DEBUG: Current user is session owner. Attempting to create combined photo.');
+          checkAndCreateCombinedPhoto(sessionId);
+        } else {
+          console.log('📸 DEBUG: Current user is NOT session owner. Skipping combined photo creation.');
+          console.log(`📸 DEBUG: Session Owner: ${sessionOwnerId}, Current User: ${currentUser.uid}`);
+        }
+      }, 1000); // Delay to allow Firebase to settle
       
     } catch (err) {
       console.error('❌ ERROR in takePhoto:', err);
