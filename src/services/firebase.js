@@ -12,29 +12,22 @@ export const auth     = firebase.auth();
 export const database = firebase.database();
 export default firebase;
 
-// Initialize Firebase with the config from window.firebaseConfig
+// Initialize Firebase with the imported config
 export const initializeFirebase = () => {
   // Check if Firebase is already initialized
   if (firebase.apps.length > 0) {
     return firebase.apps[0];
   }
   
-  // Get config from window - THIS LOGIC IS NOW REDUNDANT due to direct import
-  // const firebaseConfig = window.firebaseConfig; 
-  // if (!firebaseConfig) {
-  //   console.error('Firebase configuration not found on window.firebaseConfig');
-  //   return null;
-  // }
-  
   try {
-    // Initialize Firebase - THIS IS ALSO REDUNDANT if already done at top level
-    // const app = firebase.initializeApp(firebaseConfig);
-    // console.log('Firebase initialized successfully');
+    // Initialize Firebase if not already initialized
+    const app = firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
     
     // Configure CORS for Firebase Storage
-    // configureCorsForStorage(); // This might need to be called after the top-level init
+    configureCorsForStorage();
     
-    return firebase.app(); // Return the already initialized app
+    return app;
   } catch (error) {
     console.error('Error initializing Firebase:', error);
     return null;

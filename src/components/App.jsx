@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import AuthScreen from './auth/AuthScreen';
 import SessionSetup from './session/SessionSetup';
 import CameraScreen from './camera/CameraScreen';
-import { initializeFirebase, auth } from '../services/firebase';
+import firebase, { auth, initializeFirebase } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
 import Logo from './Logo';
 
-// Initialize Firebase with the config from window.firebaseConfig
-const firebaseApp = initializeFirebase();
+// Firebase is already initialized in the firebase.js module
+// No need to call initializeFirebase() again or check window.firebaseConfig
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('auth');
@@ -18,13 +18,14 @@ function App() {
   
   // Initialize Firebase
   useEffect(() => {
-    if (!window.firebaseConfig) {
-      setError("Firebase configuration not found. Please check your setup.");
-      return;
-    }
-    
     try {
-      // Firebase is already initialized in the import section
+      // Check if Firebase is initialized by checking if we can access Firebase app
+      if (!firebase.apps.length) {
+        setError("Firebase initialization failed. Please check your setup.");
+        return;
+      }
+      
+      // Firebase is successfully initialized
       setInitialized(true);
     } catch (err) {
       console.error('Error initializing app:', err);

@@ -9,13 +9,14 @@ import AuthPresenter from './presenters/AuthPresenter.js';
 import SessionPresenter from './presenters/SessionPresenter.js';
 import PhotoPresenter from './presenters/PhotoPresenter.js';
 import AppUtils from './utils/AppUtils.js';
+import firebaseConfig from './firebase/firebase-config.js';
 
 class PixCrabApp {
     constructor() {
         AppUtils.debugLog('Initializing PixCrab application');
         
         // Initialize services
-        this.firebaseService = new FirebaseService(window.firebaseConfig);
+        this.firebaseService = new FirebaseService(firebaseConfig);
         
         // Initialize MVC components
         this._initializeModels();

@@ -1,7 +1,13 @@
 import firebase from "./firebase"; // Ensure firebase is imported if not already
 
 class FirebaseService {
-    constructor() {
+    constructor(firebaseConfig) {
+        // Firebase should already be initialized in the firebase.js module
+        // We just need to verify it and set up our services
+        if (!firebase.apps.length) {
+            console.error('Firebase not initialized properly');
+        }
+        
         this.auth = firebase.auth();
         this.database = firebase.database();
         this.storage = firebase.storage();
