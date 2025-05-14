@@ -97,6 +97,9 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
 
   console.log(`🖼️ GALLERY DEBUG: Grouped photos into ${Object.keys(groupedPhotos).length} time groups`);
 
+  // Debug log for selectedFullImageUrl state
+  console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state before render:', selectedFullImageUrl);
+
   return (
     <div className="combined-photo-gallery p-2">
       {Object.entries(groupedPhotos).sort(([tsA], [tsB]) => parseInt(tsB) - parseInt(tsA)).map(([timestamp, groupPhotos]) => (
@@ -110,7 +113,10 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
               <div 
                 key={`combined-${photo.id || index}`} 
                 className="gallery-thumbnail-item aspect-square bg-gray-200 rounded overflow-hidden cursor-pointer relative group"
-                onClick={() => setSelectedFullImageUrl(photo.dataUrl)}
+                onClick={() => {
+                  console.log('🖼️ GALLERY DEBUG: Thumbnail clicked. Setting full image URL to:', photo.dataUrl);
+                  setSelectedFullImageUrl(photo.dataUrl);
+                }}
               >
                 <img 
                   src={photo.thumbnailDataUrl || photo.dataUrl} // Fallback to full if no thumbnail
