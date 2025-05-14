@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 // Determine the base URL based on the deployment target
 const baseUrl = process.env.NETLIFY ? '/' : '/pixpair/'
@@ -29,7 +30,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/src'
+      '@': '/src',
+      '../firebase-config.js': path.resolve(__dirname, './firebase-config.js')
     }
   }
 })

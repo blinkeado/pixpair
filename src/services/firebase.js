@@ -2,7 +2,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/database';
 import 'firebase/compat/storage';
-import firebaseConfig from '../firebase-config.js';
+import firebaseConfig from '../../firebase-config.js';
 
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);

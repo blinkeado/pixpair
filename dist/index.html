@@ -5,23 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PixCrab - Synchronized Photo Capture</title>
     
-    <!-- Check if Firebase is already loaded -->
-    <script>
-        window.firebaseScriptsLoaded = false;
-    </script>
-    
     <!-- Firebase SDK -->
-    <script>
-        if (!window.firebaseScriptsLoaded && !window.firebase) {
-            window.firebaseScriptsLoaded = true;
-            document.write('<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"><\/script>');
-            document.write('<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"><\/script>');
-            document.write('<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"><\/script>');
-            document.write('<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"><\/script>');
-        }
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     
-    <!-- Third-party libraries -->
+    <!-- QR Code library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Firebase configuration -->
@@ -41,8 +31,8 @@
         // App configuration constant - needed for QR generation
         window.APP_BASE_URL = 'https://blinkeado.github.io/pixpair';
     </script>
-  <script type="module" crossorigin src="/pixpair/assets/main-520de2f2.js"></script>
-  <link rel="stylesheet" href="/pixpair/assets/index-3c492eed.css">
+  <script type="module" crossorigin src="/pixpair/assets/main-38d44cc3.js"></script>
+  <link rel="stylesheet" href="/pixpair/assets/index-842ce8cf.css">
 </head>
 <body>
     <div id="root"></div>
