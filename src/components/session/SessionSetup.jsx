@@ -58,18 +58,22 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       // Generate a random session ID
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      // Create session in Firebase
+      // Create session in Firebase with a simplified structure
       const userId = user.uid;
       
-      await firebase.database().ref(`sessions/${sessionId}`).set({
-        createdBy: userId,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        members: {
-          [userId]: {
-            joinedAt: firebase.database.ServerValue.TIMESTAMP
-          }
-        }
+      // Create a sessions entry directly at the database root
+      // Using a simple data structure to minimize potential issues
+      await firebase.database().ref(`/sessions/${sessionId}`).set({
+        id: sessionId,
+        owner: userId,
+        created: firebase.database.ServerValue.TIMESTAMP,
+        status: 'active'
       });
+      
+      // Add a minimal members entry in a separate write
+      await firebase.database().ref(`/sessions/${sessionId}/members/${userId}`).set(true);
+      
+      console.log("Session created successfully:", sessionId);
       
       // Store the created session ID for QR code generation
       setCreatedSessionId(sessionId);
@@ -80,7 +84,11 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
       }
     } catch (error) {
       console.error('Error in session creation:', error);
-      setError('Database permission denied. Please try again or contact support.');
+      if (error.message.includes("PERMISSION_DENIED")) {
+        setError('Database permission denied. Please check Firebase rules.');
+      } else {
+        setError('Failed to create session. Please try again.');
+      }
     }
   };
   

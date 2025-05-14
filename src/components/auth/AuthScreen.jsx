@@ -183,7 +183,12 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
     setLoading(true);
 
     try {
-      await firebase.auth().signInAnonymously();
+      // Sign in anonymously using Firebase
+      const userCredential = await firebase.auth().signInAnonymously();
+      console.log("Anonymous authentication successful", userCredential);
+      
+      // Wait a moment for auth to fully propagate
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Get current user - added safety check
       const currentUser = firebase.auth().currentUser;
@@ -191,30 +196,38 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         throw new Error('Anonymous authentication succeeded but user is not available.');
       }
       
-      // After successful auth, create a new session
+      // Create a new session ID
       const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const userId = currentUser.uid;
       
-      await firebase.database().ref(`sessions/${sessionId}`).set({
-        createdBy: userId,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        members: {
-          [userId]: {
-            joinedAt: firebase.database.ServerValue.TIMESTAMP
-          }
-        }
+      // Create a sessions entry directly at the database root
+      // Using a simple data structure to minimize potential issues
+      await firebase.database().ref(`/sessions/${sessionId}`).set({
+        id: sessionId,
+        owner: userId,
+        created: firebase.database.ServerValue.TIMESTAMP,
+        status: 'active'
       });
+      
+      // Add a minimal members entry
+      await firebase.database().ref(`/sessions/${sessionId}/members/${userId}`).set(true);
+      
+      console.log("Session created successfully:", sessionId);
       
       // Call the onCreateSession callback if provided
       if (typeof onCreateSession === 'function') {
         onCreateSession(sessionId);
       }
       
-      // No longer need to navigate, as onCreateSession will handle screen changes
-      
     } catch (error) {
       console.error('Anonymous auth error:', error);
-      setError(error.message || 'Guest sign-in failed. Please try again.');
+      
+      // Provide more detailed error message
+      if (error.message.includes("PERMISSION_DENIED")) {
+        setError('Database permission denied. Please check Firebase rules.');
+      } else {
+        setError(error.message || 'Guest sign-in failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

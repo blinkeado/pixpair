@@ -1,57 +1,15 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
-    "users": {
-      "$userId": {
-        ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $userId",
-        "photos": {
-          "$photoId": {
-            ".read": "auth != null",
-            ".write": "auth != null && auth.uid === $userId"
-          }
-        },
-        "sessions": {
-          "$sessionId": {
-            ".read": "auth != null",
-            ".write": "auth != null",
-            "photoIds": {
-              "$photoId": {
-                ".read": "auth != null",
-                ".write": "auth != null"
-              }
-            }
-          }
-        }
-      }
-    },
+    ".read": "auth != null",
+    ".write": "auth != null",
     "sessions": {
       ".read": "auth != null",
-      ".write": "auth != null",
-      "$sessionId": {
+      ".write": "auth != null"
+    },
+    "users": {
+      "$uid": {
         ".read": "auth != null",
-        ".write": "auth != null",
-        "members": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        },
-        "photos": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        },
-        "capture": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        },
-        "pictures": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        },
-        "participants": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        }
+        ".write": "auth != null && auth.uid === $uid"
       }
     },
     "test": {
