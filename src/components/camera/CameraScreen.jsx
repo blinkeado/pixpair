@@ -119,7 +119,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   useEffect(() => {
     if (!sessionId) return;
 
-    console.log('Initializing camera and Firebase listeners for session:', sessionId);
+    console.log('📊 DEBUG: Setting up Firebase listeners for session:', sessionId);
     
     // Stop any existing camera stream first
     stopCamera();
@@ -129,21 +129,31 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Listen for new photos in this session
     const photosRef = database.ref(`sessions/${sessionId}/photos`);
+    console.log('📊 DEBUG: Setting up child_added listener for photos');
     photosRef.on('child_added', (snapshot) => {
       const photo = { id: snapshot.key, ...snapshot.val() };
-      setPhotosTaken((prevPhotos) => [...prevPhotos, photo]);
+      console.log('📊 DEBUG: New photo detected in Firebase -', snapshot.key, 'with timestamp:', photo.timestamp);
+      setPhotosTaken((prevPhotos) => {
+        console.log('📊 DEBUG: Updating photosTaken state, current count:', prevPhotos.length);
+        return [...prevPhotos, photo];
+      });
     });
     
     // Set up listener for all photos in the session for combined view
+    console.log('📊 DEBUG: Setting up value listener for combined photos');
     photosRef.on('value', (snapshot) => {
+      console.log('📊 DEBUG: Combined photos value event triggered');
       const photosData = snapshot.val() || {};
+      console.log('📊 DEBUG: Photos data structure:', JSON.stringify(photosData));
       
       // Transform the data into an array of photos with user info
       const photoList = [];
       
       Object.entries(photosData).forEach(([userId, userPhotos]) => {
+        console.log(`📊 DEBUG: Processing photos for user ${userId}:`, JSON.stringify(userPhotos));
         // If userPhotos is directly a photo object (dataUrl + timestamp)
         if (userPhotos.dataUrl) {
+          console.log(`📊 DEBUG: Found direct photo object for user ${userId}`);
           photoList.push({
             userId,
             dataUrl: userPhotos.dataUrl,
@@ -152,7 +162,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         } 
         // If userPhotos is a collection of photos from this user
         else if (typeof userPhotos === 'object') {
+          console.log(`📊 DEBUG: Found collection of photos for user ${userId}`);
           Object.entries(userPhotos).forEach(([photoId, photoData]) => {
+            console.log(`📊 DEBUG: Adding photo ${photoId} to combined list`);
             photoList.push({
               userId,
               photoId,
@@ -165,30 +177,38 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Sort by timestamp
       photoList.sort((a, b) => a.timestamp - b.timestamp);
       
+      console.log(`📊 DEBUG: Combined photos state update: ${photoList.length} photos from ${Object.keys(photosData).length} participants`);
+      console.log('📊 DEBUG: Full photo list:', JSON.stringify(photoList));
       setCombinedPhotos(photoList);
-      console.log(`Combined photos updated: ${photoList.length} photos from ${Object.keys(photosData).length} participants`);
     });
     
     // Listen for participants in this session
+    console.log('📊 DEBUG: Setting up participants listener');
     const participantsRef = database.ref(`sessions/${sessionId}/members`);
     participantsRef.on('value', (snapshot) => {
       const members = snapshot.val() || {};
+      console.log('📊 DEBUG: Participants updated:', JSON.stringify(members));
       setParticipants(members);
       setParticipantCount(Object.keys(members).length);
     });
     
     // Listen for capture time updates
+    console.log('📊 DEBUG: Setting up capture time listener');
     const captureRef = database.ref(`sessions/${sessionId}/capture`);
     captureRef.on('value', (snapshot) => {
       const captureData = snapshot.val();
+      console.log('📊 DEBUG: Capture data update:', JSON.stringify(captureData));
       if (captureData && captureData.captureTime) {
+        console.log('📊 DEBUG: Valid capture time received, starting countdown');
         startCountdown(captureData.captureTime);
+      } else {
+        console.log('📊 DEBUG: No valid capture time in the data');
       }
     });
     
     return () => {
       // Clean up
-      console.log('🎥 Cleaning up camera and Firebase listeners');
+      console.log('🧹 DEBUG: Cleaning up Firebase listeners and camera');
       stopCamera();
       photosRef.off();
       participantsRef.off();
@@ -239,20 +259,26 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   // Function to initiate synchronized capture with network latency calculation
   const initiateCapture = async () => {
+    console.log('📸 DEBUG: initiateCapture function called');
     try {
       // Measure approximate network latency
+      console.log('📸 DEBUG: Measuring network latency...');
       const startTime = Date.now();
       await database.ref('.info/serverTimeOffset').once('value');
       const endTime = Date.now();
       const approximateLatency = endTime - startTime;
+      console.log(`📸 DEBUG: Network latency measured: ${approximateLatency}ms`);
       
       // Calculate a buffer (minimum 1 second + network latency + safety margin)
       const buffer = Math.max(1000, approximateLatency * 2);
+      console.log(`📸 DEBUG: Calculated buffer time: ${buffer}ms`);
       
       // Set capture time in the future with buffer
       const captureTime = Date.now() + 3000 + buffer;
+      console.log(`📸 DEBUG: Set capture time to: ${new Date(captureTime).toISOString()}`);
       
       // Save to Firebase
+      console.log('📸 DEBUG: Saving capture data to Firebase...');
       await database.ref(`sessions/${sessionId}/capture`).set({
         captureTime,
         initiatedBy: firebase.auth().currentUser?.uid || 'anonymous',
@@ -260,99 +286,151 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         approximateLatency
       });
       
-      console.log(`Initiated capture for time: ${new Date(captureTime).toISOString()} (buffer: ${buffer}ms)`);
+      console.log(`📸 DEBUG: Capture data saved successfully! Initiated capture for time: ${new Date(captureTime).toISOString()} (buffer: ${buffer}ms)`);
     } catch (error) {
-      console.error('Error initiating capture:', error);
+      console.error('❌ ERROR in initiateCapture:', error);
       setError('Failed to initiate synchronized capture.');
     }
   };
   
-  // Improved countdown with better timing
+  // Improved countdown with better timing and error handling
   const startCountdown = (captureTime) => {
-    // Clear any existing countdown
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-    }
+    console.log('📸 DEBUG: startCountdown function called with captureTime:', captureTime);
     
-    const now = Date.now();
-    const timeUntilCapture = captureTime - now;
-    
-    if (timeUntilCapture <= 0) {
-      console.log("Capture time already passed");
-      return;
-    }
-    
-    console.log(`Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
-    
-    // Calculate initial count (round up to nearest second)
-    const initialCount = Math.ceil(timeUntilCapture / 1000);
-    setCountdown(initialCount);
-    
-    // Set interval for countdown display updates
-    countdownRef.current = setInterval(() => {
-      const remainingTime = captureTime - Date.now();
-      const secondsRemaining = Math.ceil(remainingTime / 1000);
-      
-      setCountdown((prevCount) => {
-        if (secondsRemaining <= 0 || prevCount <= 1) {
-          // Time to take the photo
-          clearInterval(countdownRef.current);
-          takePhoto();
-          return null;
-        }
-        return secondsRemaining;
-      });
-    }, 100); // Update more frequently for better precision
-    
-    // Safety timeout to ensure the photo is taken
-    setTimeout(() => {
+    try {
+      // Clear any existing countdown
       if (countdownRef.current) {
+        console.log('📸 DEBUG: Clearing existing countdown interval');
         clearInterval(countdownRef.current);
-        setCountdown(null);
       }
-    }, timeUntilCapture + 500);
+      
+      const now = Date.now();
+      const timeUntilCapture = captureTime - now;
+      console.log(`📸 DEBUG: Time until capture: ${timeUntilCapture}ms`);
+      
+      if (timeUntilCapture <= 0) {
+        console.log("📸 DEBUG: Capture time already passed, aborting countdown");
+        return;
+      }
+      
+      console.log(`📸 DEBUG: Starting countdown for capture at ${new Date(captureTime).toISOString()}`);
+      
+      // Calculate initial count (round up to nearest second)
+      const initialCount = Math.ceil(timeUntilCapture / 1000);
+      console.log(`📸 DEBUG: Initial countdown value: ${initialCount}`);
+      setCountdown(initialCount);
+      
+      // Set interval for countdown display updates
+      console.log('📸 DEBUG: Setting up countdown interval');
+      countdownRef.current = setInterval(() => {
+        try {
+          const remainingTime = captureTime - Date.now();
+          const secondsRemaining = Math.ceil(remainingTime / 1000);
+          console.log(`📸 DEBUG: Countdown tick - ${secondsRemaining}s remaining`);
+          
+          setCountdown((prevCount) => {
+            try {
+              if (secondsRemaining <= 0 || prevCount <= 1) {
+                console.log('📸 DEBUG: Countdown reached zero, clearing interval and taking photo');
+                clearInterval(countdownRef.current);
+                takePhoto();
+                return null;
+              }
+              return secondsRemaining;
+            } catch (innerError) {
+              console.error('❌ ERROR in countdown state update:', innerError);
+              clearInterval(countdownRef.current);
+              return null;
+            }
+          });
+        } catch (intervalError) {
+          console.error('❌ ERROR in countdown interval:', intervalError);
+          clearInterval(countdownRef.current);
+        }
+      }, 100); // Update more frequently for better precision
+      
+      // Safety timeout to ensure the photo is taken
+      console.log('📸 DEBUG: Setting safety timeout for', timeUntilCapture + 500, 'ms');
+      setTimeout(() => {
+        try {
+          if (countdownRef.current) {
+            console.log('📸 DEBUG: Safety timeout triggered - clearing countdown');
+            clearInterval(countdownRef.current);
+            setCountdown(null);
+          }
+        } catch (timeoutError) {
+          console.error('❌ ERROR in safety timeout:', timeoutError);
+        }
+      }, timeUntilCapture + 500);
+    } catch (error) {
+      console.error('❌ ERROR in startCountdown:', error);
+      setError('Failed to start countdown timer.');
+    }
   };
   
   const takePhoto = async () => {
-    if (!cameraReady || uploading) return;
+    console.log('📸 DEBUG: takePhoto function called');
+    
+    if (!cameraReady || uploading) {
+      console.log(`📸 DEBUG: Cannot take photo - cameraReady: ${cameraReady}, uploading: ${uploading}`);
+      return;
+    }
     
     try {
+      console.log('📸 DEBUG: Starting photo capture process');
       setUploading(true);
       setError(null);
       
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
+      if (!video || !canvas) {
+        throw new Error('Video or canvas reference is missing');
+      }
+      
+      console.log(`📸 DEBUG: Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
+      
       // Set canvas dimensions to match video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       
       // Draw the video frame to the canvas
+      console.log('📸 DEBUG: Drawing video frame to canvas');
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0);
       
       // Convert canvas to data URL - this avoids CORS issues
+      console.log('📸 DEBUG: Converting canvas to data URL');
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      console.log(`📸 DEBUG: Data URL generated, length: ${dataUrl.length} characters`);
       
-      // Get user data
-      const userId = firebase.auth().currentUser ? 
-        firebase.auth().currentUser.uid : 
-        'anonymous';
+      // Get current user
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        console.error('❌ ERROR: No authenticated user found when trying to save photo');
+        throw new Error('You must be signed in to take photos');
+      }
+      
+      const userId = currentUser.uid;
+      console.log(`📸 DEBUG: Current user ID: ${userId}`);
+      
       const timestamp = Date.now();
       
       // Save data URL directly to the database
-      const photosRef = database.ref(`sessions/${sessionId}/photos/${firebase.auth().currentUser.uid}`);
+      console.log('📸 DEBUG: Saving photo to Firebase...');
+      const photosRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
       await photosRef.set({
-        dataUrl: canvas.toDataURL('image/jpeg', 0.8),
+        dataUrl: dataUrl,
         timestamp: firebase.database.ServerValue.TIMESTAMP
       });
       
-      console.log('Photo saved successfully');
+      console.log('📸 DEBUG: Photo saved successfully to Firebase');
     } catch (err) {
-      console.error('Error taking photo:', err);
+      console.error('❌ ERROR in takePhoto:', err);
       setError('Failed to take photo. Please try again.');
     } finally {
       setUploading(false);
+      console.log('📸 DEBUG: Photo capture process completed');
     }
   };
   
@@ -443,6 +521,19 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setError('Failed to save photos to album');
     }
   };
+  
+  // Debug for combined photos state changes
+  useEffect(() => {
+    console.log('🖼️ DEBUG: combinedPhotos state changed:', combinedPhotos.length, 'photos now in state');
+    if (combinedPhotos.length > 0) {
+      console.log('🖼️ DEBUG: First photo in combined photos:', JSON.stringify({
+        userId: combinedPhotos[0].userId,
+        timestamp: combinedPhotos[0].timestamp,
+        hasDataUrl: !!combinedPhotos[0].dataUrl,
+        dataUrlLength: combinedPhotos[0].dataUrl ? combinedPhotos[0].dataUrl.length : 0
+      }));
+    }
+  }, [combinedPhotos]);
   
   return (
     <div className="camera-screen">
