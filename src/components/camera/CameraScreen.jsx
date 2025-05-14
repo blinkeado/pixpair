@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import firebase from 'firebase/compat/app';
 import { storage } from '../../services/firebase';
 import Logo from '../../components/Logo';
+import { useNavigate } from 'react-router-dom';
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
@@ -15,6 +16,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const navigate = useNavigate();
   
   // Viewport height polyfill for iOS
   useEffect(() => {
@@ -302,6 +304,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     savePhotoToAlbum(photoUrl);
   };
   
+  const handleGalleryClick = () => {
+    navigate('/album');
+  };
+  
   return (
     <div className="camera-screen">
       {/* Debug elements for safe area insets */}
@@ -337,6 +343,15 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           {error && <div className="error">{error}</div>}
           
           <div className="session-header">
+            {/* Gallery button */}
+            <button 
+              className="btn btn-primary rainbow-button"
+              onClick={handleGalleryClick}
+              title="View Gallery"
+            >
+              Gallery
+            </button>
+            
             {/* Exit button (X icon) */}
             <button 
               className="btn-icon exit-btn" 

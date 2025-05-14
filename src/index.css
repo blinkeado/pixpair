@@ -430,6 +430,7 @@ input {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  gap: 1rem;
 }
 
 .session-header h2 {
@@ -440,6 +441,20 @@ input {
 .session-header .session-id-container {
   margin: 0;
   flex: 1;
+}
+
+.session-header .rainbow-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.session-header .rainbow-button::before {
+  opacity: 0.5;
+}
+
+.session-header .rainbow-button:hover::before {
+  opacity: 1;
 }
 
 .participants-count {
