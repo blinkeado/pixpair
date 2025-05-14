@@ -555,22 +555,6 @@ input {
   z-index: 100;
 }
 
-.logo-glow-effect {
-  position: absolute;
-  inset: -8px;
-  background: conic-gradient(from 0deg, #00f0ff, #ff00ff, #ccf381, #4831d4, #00f0ff);
-  border-radius: 50%;
-  z-index: 0;
-  opacity: 0.75;
-  filter: blur(12px);
-  animation: spin-slow 4s linear infinite;
-}
-
-.logo-container:hover .logo-glow-effect {
-  opacity: 1;
-  filter: blur(16px);
-}
-
 .logo-image {
   position: relative;
   width: 100%;
