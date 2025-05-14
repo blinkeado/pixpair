@@ -76,14 +76,9 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
         {combinedPhotos.map((photo, index) => ( 
           <div 
             key={`combined-${photo.id || index}`} 
-            className="gallery-thumbnail-item relative bg-gray-200 cursor-pointer group overflow-hidden"
+            className="gallery-thumbnail-item relative bg-yellow-300 bg-opacity-50 border-4 border-red-500 cursor-pointer group overflow-hidden"
             // Aspect ratio 270:480 is 9:16. So padding-top will be (16/9)*100% 
             style={{ paddingTop: '177.78%' }} // 16/9 = 1.7778 => 177.78%
-            onClick={() => {
-              console.warn('!!! THUMBNAIL CLICKED !!! Setting full image URL to:', photo.dataUrl);
-              alert('Thumbnail clicked! Check console.');
-              setSelectedFullImageUrl(photo.dataUrl);
-            }}
           >
             <img 
               src={photo.thumbnailDataUrl || photo.dataUrl} 
@@ -91,6 +86,11 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
               onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
+              onClick={() => {
+                console.warn('!!! THUMBNAIL IMG CLICKED !!! Setting full image URL to:', photo.dataUrl);
+                alert('Thumbnail IMG clicked! Check console.');
+                setSelectedFullImageUrl(photo.dataUrl);
+              }}
             />
             {/* Overlay for hover effect - now allows clicks to pass through */}
             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 pointer-events-none"></div>
