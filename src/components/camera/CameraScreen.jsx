@@ -14,7 +14,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [copySuccess, setCopySuccess] = useState('');
   const [combinedPhotos, setCombinedPhotos] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
-  const [sessionOwnerId, setSessionOwnerId] = useState(null);
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -116,12 +115,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       if (sessionData) {
         const fields = Object.keys(sessionData);
         console.log('📊 DEBUG: Session exists with fields:', fields);
-        if (sessionData.owner) {
-          console.log('📊 DEBUG: Setting session owner ID:', sessionData.owner);
-          setSessionOwnerId(sessionData.owner);
-        } else {
-          console.log('📊 DEBUG: Session data does not contain owner ID');
-        }
       } else {
         console.log('📊 DEBUG: Session does not exist');
       }
@@ -605,7 +598,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       });
   };
   
-  // Modified takePhotoImplementation function to include the debug check
+  // Modified takePhotoImplementation function
   const takePhotoImplementation = async () => {
     console.log('📸 DEBUG: Starting actual photo capture implementation');
     try {
@@ -665,18 +658,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       
       console.log('📸 DEBUG: Photo saved successfully to Firebase');
       
-      // Add a short delay then check Firebase structure and create combined photo if needed
+      // Add a short delay then check Firebase structure and attempt to create combined photo
       setTimeout(() => {
         debugCheckFirebasePhotos(sessionId, userId);
-        // Only the session owner should create the combined photo
-        if (currentUser.uid === sessionOwnerId) {
-          console.log('📸 DEBUG: Current user is session owner. Attempting to create combined photo.');
-          checkAndCreateCombinedPhoto(sessionId);
-        } else {
-          console.log('📸 DEBUG: Current user is NOT session owner. Skipping combined photo creation.');
-          console.log(`📸 DEBUG: Session Owner: ${sessionOwnerId}, Current User: ${currentUser.uid}`);
-        }
-      }, 1000); // Delay to allow Firebase to settle
+        console.log('📸 DEBUG: Attempting to call checkAndCreateCombinedPhoto.');
+        checkAndCreateCombinedPhoto(sessionId); // Call unconditionally
+      }, 1500); // Increased delay to allow Firebase to settle further
       
     } catch (err) {
       console.error('❌ ERROR in takePhoto:', err);
@@ -687,10 +674,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     }
   };
   
-  // Add a function to check for photos from all participants and create a combined photo
+  // Modified checkAndCreateCombinedPhoto function
   const checkAndCreateCombinedPhoto = (sessionId) => {
-    console.log('🔄 DEBUG: Checking if a combined photo needs to be created');
-    console.log(`🔄 DEBUG: Current session ID: ${sessionId}`);
+    console.log('🔄 DEBUG: checkAndCreateCombinedPhoto called');
+    console.log(`🔄 DEBUG: Current session ID for check: ${sessionId}`);
     
     if (!sessionId) {
       console.log('🔄 DEBUG: No session ID provided, skipping combined photo check');
@@ -704,112 +691,143 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     console.log(`🔄 DEBUG: Canvas dimensions: ${canvasRef.current.width}x${canvasRef.current.height}`);
     
-    // Track execution time
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+      console.error('🔄 ERROR: No authenticated user for combined photo check.');
+      return;
+    }
+    const currentUserId = currentUser.uid;
+    console.log(`🔄 DEBUG: Current user ID for owner check: ${currentUserId}`);
+
     const startTime = Date.now();
     
-    // Get photos for all participants
-    const photosRef = database.ref(`sessions/${sessionId}/photos`);
-    console.log(`🔄 DEBUG: Checking photos at Firebase path: ${photosRef.toString()}`);
-    
-    photosRef.once('value')
-      .then(snapshot => {
-        console.log(`🔄 DEBUG: Successfully retrieved photos data from Firebase (${Date.now() - startTime}ms)`);
-        
-        const photos = snapshot.val() || {};
-        const participantIds = Object.keys(photos);
-        
-        console.log(`🔄 DEBUG: Found photos from ${participantIds.length} participants:`, participantIds);
-        console.log('🔄 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photos).map(id => ({
-          id,
-          hasDataUrl: !!photos[id].dataUrl,
-          dataUrlLength: photos[id].dataUrl ? photos[id].dataUrl.length : 0,
-          timestamp: photos[id].timestamp
-        }))));
-        
-        // Check all photos have dataUrl property
-        const validPhotos = Object.entries(photos).every(([id, photo]) => photo && photo.dataUrl);
-        console.log(`🔄 DEBUG: All photos valid and contain dataUrl: ${validPhotos}`);
-        
-        if (!validPhotos) {
-          console.error('🔄 ERROR: Some photos are missing dataUrl property');
+    // Fetch session data to determine the owner
+    const sessionRef = database.ref(`sessions/${sessionId}`);
+    console.log(`🔄 DEBUG: Fetching session data from Firebase path: ${sessionRef.toString()}`);
+    sessionRef.once('value')
+      .then(sessionSnapshot => {
+        const sessionData = sessionSnapshot.val();
+        if (!sessionData || !sessionData.owner) {
+          console.error('🔄 ERROR: Could not fetch session data or owner ID.');
           return;
         }
-        
-        // Only proceed if we have multiple photos to combine
-        if (participantIds.length < 2) {
-          console.log('🔄 DEBUG: Not enough photos to create a combined photo yet');
+        const ownerId = sessionData.owner;
+        console.log(`🔄 DEBUG: Fetched session owner ID: ${ownerId}`);
+
+        if (currentUserId !== ownerId) {
+          console.log(`🔄 DEBUG: Current user (${currentUserId}) is NOT session owner (${ownerId}). Skipping combined photo creation.`);
           return;
         }
+
+        console.log(`🔄 DEBUG: Current user (${currentUserId}) IS session owner. Proceeding with combined photo creation.`);
         
-        // Check if a combined photo already exists with these participants
-        console.log('🔄 DEBUG: Checking for existing combined photos with these participants');
-        const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
-        console.log(`🔄 DEBUG: Checking combined photos at Firebase path: ${combinedPhotosRef.toString()}`);
+        // Get photos for all participants
+        const photosRef = database.ref(`sessions/${sessionId}/photos`);
+        console.log(`🔄 DEBUG: Checking photos at Firebase path: ${photosRef.toString()}`);
         
-        combinedPhotosRef.once('value')
-          .then(combinedSnapshot => {
-            console.log(`🔄 DEBUG: Successfully retrieved combined photos data from Firebase (${Date.now() - startTime}ms)`);
+        photosRef.once('value')
+          .then(snapshot => {
+            console.log(`🔄 DEBUG: Successfully retrieved photos data from Firebase (${Date.now() - startTime}ms)`);
             
-            const combinedPhotos = combinedSnapshot.val() || {};
-            console.log(`🔄 DEBUG: Found ${Object.keys(combinedPhotos).length} existing combined photos`);
+            const photos = snapshot.val() || {};
+            const participantIds = Object.keys(photos);
             
-            if (Object.keys(combinedPhotos).length > 0) {
-              console.log('🔄 DEBUG: Existing combined photos:', JSON.stringify(Object.keys(combinedPhotos).map(id => ({
-                id,
-                hasDataUrl: !!combinedPhotos[id].dataUrl,
-                hasParticipantIds: !!combinedPhotos[id].participantIds,
-                participantCount: combinedPhotos[id].participantIds ? combinedPhotos[id].participantIds.length : 0
-              }))));
-            }
+            console.log(`🔄 DEBUG: Found photos from ${participantIds.length} participants:`, participantIds);
+            console.log('🔄 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photos).map(id => ({
+              id,
+              hasDataUrl: !!photos[id].dataUrl,
+              dataUrlLength: photos[id].dataUrl ? photos[id].dataUrl.length : 0,
+              timestamp: photos[id].timestamp
+            }))));
             
-            // Check if we already have a combined photo with these exact participants
-            const alreadyExists = Object.values(combinedPhotos).some(photo => {
-              if (!photo.participantIds) {
-                console.log('🔄 DEBUG: Found a combined photo without participantIds field');
-                return false;
-              }
-              
-              // Check if the participantIds arrays have the same content (order doesn't matter)
-              const sameLength = photo.participantIds.length === participantIds.length;
-              const sameMembers = participantIds.every(id => photo.participantIds.includes(id));
-              
-              if (sameLength && sameMembers) {
-                console.log('🔄 DEBUG: Found existing combined photo with same participants:', JSON.stringify({
-                  participantIds: photo.participantIds,
-                  timestamp: photo.timestamp
-                }));
-              }
-              
-              return sameLength && sameMembers;
-            });
+            // Check all photos have dataUrl property
+            const validPhotos = Object.entries(photos).every(([id, photo]) => photo && photo.dataUrl);
+            console.log(`🔄 DEBUG: All photos valid and contain dataUrl: ${validPhotos}`);
             
-            if (alreadyExists) {
-              console.log('🔄 DEBUG: A combined photo with these participants already exists, skipping creation');
+            if (!validPhotos) {
+              console.error('🔄 ERROR: Some photos are missing dataUrl property');
               return;
             }
             
-            console.log('🔄 DEBUG: No existing combined photo found with these participants, creating new one');
-            console.log('🔄 DEBUG: Creating combined photo from participant photos');
+            // Only proceed if we have multiple photos to combine
+            if (participantIds.length < 2) {
+              console.log('🔄 DEBUG: Not enough photos to create a combined photo yet');
+              return;
+            }
             
-            createCombinedPhoto(sessionId, photos, participantIds)
-              .then(photoId => {
-                const totalTime = Date.now() - startTime;
-                if (photoId) {
-                  console.log(`🔄 DEBUG: Successfully created combined photo with ID: ${photoId} (total time: ${totalTime}ms)`);
-                } else {
-                  console.log(`🔄 DEBUG: Failed to create combined photo (total time: ${totalTime}ms)`);
+            // Check if a combined photo already exists with these participants
+            console.log('🔄 DEBUG: Checking for existing combined photos with these participants');
+            const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+            console.log(`🔄 DEBUG: Checking combined photos at Firebase path: ${combinedPhotosRef.toString()}`);
+            
+            combinedPhotosRef.once('value')
+              .then(combinedSnapshot => {
+                console.log(`🔄 DEBUG: Successfully retrieved combined photos data from Firebase (${Date.now() - startTime}ms)`);
+                
+                const combinedPhotos = combinedSnapshot.val() || {};
+                console.log(`🔄 DEBUG: Found ${Object.keys(combinedPhotos).length} existing combined photos`);
+                
+                if (Object.keys(combinedPhotos).length > 0) {
+                  console.log('🔄 DEBUG: Existing combined photos:', JSON.stringify(Object.keys(combinedPhotos).map(id => ({
+                    id,
+                    hasDataUrl: !!combinedPhotos[id].dataUrl,
+                    hasParticipantIds: !!combinedPhotos[id].participantIds,
+                    participantCount: combinedPhotos[id].participantIds ? combinedPhotos[id].participantIds.length : 0
+                  }))));
                 }
+                
+                // Check if we already have a combined photo with these exact participants
+                const alreadyExists = Object.values(combinedPhotos).some(photo => {
+                  if (!photo.participantIds) {
+                    console.log('🔄 DEBUG: Found a combined photo without participantIds field');
+                    return false;
+                  }
+                  
+                  // Check if the participantIds arrays have the same content (order doesn\'t matter)
+                  const sameLength = photo.participantIds.length === participantIds.length;
+                  const sameMembers = participantIds.every(id => photo.participantIds.includes(id));
+                  
+                  if (sameLength && sameMembers) {
+                    console.log('🔄 DEBUG: Found existing combined photo with same participants:', JSON.stringify({
+                      participantIds: photo.participantIds,
+                      timestamp: photo.timestamp
+                    }));
+                  }
+                  
+                  return sameLength && sameMembers;
+                });
+                
+                if (alreadyExists) {
+                  console.log('🔄 DEBUG: A combined photo with these participants already exists, skipping creation');
+                  return;
+                }
+                
+                console.log('🔄 DEBUG: No existing combined photo found with these participants, creating new one');
+                console.log('🔄 DEBUG: Creating combined photo from participant photos');
+                
+                createCombinedPhoto(sessionId, photos, participantIds)
+                  .then(photoId => {
+                    const totalTime = Date.now() - startTime;
+                    if (photoId) {
+                      console.log(`🔄 DEBUG: Successfully created combined photo with ID: ${photoId} (total time: ${totalTime}ms)`);
+                    } else {
+                      console.log(`🔄 DEBUG: Failed to create combined photo (total time: ${totalTime}ms)`);
+                    }
+                  })
+                  .catch(error => {
+                    console.error('🔄 ERROR in createCombinedPhoto promise:', error);
+                  });
               })
               .catch(error => {
-                console.error('🔄 ERROR in createCombinedPhoto promise:', error);
+                console.error('🔄 ERROR checking existing combined photos:', error);
               });
           })
           .catch(error => {
-            console.error('🔄 ERROR checking existing combined photos:', error);
+            console.error('🔄 ERROR checking for photos:', error);
           });
       })
-      .catch(error => {
-        console.error('🔄 ERROR checking for photos:', error);
+      .catch(sessionError => {
+        console.error('🔄 ERROR fetching session data for owner check:', sessionError);
       });
   };
   
