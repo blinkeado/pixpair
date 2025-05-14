@@ -2,16 +2,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/database';
 import 'firebase/compat/storage';
-
-const firebaseConfig = {
-  apiKey:      'YOUR_API_KEY',
-  authDomain:  'YOUR_AUTH_DOMAIN',
-  databaseURL: 'YOUR_DATABASE_URL',
-  projectId:   'YOUR_PROJECT_ID',
-  storageBucket:'YOUR_STORAGE_BUCKET',
-  messagingSenderId:'YOUR_SENDER_ID',
-  appId:       'YOUR_APP_ID'
-};
+import firebaseConfig from '../firebase-config.js';
 
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
@@ -28,22 +19,22 @@ export const initializeFirebase = () => {
     return firebase.apps[0];
   }
   
-  // Get config from window
-  const firebaseConfig = window.firebaseConfig;
-  if (!firebaseConfig) {
-    console.error('Firebase configuration not found on window.firebaseConfig');
-    return null;
-  }
+  // Get config from window - THIS LOGIC IS NOW REDUNDANT due to direct import
+  // const firebaseConfig = window.firebaseConfig; 
+  // if (!firebaseConfig) {
+  //   console.error('Firebase configuration not found on window.firebaseConfig');
+  //   return null;
+  // }
   
   try {
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    console.log('Firebase initialized successfully');
+    // Initialize Firebase - THIS IS ALSO REDUNDANT if already done at top level
+    // const app = firebase.initializeApp(firebaseConfig);
+    // console.log('Firebase initialized successfully');
     
     // Configure CORS for Firebase Storage
-    configureCorsForStorage();
+    // configureCorsForStorage(); // This might need to be called after the top-level init
     
-    return app;
+    return firebase.app(); // Return the already initialized app
   } catch (error) {
     console.error('Error initializing Firebase:', error);
     return null;

@@ -10,24 +10,11 @@ function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Initialize Firebase if not already initialized
-    if (!firebase.apps.length) {
-      const firebaseConfig = window.firebaseConfig;
-      if (!firebaseConfig) {
-        console.error('Firebase configuration not found on window.firebaseConfig');
-        return;
-      }
-      
-      try {
-        firebase.initializeApp(firebaseConfig);
-        console.log('Firebase initialized successfully');
-      } catch (error) {
-        console.error('Error initializing Firebase:', error);
-      }
-    }
+    // Firebase is initialized in src/services/firebase.js
+    // The import of firebase from './services/firebase' ensures it's initialized.
 
     // Listen for auth state changes
-    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
     });
 

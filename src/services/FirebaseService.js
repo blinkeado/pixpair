@@ -1,19 +1,11 @@
-class FirebaseService {
-    constructor(config) {
-        this.config = config;
-        this.initialize();
-        this._authListeners = new Set();
-    }
+import firebase from "./firebase"; // Ensure firebase is imported if not already
 
-    initialize() {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(this.config);
-        }
+class FirebaseService {
+    constructor() {
         this.auth = firebase.auth();
         this.database = firebase.database();
         this.storage = firebase.storage();
-        
-        // Register auth state change listener
+        this._authListeners = new Set();
         this.auth.onAuthStateChanged(user => this._notifyAuthListeners(user));
     }
 
