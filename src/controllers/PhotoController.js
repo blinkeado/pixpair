@@ -1,5 +1,7 @@
 import BaseController from './BaseController.js';
 import AppUtils from '../utils/AppUtils.js';
+import firebase from 'firebase/app';
+import 'firebase/database';
 
 class PhotoController extends BaseController {
     constructor(photoModel, photoPresenter, firebaseService) {
@@ -292,6 +294,69 @@ class PhotoController extends BaseController {
         
         // Stop the camera
         this._handleStopCamera();
+    }
+
+    _listenForPhotos() {
+        const sessionRef = firebase.database().ref(`sessions/${this.sessionId}`);
+        sessionRef.child('photos').on('value', async snapshot => {
+            const photos = snapshot.val() || {};
+            const keys = Object.keys(photos);
+            if (keys.length < 2) return;
+
+            console.log('Both photos received, combining...');
+            const [k1, k2] = keys;
+            const p1 = photos[k1].dataUrl || photos[k1].photoData;
+            const p2 = photos[k2].dataUrl || photos[k2].photoData;
+
+            try {
+                const combined = await this.combineTwoPhotos(p1, p2);
+                const id = firebase.database().ref().push().key;
+                await sessionRef.child(`combinedPhotos/${id}`).set({
+                    dataUrl: combined,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                console.log('Photos combined successfully');
+                this.photoPresenter.addPhotoSlide(combined);
+                await sessionRef.child('photos').remove();
+            } catch (e) {
+                console.error('Error combining photos:', e);
+            }
+        });
+    }
+
+    async combineTwoPhotos(url1, url2) {
+        return new Promise((resolve, reject) => {
+            const img1 = new Image();
+            const img2 = new Image();
+            let loaded = 0;
+            
+            function done() {
+                if (++loaded < 2) return;
+                const W = 2160, H = 1920;
+                const c = document.createElement('canvas');
+                c.width = W;
+                c.height = H * 2;
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img1, 0, 0, W, H);
+                ctx.drawImage(img2, 0, H, W, H);
+                ctx.font = 'bold 48px Arial';
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.textAlign = 'right';
+                ctx.fillText('PixCrab', W - 40, H * 2 - 40);
+                c.toBlob(blob => {
+                    if (!blob) return reject(new Error('Canvas toBlob failed'));
+                    const r = new FileReader();
+                    r.onload = () => resolve(r.result);
+                    r.readAsDataURL(blob);
+                }, 'image/jpeg', 0.95);
+            }
+            
+            img1.crossOrigin = img2.crossOrigin = 'anonymous';
+            img1.onload = img2.onload = done;
+            img1.onerror = img2.onerror = reject;
+            img1.src = url1;
+            img2.src = url2;
+        });
     }
 }
 
