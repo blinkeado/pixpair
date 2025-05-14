@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AuthScreen from './auth/AuthScreen';
 import SessionSetup from './session/SessionSetup';
 import CameraScreen from './camera/CameraScreen';
+import AlbumScreen from './album/AlbumScreen';
 import firebase, { auth, initializeFirebase } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
 import Logo from './Logo';
@@ -71,6 +72,14 @@ function App() {
     setSessionId(null);
     setCurrentScreen('session');
   };
+
+  const handleViewAlbum = () => {
+    setCurrentScreen('album');
+  };
+
+  const handleReturnFromAlbum = () => {
+    setCurrentScreen('session');
+  };
   
   const handleSignOut = async () => {
     try {
@@ -122,6 +131,7 @@ function App() {
             onCreateSession={handleCreateSession}
             onJoinSession={handleJoinSession}
             onSignOut={handleSignOut}
+            onViewAlbum={handleViewAlbum}
             initialSessionId={sessionId}
           />
         )}
@@ -131,6 +141,13 @@ function App() {
             sessionId={sessionId}
             onExitSession={handleExitSession}
             onSignOut={handleSignOut}
+          />
+        )}
+
+        {currentScreen === 'album' && (
+          <AlbumScreen 
+            onCreateSession={handleCreateSession}
+            onReturn={handleReturnFromAlbum}
           />
         )}
       </div>

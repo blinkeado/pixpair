@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import firebase, { database } from '../../services/firebase';
 import Logo from '../../components/Logo';
+import CombinedPhotoGallery from './CombinedPhotoGallery';
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
@@ -11,6 +12,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [participants, setParticipants] = useState({});
   const [participantCount, setParticipantCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState('');
+  const [combinedPhotos, setCombinedPhotos] = useState([]);
+  const [showGallery, setShowGallery] = useState(false);
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -131,6 +134,41 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setPhotosTaken((prevPhotos) => [...prevPhotos, photo]);
     });
     
+    // Set up listener for all photos in the session for combined view
+    photosRef.on('value', (snapshot) => {
+      const photosData = snapshot.val() || {};
+      
+      // Transform the data into an array of photos with user info
+      const photoList = [];
+      
+      Object.entries(photosData).forEach(([userId, userPhotos]) => {
+        // If userPhotos is directly a photo object (dataUrl + timestamp)
+        if (userPhotos.dataUrl) {
+          photoList.push({
+            userId,
+            dataUrl: userPhotos.dataUrl,
+            timestamp: userPhotos.timestamp
+          });
+        } 
+        // If userPhotos is a collection of photos from this user
+        else if (typeof userPhotos === 'object') {
+          Object.entries(userPhotos).forEach(([photoId, photoData]) => {
+            photoList.push({
+              userId,
+              photoId,
+              ...photoData
+            });
+          });
+        }
+      });
+      
+      // Sort by timestamp
+      photoList.sort((a, b) => a.timestamp - b.timestamp);
+      
+      setCombinedPhotos(photoList);
+      console.log(`Combined photos updated: ${photoList.length} photos from ${Object.keys(photosData).length} participants`);
+    });
+    
     // Listen for participants in this session
     const participantsRef = database.ref(`sessions/${sessionId}/members`);
     participantsRef.on('value', (snapshot) => {
@@ -199,27 +237,37 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     }
   };
   
-  // Function to initiate synchronized capture
+  // Function to initiate synchronized capture with network latency calculation
   const initiateCapture = async () => {
     try {
-      // Set capture time 3 seconds in the future
-      const captureTime = Date.now() + 3000;
+      // Measure approximate network latency
+      const startTime = Date.now();
+      await database.ref('.info/serverTimeOffset').once('value');
+      const endTime = Date.now();
+      const approximateLatency = endTime - startTime;
+      
+      // Calculate a buffer (minimum 1 second + network latency + safety margin)
+      const buffer = Math.max(1000, approximateLatency * 2);
+      
+      // Set capture time in the future with buffer
+      const captureTime = Date.now() + 3000 + buffer;
       
       // Save to Firebase
       await database.ref(`sessions/${sessionId}/capture`).set({
         captureTime,
         initiatedBy: firebase.auth().currentUser?.uid || 'anonymous',
-        initiated: firebase.database.ServerValue.TIMESTAMP
+        initiated: firebase.database.ServerValue.TIMESTAMP,
+        approximateLatency
       });
       
-      console.log(`Initiated capture for time: ${new Date(captureTime).toISOString()}`);
+      console.log(`Initiated capture for time: ${new Date(captureTime).toISOString()} (buffer: ${buffer}ms)`);
     } catch (error) {
       console.error('Error initiating capture:', error);
       setError('Failed to initiate synchronized capture.');
     }
   };
   
-  // Function to start countdown
+  // Improved countdown with better timing
   const startCountdown = (captureTime) => {
     // Clear any existing countdown
     if (countdownRef.current) {
@@ -240,18 +288,21 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     const initialCount = Math.ceil(timeUntilCapture / 1000);
     setCountdown(initialCount);
     
-    // Set interval for countdown
+    // Set interval for countdown display updates
     countdownRef.current = setInterval(() => {
+      const remainingTime = captureTime - Date.now();
+      const secondsRemaining = Math.ceil(remainingTime / 1000);
+      
       setCountdown((prevCount) => {
-        if (prevCount <= 1) {
+        if (secondsRemaining <= 0 || prevCount <= 1) {
           // Time to take the photo
           clearInterval(countdownRef.current);
           takePhoto();
           return null;
         }
-        return prevCount - 1;
+        return secondsRemaining;
       });
-    }, 1000);
+    }, 100); // Update more frequently for better precision
     
     // Safety timeout to ensure the photo is taken
     setTimeout(() => {
@@ -259,7 +310,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         clearInterval(countdownRef.current);
         setCountdown(null);
       }
-    }, timeUntilCapture + 100);
+    }, timeUntilCapture + 500);
   };
   
   const takePhoto = async () => {
@@ -353,10 +404,50 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     }
   };
   
+  // Toggle gallery view
+  const toggleGallery = () => {
+    setShowGallery(!showGallery);
+  };
+  
+  // Save combined photos to localStorage
+  const saveCombinedPhotosToAlbum = () => {
+    if (combinedPhotos.length === 0) {
+      setError('No photos to save');
+      return;
+    }
+    
+    try {
+      // Get existing combined sessions from localStorage
+      const existingSessionsJSON = localStorage.getItem('combinedSessions');
+      const existingSessions = existingSessionsJSON ? JSON.parse(existingSessionsJSON) : [];
+      
+      // Create a new session entry
+      const newSessionEntry = {
+        id: sessionId,
+        timestamp: Date.now(),
+        photos: combinedPhotos,
+        participants: Object.keys(participants).length
+      };
+      
+      // Add to beginning of array (newest first)
+      const updatedSessions = [newSessionEntry, ...existingSessions];
+      
+      // Save back to localStorage
+      localStorage.setItem('combinedSessions', JSON.stringify(updatedSessions));
+      
+      setError(null);
+      setCopySuccess('Saved to album!');
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (err) {
+      console.error('Error saving combined photos:', err);
+      setError('Failed to save photos to album');
+    }
+  };
+  
   return (
     <div className="camera-screen">
       {/* Camera container with video feed */}
-      <div className="camera-container">
+      <div className={`camera-container ${showGallery ? 'hidden' : ''}`}>
         <video 
           ref={videoRef} 
           autoPlay 
@@ -373,6 +464,27 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         )}
       </div>
       
+      {/* Combined Photos Gallery */}
+      {showGallery && (
+        <div className="combined-gallery-container">
+          <CombinedPhotoGallery 
+            photos={combinedPhotos} 
+            participantInfo={participants}
+          />
+          
+          {/* Save to Album button */}
+          <div className="gallery-save-controls">
+            <button 
+              className="btn btn-primary save-btn"
+              onClick={saveCombinedPhotosToAlbum}
+              disabled={combinedPhotos.length === 0}
+            >
+              Save to Album
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Content layer respecting safe areas */}
       <div className="camera-screen-content">
         {/* Header area with session info */}
@@ -384,13 +496,13 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           {error && <div className="error">{error}</div>}
           
           <div className="session-header">
-            {/* Gallery button */}
+            {/* Toggle Gallery Button */}
             <button 
               className="btn btn-primary rainbow-button"
-              onClick={handleGalleryClick}
-              title="Exit to Gallery"
+              onClick={toggleGallery}
+              title={showGallery ? "Return to Camera" : "View Combined Photos"}
             >
-              Gallery
+              {showGallery ? "Camera" : "Gallery"}
             </button>
             
             {/* Exit button (X icon) */}
@@ -421,36 +533,43 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           </div>
         </div>
         
-        {/* Viewfinder area - empty space for camera view */}
-        <div className="viewfinder-area">
-          {/* Empty space for camera view, which is positioned behind in the camera-container */}
-        </div>
-        
-        {/* Controls area with buttons */}
-        <div className="controls-area">
-          {/* Centered shutter button - positioned relative to the controls area */}
-          <div className="shutter-button-container">
-            {cameraReady && (
-              <button
-                className="
-                  btn-circle btn-circle-rainbow
-                  w-16 h-16 bg-white shadow-lg
-                  border-4 border-gray-200 z-50
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                "
-                onClick={initiateCapture}
-                disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
-              >
-                <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
-              </button>
-            )}
+        {/* Viewfinder area - only visible when not in gallery view */}
+        {!showGallery && (
+          <div className="viewfinder-area">
+            {/* Empty space for camera view, which is positioned behind in the camera-container */}
           </div>
-        </div>
+        )}
+        
+        {/* Controls area with buttons - only visible when not in gallery view */}
+        {!showGallery && (
+          <div className="controls-area">
+            {/* Centered shutter button - positioned relative to the controls area */}
+            <div className="shutter-button-container">
+              {cameraReady && (
+                <button
+                  className="
+                    btn-circle btn-circle-rainbow
+                    w-16 h-16 bg-white shadow-lg
+                    border-4 border-gray-200 z-50
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                  "
+                  onClick={initiateCapture}
+                  disabled={!cameraReady || uploading || countdown !== null || participantCount < 2}
+                >
+                  <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
-      <div className="photos-grid">
-        {photosTaken.map(renderPhotoItem)}
-      </div>
+      {/* Individual photos grid - only show if not viewing gallery */}
+      {!showGallery && (
+        <div className="photos-grid">
+          {photosTaken.map(renderPhotoItem)}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import firebase, { auth, database } from '../../services/firebase';
 
-const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessionId }) => {
+const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');
   const [error, setError] = useState(null);
   const [createdSessionId, setCreatedSessionId] = useState(null);
@@ -221,6 +221,15 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, initialSessio
             Join Session
           </button>
         </div>
+        
+        {/* View Album Button */}
+        <button 
+          className="btn btn-secondary view-album-btn"
+          onClick={onViewAlbum}
+          aria-label="View Photo Album"
+        >
+          View Photo Album
+        </button>
       </div>
       
       {createdSessionId && (

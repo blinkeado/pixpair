@@ -832,3 +832,264 @@ input {
   font-size: 1.2rem;
   margin-top: 1rem;
 }
+
+/* Combined Photo Gallery Styles */
+.combined-gallery-container {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #f5f5f5;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.combined-photo-gallery {
+  margin-top: 20px;
+  padding: 10px;
+}
+
+.gallery-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.layout-btn {
+  padding: 8px 15px;
+  margin: 0 5px;
+  border: none;
+  border-radius: 20px;
+  background: #eee;
+  cursor: pointer;
+}
+
+.layout-btn.active {
+  background: #4831D4;
+  color: white;
+}
+
+.photo-capture-group {
+  margin-bottom: 30px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.photo-capture-group h3 {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+/* Grid layout */
+.photos-container.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-gap: 15px;
+}
+
+/* Side by side layout */
+.photos-container.layout-sideBySide {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 10px 0;
+}
+
+.layout-sideBySide .participant-photo {
+  flex: 0 0 80%;
+  scroll-snap-align: center;
+  margin-right: 15px;
+}
+
+.participant-photo {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.participant-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.photo-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.combined-photo-empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  margin: 20px 0;
+  color: #666;
+}
+
+/* Fix for Camera container hiding */
+.camera-container.hidden {
+  display: none;
+}
+
+/* Album Screen Combined Sessions */
+.combined-sessions {
+  margin-bottom: 30px;
+}
+
+.combined-sessions h2,
+.album-content h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #333;
+  text-align: center;
+}
+
+.sessions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-gap: 20px;
+  padding: 0 15px;
+}
+
+.session-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.session-card:hover {
+  transform: translateY(-5px);
+}
+
+.session-card h3 {
+  padding: 15px;
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+
+.session-card p {
+  padding: 10px 15px;
+  margin: 0;
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.session-photos-preview {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  height: 200px;
+}
+
+.preview-photo {
+  overflow: hidden;
+  position: relative;
+}
+
+.preview-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-save-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 40px;
+}
+
+.save-btn {
+  background: linear-gradient(45deg, #4831D4, #CCF381);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.save-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.save-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.view-album-btn {
+  margin-top: 15px;
+  width: 100%;
+  max-width: 300px;
+  padding: 12px;
+  background-color: #4831D4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.view-album-btn:hover {
+  background-color: #3a28a7;
+  transform: translateY(-2px);
+}
+
+.view-album-btn:active {
+  background-color: #2c1e7a;
+  transform: translateY(1px);
+}
+
+.album-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.return-btn {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.return-btn:hover {
+  background-color: #e5e5e5;
+}
+
+@media (min-width: 640px) {
+  .album-actions {
+    flex-direction: row;
+  }
+}
