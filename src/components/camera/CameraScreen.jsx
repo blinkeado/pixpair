@@ -19,6 +19,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   useEffect(() => {
     if (!sessionId) {
       console.log('No session ID provided, exiting session');
+      stopCamera(); // Make sure to stop camera if no session ID
       if (typeof onExitSession === 'function') {
         onExitSession();
       }
@@ -65,6 +66,17 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     });
   }, [cameraReady, uploading, countdown, participantCount]);
   
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      console.log('🎥 CameraScreen unmounting - stopping camera');
+      stopCamera();
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, []);
+  
   // Debug camera initialization
   const initializeCamera = async () => {
     console.log('🎥 STARTING CAMERA INITIALIZATION');
@@ -86,6 +98,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         };
       } else {
         console.error('🎥 VIDEO REF IS NULL');
+        // Make sure to clean up the stream even if we can't assign it
+        stream.getTracks().forEach(track => track.stop());
       }
     } catch (err) {
       console.error('🎥 ERROR ACCESSING CAMERA:', err);
@@ -104,6 +118,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
 
     console.log('Initializing camera and Firebase listeners for session:', sessionId);
     
+    // Stop any existing camera stream first
+    stopCamera();
+    
+    // Then initialize new camera
     initializeCamera();
     
     // Listen for new photos in this session
@@ -132,6 +150,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     return () => {
       // Clean up
+      console.log('🎥 Cleaning up camera and Firebase listeners');
       stopCamera();
       photosRef.off();
       participantsRef.off();
@@ -142,15 +161,23 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
+      console.log('🎥 STOPPING CAMERA');
       const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
+      tracks.forEach(track => {
+        console.log(`🎥 Stopping track: ${track.kind}, enabled: ${track.enabled}`);
+        track.stop();
+      });
       videoRef.current.srcObject = null;
       setCameraReady(false);
+      console.log('🎥 CAMERA STOPPED');
+    } else {
+      console.log('🎥 No camera stream to stop');
     }
   };
   
   // Enhanced exit session to ensure camera is stopped
   const handleExitSession = () => {
+    console.log('🎥 Exit session - stopping camera');
     stopCamera();
     if (typeof onExitSession === 'function') {
       onExitSession();
@@ -318,7 +345,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   // Handle gallery view with callbacks instead of direct navigation
   const handleGalleryClick = () => {
-    // Instead of using navigate, call onExitSession
+    // Stop camera before exiting
+    stopCamera();
+    // Then call the exit session function
     if (typeof onExitSession === 'function') {
       onExitSession();
     }
