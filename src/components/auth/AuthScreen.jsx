@@ -106,26 +106,8 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         throw new Error('Authentication succeeded but user is not available.');
       }
       
-      // After successful auth, create a new session
-      const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = currentUser.uid;
-      
-      await firebase.database().ref(`sessions/${sessionId}`).set({
-        createdBy: userId,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        members: {
-          [userId]: {
-            joinedAt: firebase.database.ServerValue.TIMESTAMP
-          }
-        }
-      });
-      
-      // Call the onCreateSession callback if provided
-      if (typeof onCreateSession === 'function') {
-        onCreateSession(sessionId);
-      }
-      
-      // No longer need to navigate, as onCreateSession will handle screen changes
+      // Don't create a session here - let the user go to the session screen first
+      // The auth state change in App.jsx will automatically navigate to the session screen
       
     } catch (error) {
       console.error('Authentication error:', error);
@@ -149,26 +131,8 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         throw new Error('Google authentication succeeded but user is not available.');
       }
       
-      // After successful auth, create a new session
-      const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = currentUser.uid;
-      
-      await firebase.database().ref(`sessions/${sessionId}`).set({
-        createdBy: userId,
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        members: {
-          [userId]: {
-            joinedAt: firebase.database.ServerValue.TIMESTAMP
-          }
-        }
-      });
-      
-      // Call the onCreateSession callback if provided
-      if (typeof onCreateSession === 'function') {
-        onCreateSession(sessionId);
-      }
-      
-      // No longer need to navigate, as onCreateSession will handle screen changes
+      // Don't create a session here - let the user go to the session screen first
+      // The auth state change in App.jsx will automatically navigate to the session screen
       
     } catch (error) {
       console.error('Google auth error:', error);
@@ -196,28 +160,8 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         throw new Error('Anonymous authentication succeeded but user is not available.');
       }
       
-      // Create a new session ID
-      const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = currentUser.uid;
-      
-      // Create a sessions entry directly at the database root
-      // Using a simple data structure to minimize potential issues
-      await firebase.database().ref(`/sessions/${sessionId}`).set({
-        id: sessionId,
-        owner: userId,
-        created: firebase.database.ServerValue.TIMESTAMP,
-        status: 'active'
-      });
-      
-      // Add a minimal members entry
-      await firebase.database().ref(`/sessions/${sessionId}/members/${userId}`).set(true);
-      
-      console.log("Session created successfully:", sessionId);
-      
-      // Call the onCreateSession callback if provided
-      if (typeof onCreateSession === 'function') {
-        onCreateSession(sessionId);
-      }
+      // Don't create a session here - let the user go to the session screen first
+      // The auth state change in App.jsx will automatically navigate to the session screen
       
     } catch (error) {
       console.error('Anonymous auth error:', error);
