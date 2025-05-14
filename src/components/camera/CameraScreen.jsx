@@ -285,6 +285,23 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     );
   };
   
+  const savePhotoToAlbum = (photoUrl) => {
+    const savedPhotos = JSON.parse(localStorage.getItem('albumPhotos') || '[]');
+    const newPhoto = {
+      url: photoUrl,
+      width: 1920, // Default width, adjust as needed
+      height: 1080, // Default height, adjust as needed
+      timestamp: new Date().toISOString()
+    };
+    savedPhotos.push(newPhoto);
+    localStorage.setItem('albumPhotos', JSON.stringify(savedPhotos));
+  };
+
+  const handlePhotoTaken = (photoUrl) => {
+    setPhotosTaken(prev => [...prev, photoUrl]);
+    savePhotoToAlbum(photoUrl);
+  };
+  
   return (
     <div className="camera-screen">
       {/* Debug elements for safe area insets */}

@@ -20,6 +20,7 @@
     "qrcodejs": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-photo-album": "^3.1.0",
     "react-router-dom": "^6.11.1"
   },
   "devDependencies": {

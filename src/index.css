@@ -778,3 +778,42 @@ input {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Album Screen */
+.album-screen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.album-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.album-content {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.empty-album {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  background-color: var(--secondary-color);
+  border-radius: 1rem;
+  text-align: center;
+}
+
+.empty-album p {
+  color: var(--text-dark);
+  font-size: 1.2rem;
+  margin-top: 1rem;
+}
