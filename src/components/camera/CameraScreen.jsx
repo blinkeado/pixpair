@@ -964,9 +964,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       try {
         const thumbCanvas = document.createElement('canvas');
         const thumbCtx = thumbCanvas.getContext('2d');
-        const thumbSize = 200;
-        thumbCanvas.width = thumbSize;
-        thumbCanvas.height = thumbSize;
+        const thumbWidth = 270; // New width
+        const thumbHeight = 480; // New height
+        thumbCanvas.width = thumbWidth;
+        thumbCanvas.height = thumbHeight;
 
         const tempImg = new Image();
         await new Promise((resolve, reject) => {
@@ -979,23 +980,25 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         const sourceWidth = tempImg.width;
         const sourceHeight = tempImg.height;
         const sourceAspectRatio = sourceWidth / sourceHeight;
-        const thumbAspectRatio = thumbSize / thumbSize; // Which is 1
+        const thumbAspectRatio = thumbWidth / thumbHeight; // Use new dimensions
 
         let drawWidth, drawHeight, drawX, drawY;
 
-        if (sourceAspectRatio > thumbAspectRatio) { // Source is wider than thumbnail
-          drawHeight = thumbSize;
+        if (sourceAspectRatio > thumbAspectRatio) { // Source is wider relative to thumbnail aspect ratio
+          // Fit to thumbnail height, crop width
+          drawHeight = thumbHeight;
           drawWidth = drawHeight * sourceAspectRatio;
-          drawX = (thumbSize - drawWidth) / 2;
+          drawX = (thumbWidth - drawWidth) / 2;
           drawY = 0;
-        } else { // Source is taller than or same aspect as thumbnail
-          drawWidth = thumbSize;
+        } else { // Source is taller or same aspect as thumbnail
+          // Fit to thumbnail width, crop height
+          drawWidth = thumbWidth;
           drawHeight = drawWidth / sourceAspectRatio;
           drawX = 0;
-          drawY = (thumbSize - drawHeight) / 2;
+          drawY = (thumbHeight - drawHeight) / 2;
         }
         
-        console.log(`🔄 DEBUG: Drawing thumbnail with source dimensions: ${sourceWidth}x${sourceHeight}, draw dimensions: ${drawWidth}x${drawHeight} at ${drawX},${drawY}`);
+        console.log(`🔄 DEBUG: Drawing thumbnail with source dimensions: ${sourceWidth}x${sourceHeight}, target: ${thumbWidth}x${thumbHeight}, draw dimensions: ${drawWidth}x${drawHeight} at ${drawX},${drawY}`);
         thumbCtx.drawImage(tempImg, drawX, drawY, drawWidth, drawHeight);
         thumbnailDataUrl = thumbCanvas.toDataURL('image/jpeg', 0.9); // Slightly lower quality for thumbnail
         console.log(`🔄 DEBUG: Thumbnail created, data URL length: ${thumbnailDataUrl.length}`);

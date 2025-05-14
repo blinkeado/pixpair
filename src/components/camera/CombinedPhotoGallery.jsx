@@ -112,9 +112,10 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
             {groupPhotos.filter(p => p.type === 'combined').map((photo, index) => ( // Only show combined photos in the grid
               <div 
                 key={`combined-${photo.id || index}`} 
-                className="gallery-thumbnail-item aspect-square bg-gray-200 rounded overflow-hidden cursor-pointer relative group"
+                className="gallery-thumbnail-item w-[100px] h-[177px] bg-gray-200 rounded overflow-hidden cursor-pointer relative group"
                 onClick={() => {
-                  console.log('🖼️ GALLERY DEBUG: Thumbnail clicked. Setting full image URL to:', photo.dataUrl);
+                  console.warn('!!! THUMBNAIL CLICKED !!! Setting full image URL to:', photo.dataUrl); 
+                  alert('Thumbnail clicked! Check console.');
                   setSelectedFullImageUrl(photo.dataUrl);
                 }}
               >
