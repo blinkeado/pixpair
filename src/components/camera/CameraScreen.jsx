@@ -871,6 +871,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         return new Promise((resolve, reject) => {
           console.log(`🔄 DEBUG: Creating image object for URL ${index+1}`);
           const img = new Image();
+          img.crossOrigin = 'anonymous';  // Add this for CORS issues
           
           img.onload = () => {
             console.log(`🔄 DEBUG: Image ${index+1} loaded successfully: ${img.width}x${img.height}`);
@@ -896,95 +897,41 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         console.log(`🔄 DEBUG: Image ${i+1} dimensions: ${img.width}x${img.height}`);
       });
       
-      // Choose layout based on number of images
-      if (images.length === 2) {
-        // For side-by-side layout (the most common case with 2 participants)
-        console.log('🔄 DEBUG: Using side-by-side layout for 2 images');
+      // SIMPLIFIED APPROACH: ALWAYS USE VERTICAL STACKING (PREVIOUS WORKING CODE)
+      console.log('🔄 DEBUG: Using vertical stacking layout (first photo on top, second on bottom)');
+      
+      // Fixed width from your previous working code
+      const W = 2160;
+      const H = 1920;
+      
+      console.log(`🔄 DEBUG: Using fixed dimensions: ${W}x${H} per image`);
+      console.log(`🔄 DEBUG: Setting canvas dimensions to: ${W}x${H*2}`);
+      
+      // Set canvas dimensions for vertical stacking
+      canvas.width = W;
+      canvas.height = H * 2; // Stack images vertically
+      
+      // Clear canvas with black background
+      console.log('🔄 DEBUG: Clearing canvas with black background');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw images stacked vertically (first on top, second on bottom)
+      images.forEach((img, index) => {
+        // Calculate position - y position depends on index
+        const x = 0;
+        const y = index * H;
         
-        // Get the max dimensions to maintain aspect ratio
-        const W = Math.max(images[0].width, images[1].width);
-        const H = Math.max(images[0].height, images[1].height);
+        console.log(`🔄 DEBUG: Drawing image ${index+1} at position (${x},${y}) with size ${W}x${H}`);
         
-        console.log(`🔄 DEBUG: Maximum image dimensions: ${W}x${H}`);
-        console.log(`🔄 DEBUG: Setting canvas dimensions to: ${W*2}x${H}`);
-        
-        // Set canvas dimensions for side-by-side layout
-        canvas.width = W * 2; // Two images side by side
-        canvas.height = H;
-        
-        // Clear canvas with black background
-        console.log('🔄 DEBUG: Clearing canvas with black background');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw images side by side, centered in their half
-        images.forEach((img, index) => {
-          // Calculate scaling to fit while maintaining aspect ratio
-          const scale = Math.min(W / img.width, H / img.height);
-          const scaledWidth = img.width * scale;
-          const scaledHeight = img.height * scale;
-          
-          // Center in the allocated space
-          const x = (index * W) + (W - scaledWidth) / 2;
-          const y = (H - scaledHeight) / 2;
-          
-          console.log(`🔄 DEBUG: Drawing image ${index+1} at (${x},${y}) with size ${scaledWidth}x${scaledHeight}`);
-          
-          try {
-            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-            console.log(`🔄 DEBUG: Successfully drew image ${index+1}`);
-          } catch (drawError) {
-            console.error(`🔄 ERROR: Failed to draw image ${index+1}:`, drawError);
-            throw drawError;
-          }
-        });
-      } else {
-        // For grid layout (3 or more participants)
-        console.log(`🔄 DEBUG: Using grid layout for ${images.length} images`);
-        
-        const columns = Math.ceil(Math.sqrt(images.length));
-        const rows = Math.ceil(images.length / columns);
-        console.log(`🔄 DEBUG: Grid layout: ${columns} columns x ${rows} rows`);
-        
-        // Find the maximum dimensions
-        let maxWidth = 0;
-        let maxHeight = 0;
-        images.forEach(img => {
-          maxWidth = Math.max(maxWidth, img.width);
-          maxHeight = Math.max(maxHeight, img.height);
-        });
-        
-        console.log(`🔄 DEBUG: Maximum image dimensions: ${maxWidth}x${maxHeight}`);
-        console.log(`🔄 DEBUG: Setting canvas dimensions to: ${maxWidth * columns}x${maxHeight * rows}`);
-        
-        canvas.width = maxWidth * columns;
-        canvas.height = maxHeight * rows;
-        
-        // Clear canvas
-        console.log('🔄 DEBUG: Clearing canvas with black background');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw images in a grid
-        images.forEach((img, i) => {
-          const col = i % columns;
-          const row = Math.floor(i / columns);
-          
-          // Calculate position
-          const x = col * maxWidth;
-          const y = row * maxHeight;
-          
-          console.log(`🔄 DEBUG: Drawing image ${i+1} at grid position (${col},${row}) coordinates (${x},${y})`);
-          
-          try {
-            ctx.drawImage(img, x, y);
-            console.log(`🔄 DEBUG: Successfully drew image ${i+1}`);
-          } catch (drawError) {
-            console.error(`🔄 ERROR: Failed to draw image ${i+1}:`, drawError);
-            throw drawError;
-          }
-        });
-      }
+        try {
+          ctx.drawImage(img, x, y, W, H);
+          console.log(`🔄 DEBUG: Successfully drew image ${index+1}`);
+        } catch (drawError) {
+          console.error(`🔄 ERROR: Failed to draw image ${index+1}:`, drawError);
+          throw drawError;
+        }
+      });
       
       // Add watermark
       console.log('🔄 DEBUG: Adding watermark');
@@ -1004,7 +951,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.log('🔄 DEBUG: Converting canvas to data URL');
       let combinedDataUrl;
       try {
-        combinedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        combinedDataUrl = canvas.toDataURL('image/jpeg', 0.95); // Use 0.95 quality as in your previous code
         console.log(`🔄 DEBUG: Combined photo created, data URL length: ${combinedDataUrl.length}`);
       } catch (dataUrlError) {
         console.error('🔄 ERROR: Failed to convert canvas to data URL:', dataUrlError);
@@ -1023,7 +970,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         await combinedPhotoRef.set({
           dataUrl: combinedDataUrl,
           timestamp: firebase.database.ServerValue.TIMESTAMP,
-          participantIds: participantIds
+          participantIds: participantIds,
+          isCombined: true  // Explicitly mark as combined photo
         });
         
         console.log(`🔄 DEBUG: Combined photo saved to Firebase with ID: ${combinedPhotoId}`);
