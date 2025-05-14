@@ -247,12 +247,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const timestamp = Date.now();
       
       // Save data URL directly to the database
-      const photosRef = firebase.database().ref(`sessions/${sessionId}/photos`);
-      await photosRef.push({
-        userId,
-        timestamp,
-        dataUrl,
-        isDataUrl: true
+      const photosRef = firebase.database().ref(`sessions/${sessionId}/photos/${firebase.auth().currentUser.uid}`);
+      await photosRef.set({
+        dataUrl: canvas.toDataURL('image/jpeg', 0.8),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
       });
       
       console.log('Photo saved successfully');
