@@ -957,6 +957,52 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         console.error('🔄 ERROR: Failed to convert canvas to data URL:', dataUrlError);
         throw dataUrlError;
       }
+
+      // Generate Thumbnail
+      console.log('🔄 DEBUG: Generating thumbnail');
+      let thumbnailDataUrl = '';
+      try {
+        const thumbCanvas = document.createElement('canvas');
+        const thumbCtx = thumbCanvas.getContext('2d');
+        const thumbSize = 200;
+        thumbCanvas.width = thumbSize;
+        thumbCanvas.height = thumbSize;
+
+        const tempImg = new Image();
+        await new Promise((resolve, reject) => {
+          tempImg.onload = resolve;
+          tempImg.onerror = reject;
+          tempImg.src = combinedDataUrl;
+        });
+        console.log(`🔄 DEBUG: Temporary image for thumbnail loaded: ${tempImg.width}x${tempImg.height}`);
+
+        const sourceWidth = tempImg.width;
+        const sourceHeight = tempImg.height;
+        const sourceAspectRatio = sourceWidth / sourceHeight;
+        const thumbAspectRatio = thumbSize / thumbSize; // Which is 1
+
+        let drawWidth, drawHeight, drawX, drawY;
+
+        if (sourceAspectRatio > thumbAspectRatio) { // Source is wider than thumbnail
+          drawHeight = thumbSize;
+          drawWidth = drawHeight * sourceAspectRatio;
+          drawX = (thumbSize - drawWidth) / 2;
+          drawY = 0;
+        } else { // Source is taller than or same aspect as thumbnail
+          drawWidth = thumbSize;
+          drawHeight = drawWidth / sourceAspectRatio;
+          drawX = 0;
+          drawY = (thumbSize - drawHeight) / 2;
+        }
+        
+        console.log(`🔄 DEBUG: Drawing thumbnail with source dimensions: ${sourceWidth}x${sourceHeight}, draw dimensions: ${drawWidth}x${drawHeight} at ${drawX},${drawY}`);
+        thumbCtx.drawImage(tempImg, drawX, drawY, drawWidth, drawHeight);
+        thumbnailDataUrl = thumbCanvas.toDataURL('image/jpeg', 0.9); // Slightly lower quality for thumbnail
+        console.log(`🔄 DEBUG: Thumbnail created, data URL length: ${thumbnailDataUrl.length}`);
+      } catch (thumbError) {
+        console.error('🔄 ERROR: Failed to generate thumbnail:', thumbError);
+        // Continue without thumbnail if it fails
+      }
       
       // Save to Firebase under combinedPhotos
       console.log('🔄 DEBUG: Saving combined photo to Firebase');
@@ -969,6 +1015,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         await combinedPhotoRef.set({
           dataUrl: combinedDataUrl,
+          thumbnailDataUrl: thumbnailDataUrl,
           timestamp: firebase.database.ServerValue.TIMESTAMP,
           participantIds: participantIds,
           isCombined: true  // Explicitly mark as combined photo
