@@ -1,13 +1,23 @@
 class AppUtils {
     static debugLog(message) {
-        const now = new Date();
-        const timestamp = now.toLocaleTimeString() + '.' + now.getMilliseconds().toString().padStart(3, '0');
-        console.log(`[PixCrab] ${message}`);
+        // Short wrapper around info to maintain backward compatibility
+        this.info(message);
+    }
+
+    static info(message) {
+        // Truncate message to 100 characters
+        const truncated = typeof message === 'string' 
+            ? (message.length > 100 ? message.substring(0, 97) + '...' : message)
+            : message;
+            
+        console.log(`[PixCrab] ${truncated}`);
         
         const debugConsole = document.getElementById('debugConsole');
         if (debugConsole) {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString() + '.' + now.getMilliseconds().toString().padStart(3, '0');
             const logEntry = document.createElement('div');
-            logEntry.textContent = `[${timestamp}] ${message}`;
+            logEntry.textContent = `[${timestamp}] ${truncated}`;
             debugConsole.appendChild(logEntry);
             debugConsole.scrollTop = debugConsole.scrollHeight;
         }

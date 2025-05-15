@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import firebase, { database } from '../../services/firebase';
 import Logo from '../../components/Logo';
 import CombinedPhotoGallery from './CombinedPhotoGallery';
+import AppUtils from '../../utils/AppUtils';
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
@@ -1170,36 +1171,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   // Debug for combined photos state changes
   useEffect(() => {
-    console.log('🖼️ DEBUG: combinedPhotos state changed:', combinedPhotos.length, 'photos now in state');
+    AppUtils.info(`combinedPhotos state changed: ${combinedPhotos.length} photos`);
     
     // Track what type of photos we have
     const combined = combinedPhotos.filter(p => p.isCombined || p.participantIds).length;
     const individual = combinedPhotos.length - combined;
-    console.log(`🖼️ DEBUG: Photo breakdown - ${combined} combined photos, ${individual} individual photos`);
+    AppUtils.info(`Photo breakdown - ${combined} combined, ${individual} individual`);
     
     if (combinedPhotos.length > 0) {
       const firstPhoto = combinedPhotos[0];
-      console.log('🖼️ DEBUG: First photo in combined photos:', JSON.stringify({
-        id: firstPhoto.id,
-        userId: firstPhoto.userId,
-        timestamp: firstPhoto.timestamp,
-        hasDataUrl: !!firstPhoto.dataUrl,
-        dataUrlLength: firstPhoto.dataUrl ? firstPhoto.dataUrl.length : 0,
-        isCombined: !!firstPhoto.isCombined,
-        hasParticipantIds: !!firstPhoto.participantIds,
-        participantIds: firstPhoto.participantIds
-      }));
-      
-      // Check dimensions of photo when rendered
-      setTimeout(() => {
-        const galleryImages = document.querySelectorAll('.participant-photo img');
-        if (galleryImages.length > 0) {
-          console.log(`🖼️ DEBUG: Found ${galleryImages.length} rendered gallery images`);
-          Array.from(galleryImages).forEach((img, index) => {
-            console.log(`🖼️ DEBUG: Rendered image ${index+1} dimensions: ${img.naturalWidth}x${img.naturalHeight}, displayed: ${img.offsetWidth}x${img.offsetHeight}`);
-          });
-        }
-      }, 500); // Give time for rendering
+      AppUtils.info(`First photo: id=${firstPhoto.id}, combined=${!!firstPhoto.isCombined}`);
     }
   }, [combinedPhotos]);
   

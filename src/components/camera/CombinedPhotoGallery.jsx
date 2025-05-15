@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Gallery } from "react-grid-gallery";
+import AppUtils from '../../utils/AppUtils';
 
 // Simple Modal Component (can be moved to its own file later)
 const PhotoModal = ({ imageUrl, onClose }) => {
-  console.log('🖼️ MODAL DEBUG: PhotoModal render, imageUrl exists:', !!imageUrl, typeof imageUrl === 'string' ? imageUrl.substring(0, 50) + '...' : 'null');
+  AppUtils.info(`MODAL: PhotoModal render, imageUrl exists: ${!!imageUrl}`);
   
   if (!imageUrl) return null;
 
@@ -21,8 +22,8 @@ const PhotoModal = ({ imageUrl, onClose }) => {
           src={imageUrl} 
           alt="Full size" 
           className="modal-image max-w-[90vw] max-h-[90vh] object-contain"
-          onLoad={() => console.log('🖼️ MODAL DEBUG: Full-size image loaded successfully')}
-          onError={(e) => console.error('🖼️ MODAL DEBUG: Error loading full-size image:', e)}
+          onLoad={() => AppUtils.info('MODAL: Full-size image loaded successfully')}
+          onError={(e) => console.error('MODAL ERROR: Error loading full-size image:', e)}
         />
         <button 
           onClick={onClose}
@@ -40,29 +41,16 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
   const [selectedFullImageUrl, setSelectedFullImageUrl] = useState(null);
 
   useEffect(() => {
-    console.log('🖼️ GALLERY DEBUG: Photos received by gallery:', photos.length);
-    if (photos.length > 0) {
-      photos.forEach((photo, index) => {
-        console.log(`🖼️ GALLERY DEBUG: Photo ${index+1} details:`, JSON.stringify({
-          id: photo.id,
-          isCombined: !!photo.isCombined,
-          timestamp: photo.timestamp,
-          hasThumbnail: !!photo.thumbnailDataUrl,
-          thumbnailLength: photo.thumbnailDataUrl ? photo.thumbnailDataUrl.length : 0,
-          hasFullImage: !!photo.dataUrl,
-          fullImageLength: photo.dataUrl ? photo.dataUrl.length : 0,
-        }));
-      });
-    }
+    AppUtils.info(`GALLERY: Photos received by gallery: ${photos.length}`);
   }, [photos]);
 
   // Debug useEffect to monitor state changes
   useEffect(() => {
-    console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state changed:', selectedFullImageUrl ? 'URL set (length: ' + selectedFullImageUrl.length + ')' : 'null');
+    AppUtils.info(`GALLERY: selectedFullImageUrl state changed: ${selectedFullImageUrl ? 'URL set' : 'null'}`);
   }, [selectedFullImageUrl]);
 
   if (!photos || photos.length === 0) {
-    console.log('🖼️ GALLERY DEBUG: No photos to display');
+    AppUtils.info('GALLERY: No photos to display');
     return (
       <div className="combined-photo-empty text-center p-4">
         <p>No photos captured yet. Combined photos will appear here.</p>
@@ -75,8 +63,6 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     .filter(photo => photo.isCombined || photo.participantIds) // Ensure it's a combined photo
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-  console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state before render:', selectedFullImageUrl ? 'URL set' : 'null');
-
   // Format timestamp into readable date
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -86,51 +72,26 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
   
   // Handle image click for react-grid-gallery
   const handleClick = (index, item, event) => {
-    console.log('🖼️ CLICK DEBUG: Image clicked at index:', index);
+    AppUtils.info(`CLICK: Image clicked at index: ${index}`);
     
     try {
       // Get the photo from our combinedPhotos array
       const photo = combinedPhotos[index];
       
       if (!photo) {
-        console.error('🖼️ CLICK ERROR: No photo found at index', index);
+        console.error('CLICK ERROR: No photo found at index', index);
         return;
       }
       
-      // Log photo details for debugging
-      console.log('🖼️ CLICK DEBUG: Photo details:', JSON.stringify({
-        id: photo.id || 'unknown',
-        hasDataUrl: !!photo.dataUrl,
-        dataUrlLength: photo.dataUrl ? photo.dataUrl.length : 0,
-        hasThumbnail: !!photo.thumbnailDataUrl,
-        thumbnailLength: photo.thumbnailDataUrl ? photo.thumbnailDataUrl.length : 0
-      }));
-      
-      // Also log what we received from the gallery component
-      console.log('🖼️ CLICK DEBUG: Gallery item details:', JSON.stringify({
-        hasSrc: !!item?.src,
-        srcLength: item?.src ? item.src.length : 0,
-      }));
-      
-      // First try using the dataUrl from our photo object
+      // Always try to use the full dataUrl for the modal
       if (photo.dataUrl) {
-        console.log('🖼️ CLICK DEBUG: Setting full image URL from photo.dataUrl');
+        AppUtils.info(`CLICK: Setting full image URL from photo.dataUrl (length: ${photo.dataUrl.length})`);
         setSelectedFullImageUrl(photo.dataUrl);
-        return;
+      } else {
+        console.error('CLICK ERROR: No dataUrl found for full image');
       }
-      
-      // Fallback to the src property from the gallery item if available
-      if (item && item.src) {
-        console.log('🖼️ CLICK DEBUG: Falling back to gallery item src');
-        setSelectedFullImageUrl(item.src);
-        return;
-      }
-      
-      // If no image URL found, log an error
-      console.error('🖼️ CLICK ERROR: No valid image URL found for this photo');
-      
     } catch (error) {
-      console.error('🖼️ CLICK ERROR: Exception in handleClick:', error);
+      console.error('CLICK ERROR: Exception in handleClick:', error);
     }
   };
 
@@ -161,8 +122,8 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     );
     
     return {
-      src: photo.dataUrl,
-      thumbnail: photo.thumbnailDataUrl || photo.dataUrl,
+      src: photo.dataUrl, // Full-size image (needed by the gallery component)
+      thumbnail: photo.thumbnailDataUrl || photo.dataUrl, // Use thumbnail for gallery view
       thumbnailWidth: width,
       thumbnailHeight: height,
       caption: captionElement
@@ -183,7 +144,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
       <PhotoModal 
         imageUrl={selectedFullImageUrl} 
         onClose={() => {
-          console.log('🖼️ GALLERY DEBUG: Modal close clicked');
+          AppUtils.info('GALLERY: Modal close clicked');
           setSelectedFullImageUrl(null);
         }} 
       />
