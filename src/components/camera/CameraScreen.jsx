@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import firebase, { database } from '../../services/firebase';
 import Logo from '../../components/Logo';
 import CombinedPhotoGallery from './CombinedPhotoGallery';
@@ -1135,13 +1135,23 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   };
   
   // Save combined photos to localStorage
-  const saveCombinedPhotosToAlbum = () => {
+  const saveCombinedPhotosToAlbum = useCallback(() => {
     if (combinedPhotos.length === 0) {
       setError('No photos to save');
       return;
     }
     
     try {
+      // Get current user authentication status
+      const currentUser = firebase.auth().currentUser;
+      
+      // Check if user exists and authentication status
+      if (!currentUser) {
+        AppUtils.info('No user found, cannot save photos');
+        setError('User not logged in');
+        return;
+      }
+      
       // Get existing combined sessions from localStorage
       const existingSessionsJSON = localStorage.getItem('combinedSessions');
       const existingSessions = existingSessionsJSON ? JSON.parse(existingSessionsJSON) : [];
@@ -1151,7 +1161,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         id: sessionId,
         timestamp: Date.now(),
         photos: combinedPhotos,
-        participants: Object.keys(participants).length
+        participants: Object.keys(participants).length,
+        savedByUser: currentUser.uid,
+        isAnonymous: currentUser.isAnonymous
       };
       
       // Add to beginning of array (newest first)
@@ -1160,6 +1172,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Save back to localStorage
       localStorage.setItem('combinedSessions', JSON.stringify(updatedSessions));
       
+      // If user is authenticated (not anonymous), also save to user's account in Firebase
+      if (!currentUser.isAnonymous) {
+        // Save to user's Firebase collection (optional - can be extended later)
+        AppUtils.info(`Saved combined photos to authenticated user: ${currentUser.uid}`);
+      }
+      
       setError(null);
       setCopySuccess('Saved to album!');
       setTimeout(() => setCopySuccess(''), 2000);
@@ -1167,7 +1185,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.error('Error saving combined photos:', err);
       setError('Failed to save photos to album');
     }
-  };
+  }, [combinedPhotos, sessionId, participants, setError, setCopySuccess]);
   
   // Debug for combined photos state changes
   useEffect(() => {
@@ -1183,6 +1201,26 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       AppUtils.info(`First photo: id=${firstPhoto.id}, combined=${!!firstPhoto.isCombined}`);
     }
   }, [combinedPhotos]);
+  
+  // Auto-save combined photos when they are created
+  useEffect(() => {
+    // Check if there are combined photos to save
+    if (combinedPhotos.length > 0) {
+      // Get the current user
+      const currentUser = firebase.auth().currentUser;
+      
+      // Only save if there's at least one combined photo and the user is authenticated (not a guest)
+      // or if the user is a guest but has no other choice (only participant)
+      if ((currentUser && !currentUser.isAnonymous) || 
+          (currentUser && currentUser.isAnonymous && participantCount <= 1)) {
+        // Auto-save to album
+        saveCombinedPhotosToAlbum();
+        AppUtils.info('Combined photos automatically saved to album');
+      } else {
+        AppUtils.info('Auto-save skipped - guest user with authenticated participant');
+      }
+    }
+  }, [combinedPhotos, saveCombinedPhotosToAlbum, participantCount]); // Include all dependencies
   
   return (
     <div className="camera-screen">
@@ -1211,17 +1249,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             photos={combinedPhotos} 
             participantInfo={participants}
           />
-          
-          {/* Save to Album button */}
-          <div className="gallery-save-controls">
-            <button 
-              className="btn btn-primary save-btn"
-              onClick={saveCombinedPhotosToAlbum}
-              disabled={combinedPhotos.length === 0}
-            >
-              Save to Album
-            </button>
-          </div>
         </div>
       )}
       

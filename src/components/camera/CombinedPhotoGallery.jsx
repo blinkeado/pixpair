@@ -27,8 +27,16 @@ const PhotoModal = ({ imageUrl, onClose }) => {
         />
         <button 
           onClick={onClose}
-          className="close-modal-button absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 text-sm"
+          className="close-modal-button absolute top-2 right-2 text-white rounded-full"
           aria-label="Close modal"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: '0px none rgb(255, 255, 255)',
+            borderRadius: '50%',
+            padding: '4px 12px',
+            width: '36px',
+            height: '36px',
+          }}
         >
           ✕
         </button>
