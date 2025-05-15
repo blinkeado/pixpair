@@ -39,12 +39,8 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
       photos.forEach((photo, index) => {
         console.log(`🖼️ GALLERY DEBUG: Photo ${index+1} details:`, JSON.stringify({
           id: photo.id,
-          // userId: photo.userId, // Not needed for combined display primarily
           isCombined: !!photo.isCombined,
-          // hasParticipantIds: !!photo.participantIds,
-          // participantCount: photo.participantIds ? photo.participantIds.length : 0,
           timestamp: photo.timestamp,
-          // type: photo.type || 'unspecified', // We will filter for combined anyway
           hasThumbnail: !!photo.thumbnailDataUrl,
           thumbnailLength: photo.thumbnailDataUrl ? photo.thumbnailDataUrl.length : 0,
           hasFullImage: !!photo.dataUrl,
@@ -71,29 +67,30 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
   console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state before render:', selectedFullImageUrl);
 
   return (
-    <div className="combined-photo-gallery p-0.5"> {/* Reduced padding for screen edge */} 
-      <div className="gallery-grid-container grid grid-cols-3 gap-0.5"> {/* 3 columns, very small gap */} 
+    <div className="combined-photo-gallery p-1 w-full"> {/* Slightly increased padding, full width */} 
+      {/* Responsive grid: 3 columns on desktop, 2 on medium screens, 1 on mobile */}
+      <div className="gallery-grid-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
         {combinedPhotos.map((photo, index) => ( 
           <div 
             key={`combined-${photo.id || index}`} 
-            className="gallery-thumbnail-item relative bg-yellow-300 bg-opacity-50 border-4 border-red-500 cursor-pointer group overflow-hidden"
-            // Aspect ratio 270:480 is 9:16. So padding-top will be (16/9)*100% 
-            style={{ paddingTop: '177.78%' }} // 16/9 = 1.7778 => 177.78%
+            className="gallery-thumbnail-item relative cursor-pointer group overflow-hidden border-4 border-red-500 bg-yellow-300 bg-opacity-50 rounded-md"
           >
-            <img 
-              src={photo.thumbnailDataUrl || photo.dataUrl} 
-              alt="Combined photo thumbnail" 
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
-              onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
-              onClick={() => {
-                console.warn('!!! THUMBNAIL IMG CLICKED !!! Setting full image URL to:', photo.dataUrl);
-                alert('Thumbnail IMG clicked! Check console.');
-                setSelectedFullImageUrl(photo.dataUrl);
-              }}
-            />
-            {/* Overlay for hover effect - now allows clicks to pass through */}
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 pointer-events-none"></div>
+            {/* Aspect ratio container with responsive scaling */}
+            <div className="aspect-ratio-box relative" style={{ paddingBottom: '177.78%' }}> {/* 16:9 aspect ratio */}
+              <img 
+                src={photo.thumbnailDataUrl || photo.dataUrl} 
+                alt="Combined photo thumbnail" 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
+                onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
+                onClick={() => {
+                  console.warn('!!! THUMBNAIL IMG CLICKED !!! Setting full image URL to:', photo.dataUrl);
+                  setSelectedFullImageUrl(photo.dataUrl);
+                }}
+              />
+              {/* Overlay for hover effect - allows clicks to pass through */}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 pointer-events-none"></div>
+            </div>
           </div>
         ))}
       </div>
