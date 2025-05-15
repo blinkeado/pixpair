@@ -903,6 +903,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Fixed width from your previous working code
       const W = 2160;
       const H = 1920;
+      const TARGET_ASPECT = W / H; // About 1.125
       
       console.log(`🔄 DEBUG: Using fixed dimensions: ${W}x${H} per image`);
       console.log(`🔄 DEBUG: Setting canvas dimensions to: ${W}x${H*2}`);
@@ -918,14 +919,41 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       
       // Draw images stacked vertically (first on top, second on bottom)
       images.forEach((img, index) => {
-        // Calculate position - y position depends on index
-        const x = 0;
-        const y = index * H;
+        // Calculate cropping dimensions to preserve aspect ratio
+        const imgAspectRatio = img.width / img.height;
         
-        console.log(`🔄 DEBUG: Drawing image ${index+1} at position (${x},${y}) with size ${W}x${H}`);
+        // Variables for source crop rectangle
+        let sourceX, sourceY, sourceWidth, sourceHeight;
+        
+        if (imgAspectRatio > TARGET_ASPECT) {
+          // Image is wider than target - crop from sides
+          sourceHeight = img.height;
+          sourceWidth = img.height * TARGET_ASPECT;
+          sourceX = (img.width - sourceWidth) / 2;
+          sourceY = 0;
+          console.log(`🔄 DEBUG: Image ${index+1} is wider, cropping sides: sourceX=${sourceX}, sourceWidth=${sourceWidth}`);
+        } else {
+          // Image is taller than target - crop from top/bottom
+          sourceWidth = img.width;
+          sourceHeight = img.width / TARGET_ASPECT;
+          sourceX = 0;
+          sourceY = (img.height - sourceHeight) / 2;
+          console.log(`🔄 DEBUG: Image ${index+1} is taller, cropping top/bottom: sourceY=${sourceY}, sourceHeight=${sourceHeight}`);
+        }
+        
+        // Destination position (stacked vertically)
+        const destX = 0;
+        const destY = index * H;
+        
+        console.log(`🔄 DEBUG: Drawing image ${index+1}: source(${sourceX},${sourceY},${sourceWidth},${sourceHeight}) -> dest(${destX},${destY},${W},${H})`);
         
         try {
-          ctx.drawImage(img, x, y, W, H);
+          // Use 9-argument version of drawImage to crop source and place on canvas
+          ctx.drawImage(
+            img,
+            sourceX, sourceY, sourceWidth, sourceHeight, // Source crop rectangle
+            destX, destY, W, H                           // Destination rectangle
+          );
           console.log(`🔄 DEBUG: Successfully drew image ${index+1}`);
         } catch (drawError) {
           console.error(`🔄 ERROR: Failed to draw image ${index+1}:`, drawError);
