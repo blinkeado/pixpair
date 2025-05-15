@@ -256,7 +256,149 @@ await photosRef.set({
    - ✅ Consider using Firebase Storage for larger files
    - ❌ Avoid storing excessive data in the Realtime Database
 
-## 5. Troubleshooting Guide
+## 5. Image Handling Best Practices
+
+### Current Implementation
+
+The app handles images in two different formats:
+- **Thumbnails**: Lower resolution for faster loading in galleries
+- **Full-size images**: Original resolution for detailed viewing
+
+```javascript
+// In CombinedPhotoGallery.jsx - Gallery items setup
+const galleryItems = combinedPhotos.map(photo => ({
+  src: photo.dataUrl, // Full-size image for modal
+  thumbnail: photo.thumbnailDataUrl || photo.dataUrl, // Use thumbnail if available, fallback to full image
+  width: photo.width || 500,
+  height: photo.height || 375,
+  caption: `Photo ${photo.id}`,
+  thumbnailWidth: 250,
+  thumbnailHeight: 188,
+}));
+```
+
+### Image Modal Implementation
+
+When a user clicks on a thumbnail, the full-size image is displayed in a modal:
+
+```jsx
+// In CombinedPhotoGallery.jsx - Modal component
+const PhotoModal = ({ imageUrl, onClose }) => {
+  if (!imageUrl) return null;
+
+  return (
+    <div 
+      className="photo-modal fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[9999]"
+      onClick={onClose}
+      style={{ pointerEvents: 'auto' }}
+    >
+      <div 
+        className="modal-content bg-white p-2 rounded-lg shadow-xl max-w-full max-h-full relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img 
+          src={imageUrl} 
+          alt="Full resolution" 
+          className="max-w-full max-h-[90vh] object-contain"
+        />
+        <button 
+          className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1"
+          onClick={onClose}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+```
+
+### CSS Configuration for Gallery Clickability
+
+A key issue with React Grid Gallery is ensuring thumbnails remain clickable when overlapping elements exist. The following CSS fixes were applied:
+
+```css
+/* Fix for ReactGridGallery clickability issues */
+.ReactGridGallery_tile {
+  z-index: 10 !important; /* Ensure tiles are above other elements */
+  pointer-events: auto !important; /* Force pointer events */
+  cursor: pointer !important; /* Ensure cursor indicates clickability */
+  position: relative !important; /* Ensure stacking context */
+}
+
+.ReactGridGallery_tile-viewport {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.ReactGridGallery_tile-viewport img {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure camera-screen-content doesn't block gallery clicks */
+.camera-screen-content {
+  pointer-events: none; /* Let clicks pass through except for its buttons */
+}
+
+/* Make sure specific buttons still receive clicks */
+.camera-screen-content button,
+.session-header,
+.gallery-save-controls button {
+  pointer-events: auto; 
+}
+```
+
+### Thumbnail Generation
+
+When saving photos, we generate both a full-size image and a thumbnail:
+
+```javascript
+// In CameraScreen.jsx - Photo processing
+const processAndSavePhoto = async (capturedImage) => {
+  // Create full-size image
+  const fullImage = capturedImage.toDataURL('image/jpeg', 0.85);
+  
+  // Create thumbnail (lower quality, smaller size)
+  const thumbnailCanvas = document.createElement('canvas');
+  thumbnailCanvas.width = Math.round(capturedImage.width * 0.5);
+  thumbnailCanvas.height = Math.round(capturedImage.height * 0.5);
+  const thumbnailCtx = thumbnailCanvas.getContext('2d');
+  thumbnailCtx.drawImage(capturedImage, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+  const thumbnailDataUrl = thumbnailCanvas.toDataURL('image/jpeg', 0.6);
+  
+  // Save both to Firebase
+  const photoRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
+  await photoRef.set({
+    dataUrl: fullImage,
+    thumbnailDataUrl: thumbnailDataUrl,
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    width: capturedImage.width,
+    height: capturedImage.height,
+  });
+};
+```
+
+### Lessons Learned
+
+1. **Thumbnail Strategy**:
+   - ✅ Generate and store separate thumbnails for gallery displays
+   - ❌ Avoid using full-size images as thumbnails (performance issues)
+   - ✅ Use appropriate quality settings for both images
+
+2. **Gallery Component Behavior**:
+   - ✅ Handle z-index and pointer-events carefully when using gallery libraries
+   - ❌ Avoid overlapping div elements that can intercept clicks 
+   - ✅ Implement proper modal closing through backdrop clicks
+
+3. **Performance Considerations**:
+   - ✅ Use image compression options to reduce file sizes
+   - ✅ Implement lazy loading for gallery images
+   - ✅ Implement responsive image sizing based on device capabilities
+
+## 6. Troubleshooting Guide
 
 ### Common Issues and Solutions
 
@@ -285,7 +427,7 @@ await photosRef.set({
    - **Cause**: Path resolution differences, missing files in build
    - **Solution**: Use relative paths within src directory, verify files are included in build
 
-## 6. Best Practices for Future Development
+## 7. Best Practices for Future Development
 
 1. **Code Organization**
    - Keep Firebase service methods in dedicated service files
@@ -312,7 +454,7 @@ await photosRef.set({
    - Consider using Cloud Functions for server-side operations
    - Optimize image sizes before storage
 
-## 7. Changes Tracking
+## 8. Changes Tracking
 
 ### Significant Changes Made
 

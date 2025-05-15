@@ -242,7 +242,69 @@ const handleViewAlbum = () => {
 5. Use consistent button styles throughout the application
 6. Implement responsive design considerations for different screen sizes
 
+## Gallery CSS Issues and Solutions
+
+### ReactGridGallery Clickability Issues
+
+The ReactGridGallery component can experience issues with thumbnails not being clickable due to overlapping elements and z-index conflicts. This occurs because:
+
+1. The camera-screen-content div overlays the entire screen
+2. Z-index conflicts prevent clicks from reaching gallery tiles
+3. Pointer-events are not properly configured
+
+### Solution
+
+Add the following CSS to resolve gallery clickability issues:
+
+```css
+/* Fix for ReactGridGallery clickability issues */
+.ReactGridGallery_tile {
+  z-index: 10 !important; /* Ensure tiles are above other elements */
+  pointer-events: auto !important; /* Force pointer events */
+  cursor: pointer !important; /* Ensure cursor indicates clickability */
+  position: relative !important; /* Ensure stacking context */
+}
+
+.ReactGridGallery_tile-viewport {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.ReactGridGallery_tile-viewport img {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure all gallery elements are visible and clickable */
+.ReactGridGallery {
+  pointer-events: auto !important;
+  z-index: 10 !important;
+  position: relative !important;
+}
+
+/* Ensure camera-screen-content doesn't block gallery clicks */
+.camera-screen-content {
+  pointer-events: none; /* Let clicks pass through except for its buttons */
+}
+
+/* Make sure specific buttons still receive clicks */
+.camera-screen-content button,
+.session-header,
+.gallery-save-controls button {
+  pointer-events: auto; 
+}
+```
+
+### Key Concepts
+
+1. **Z-index Management**: Ensure gallery components have higher z-index than overlapping elements
+2. **Pointer-events Configuration**: Use pointer-events: none on container elements that should pass clicks through
+3. **Selective Click Handling**: Re-enable pointer-events: auto only on interactive elements
+4. **Proper Stacking Context**: Use position: relative to create proper stacking contexts
+
+This solution resolves the issue where clicking on gallery thumbnails doesn't trigger the full-size image modal.
+
 ---
 
-Document Version: 1.0
-Last Updated: May 14, 2023 
+Document Version: 1.1
+Last Updated: May 15, 2025 
