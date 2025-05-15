@@ -85,11 +85,52 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
   };
   
   // Handle image click for react-grid-gallery
-  const handleClick = (index) => {
-    console.log('🖼️ CLICK DEBUG: Setting image URL for index:', index);
-    const photo = combinedPhotos[index];
-    if (photo && photo.dataUrl) {
-      setSelectedFullImageUrl(photo.dataUrl);
+  const handleClick = (index, item, event) => {
+    console.log('🖼️ CLICK DEBUG: Image clicked at index:', index);
+    
+    try {
+      // Get the photo from our combinedPhotos array
+      const photo = combinedPhotos[index];
+      
+      if (!photo) {
+        console.error('🖼️ CLICK ERROR: No photo found at index', index);
+        return;
+      }
+      
+      // Log photo details for debugging
+      console.log('🖼️ CLICK DEBUG: Photo details:', JSON.stringify({
+        id: photo.id || 'unknown',
+        hasDataUrl: !!photo.dataUrl,
+        dataUrlLength: photo.dataUrl ? photo.dataUrl.length : 0,
+        hasThumbnail: !!photo.thumbnailDataUrl,
+        thumbnailLength: photo.thumbnailDataUrl ? photo.thumbnailDataUrl.length : 0
+      }));
+      
+      // Also log what we received from the gallery component
+      console.log('🖼️ CLICK DEBUG: Gallery item details:', JSON.stringify({
+        hasSrc: !!item?.src,
+        srcLength: item?.src ? item.src.length : 0,
+      }));
+      
+      // First try using the dataUrl from our photo object
+      if (photo.dataUrl) {
+        console.log('🖼️ CLICK DEBUG: Setting full image URL from photo.dataUrl');
+        setSelectedFullImageUrl(photo.dataUrl);
+        return;
+      }
+      
+      // Fallback to the src property from the gallery item if available
+      if (item && item.src) {
+        console.log('🖼️ CLICK DEBUG: Falling back to gallery item src');
+        setSelectedFullImageUrl(item.src);
+        return;
+      }
+      
+      // If no image URL found, log an error
+      console.error('🖼️ CLICK ERROR: No valid image URL found for this photo');
+      
+    } catch (error) {
+      console.error('🖼️ CLICK ERROR: Exception in handleClick:', error);
     }
   };
 

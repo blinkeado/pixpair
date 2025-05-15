@@ -847,7 +847,11 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           dataUrlLength: photo.dataUrl ? photo.dataUrl.length : 0,
           timestamp: photo.timestamp
         }));
-        return photos[id].dataUrl;
+        // Make sure to return the dataUrl property explicitly
+        if (!photo.dataUrl) {
+          console.error(`🔄 ERROR: Missing dataUrl for photo from participant ${id}`);
+        }
+        return photo.dataUrl;
       });
       
       console.log('🔄 DEBUG: Extracted data URLs for all participants');
@@ -1049,9 +1053,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         const combinedPhotoRef = database.ref(`sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
         console.log(`🔄 DEBUG: Created Firebase reference at: sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
         
+        // Check if both data URLs are valid before saving
+        if (!combinedDataUrl) {
+          throw new Error('Combined photo data URL is missing');
+        }
+        
+        console.log(`🔄 DEBUG: dataUrl length: ${combinedDataUrl.length}, thumbnailDataUrl length: ${thumbnailDataUrl?.length || 0}`);
+        
         await combinedPhotoRef.set({
           dataUrl: combinedDataUrl,
-          thumbnailDataUrl: thumbnailDataUrl,
+          thumbnailDataUrl: thumbnailDataUrl || null, // Use null as fallback if thumbnail generation fails
           timestamp: firebase.database.ServerValue.TIMESTAMP,
           participantIds: participantIds,
           isCombined: true  // Explicitly mark as combined photo
