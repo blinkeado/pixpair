@@ -89,20 +89,23 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
         {combinedPhotos.map((photo, index) => ( 
           <div 
             key={`combined-${photo.id || index}`} 
-            className="gallery-thumbnail-item relative cursor-pointer group overflow-hidden border-4 border-red-500 bg-yellow-300 bg-opacity-50 rounded-md"
+            className="gallery-thumbnail-item relative overflow-hidden border-4 border-red-500 bg-yellow-300 bg-opacity-50 rounded-md"
+            onClick={() => handleThumbnailClick(photo.dataUrl)}
+            style={{ cursor: 'pointer' }}
           >
             {/* Aspect ratio container with responsive scaling */}
             <div className="aspect-ratio-box relative" style={{ paddingBottom: '177.78%' }}> {/* 16:9 aspect ratio */}
               <img 
                 src={photo.thumbnailDataUrl || photo.dataUrl} 
                 alt="Combined photo thumbnail" 
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-pointer"
                 onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
                 onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
-                onClick={() => handleThumbnailClick(photo.dataUrl)}
               />
-              {/* Overlay for hover effect - allows clicks to pass through */}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 pointer-events-none"></div>
+              {/* Overlay for hover effect */}
+              <div 
+                className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-300"
+              ></div>
             </div>
           </div>
         ))}
