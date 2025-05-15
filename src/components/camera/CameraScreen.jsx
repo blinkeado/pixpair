@@ -908,6 +908,11 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.log(`🔄 DEBUG: Using fixed dimensions: ${W}x${H} per image`);
       console.log(`🔄 DEBUG: Setting canvas dimensions to: ${W}x${H*2}`);
       
+      // Add requested debug logs
+      console.log('🛠️ DEBUG: canvasRef.current:', canvasRef.current);
+      console.log('🛠️ DEBUG: canvas element id/class:', canvasRef.current?.id, canvasRef.current?.className);
+      console.log('🛠️ DEBUG: pre-set dimensions:', canvas.width, canvas.height);
+      
       // Set canvas dimensions for vertical stacking
       canvas.width = W;
       canvas.height = H * 2; // Stack images vertically
