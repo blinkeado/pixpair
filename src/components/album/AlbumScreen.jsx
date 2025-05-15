@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RowsPhotoAlbum } from "react-photo-album";
-import "react-photo-album/rows.css";
+import { Gallery } from "react-grid-gallery";
 
 const AlbumScreen = ({ onCreateSession, onReturn }) => {
   const [photos, setPhotos] = useState([]);
@@ -77,13 +76,18 @@ const AlbumScreen = ({ onCreateSession, onReturn }) => {
       {photos.length > 0 ? (
         <div className="album-content">
           <h2>Individual Photos</h2>
-          <RowsPhotoAlbum 
-            photos={photos.map(photo => ({
+          <Gallery 
+            images={photos.map(photo => ({
               src: photo.url,
-              width: photo.width,
-              height: photo.height,
-              alt: photo.timestamp
+              thumbnail: photo.url,
+              thumbnailWidth: photo.width,
+              thumbnailHeight: photo.height,
+              caption: new Date(photo.timestamp).toLocaleString(),
+              alt: `Photo taken at ${new Date(photo.timestamp).toLocaleString()}`
             }))}
+            enableImageSelection={false}
+            rowHeight={180}
+            margin={4}
           />
         </div>
       ) : (
