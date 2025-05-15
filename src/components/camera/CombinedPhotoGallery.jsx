@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Gallery } from 'react-grid-gallery';
 
 // Simple Modal Component (can be moved to its own file later)
 const PhotoModal = ({ imageUrl, onClose }) => {
@@ -76,41 +77,53 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
 
   console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state before render:', selectedFullImageUrl ? 'URL set' : 'null');
 
-  const handleThumbnailClick = (url) => {
-    console.log('🖼️ CLICK DEBUG: Setting image URL from handleThumbnailClick, url exists:', !!url);
-    // Force image URL to be a string in case it's something else
-    setSelectedFullImageUrl(url);
+  // Convert photos to the format expected by react-grid-gallery
+  const galleryImages = combinedPhotos.map((photo) => {
+    // Extract timestamp in a user-friendly format
+    const date = photo.timestamp ? new Date(photo.timestamp) : new Date();
+    const formattedDate = date.toLocaleString();
+    
+    // Calculate aspect ratio from the original thumbnail
+    // For combined photos, we're using 2160x3840 (9:16 ratio, taller than wide)
+    // But react-grid-gallery wants width and height
+    const width = 270;  // Based on our thumbnail width
+    const height = 480; // Based on our thumbnail height
+    
+    return {
+      src: photo.dataUrl,
+      thumbnail: photo.thumbnailDataUrl || photo.dataUrl,
+      thumbnailWidth: width,
+      thumbnailHeight: height,
+      width: width,
+      height: height,
+      caption: `Combined photo created on ${formattedDate}`,
+      alt: "Combined photo",
+      tags: photo.participantIds ? photo.participantIds.map(id => ({
+        value: id,
+        title: participantInfo && participantInfo[id] ? participantInfo[id].name || id : id
+      })) : [],
+    };
+  });
+
+  // Handle image click in the gallery
+  const handleImageClick = (index) => {
+    console.log('🖼️ CLICK DEBUG: Image clicked at index', index);
+    if (index >= 0 && index < combinedPhotos.length) {
+      setSelectedFullImageUrl(combinedPhotos[index].dataUrl);
+    }
   };
 
   return (
-    <div className="combined-photo-gallery p-1 w-full"> {/* Slightly increased padding, full width */} 
-      {/* Responsive grid: 3 columns on desktop, 2 on medium screens, 1 on mobile */}
-      <div className="gallery-grid-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-        {combinedPhotos.map((photo, index) => ( 
-          <div 
-            key={`combined-${photo.id || index}`} 
-            className="gallery-thumbnail-item relative overflow-hidden border-4 border-red-500 bg-yellow-300 bg-opacity-50 rounded-md"
-            onClick={() => handleThumbnailClick(photo.dataUrl)}
-            style={{ cursor: 'pointer' }}
-          >
-            {/* Aspect ratio container with responsive scaling */}
-            <div className="aspect-ratio-box relative" style={{ paddingBottom: '177.78%' }}> {/* 16:9 aspect ratio */}
-              <img 
-                src={photo.thumbnailDataUrl || photo.dataUrl} 
-                alt="Combined photo thumbnail" 
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 cursor-pointer"
-                onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
-                onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
-              />
-              {/* Overlay for hover effect */}
-              <div 
-                className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-300"
-              ></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* PhotoModal outside other elements to avoid CSS conflicts */}
+    <div className="combined-photo-gallery p-2 w-full">
+      <Gallery
+        images={galleryImages}
+        enableImageSelection={false}
+        rowHeight={180}
+        margin={3}
+        onClick={(index) => handleImageClick(index)}
+      />
+      
+      {/* PhotoModal for displaying full-size images */}
       <PhotoModal 
         imageUrl={selectedFullImageUrl} 
         onClose={() => {
