@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 
 // Simple Modal Component (can be moved to its own file later)
 const PhotoModal = ({ imageUrl, onClose }) => {
+  console.log('🖼️ MODAL DEBUG: PhotoModal render, imageUrl exists:', !!imageUrl);
   if (!imageUrl) return null;
 
   return (
     <div 
-      className="photo-modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+      className="photo-modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
       onClick={onClose} // Close on backdrop click
     >
       <div 
@@ -84,7 +85,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
                 onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
                 onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
                 onClick={() => {
-                  console.warn('!!! THUMBNAIL IMG CLICKED !!! Setting full image URL to:', photo.dataUrl);
+                  console.log('🖼️ CLICK DEBUG: Setting image URL, dataUrl exists:', !!photo.dataUrl);
                   setSelectedFullImageUrl(photo.dataUrl);
                 }}
               />
