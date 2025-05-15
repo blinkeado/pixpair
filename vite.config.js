@@ -16,11 +16,11 @@ export default defineConfig({
       input: {
         main: './index.html'
       },
-      external: ['firebase', 'react-grid-gallery']
+      external: ['firebase']
     }
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-grid-gallery']
+    include: ['react', 'react-dom']
   },
   server: {
     headers: {

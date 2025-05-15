@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Gallery } from 'react-grid-gallery';
 
 // Simple Modal Component (can be moved to its own file later)
 const PhotoModal = ({ imageUrl, onClose }) => {
@@ -77,53 +76,65 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
 
   console.log('🖼️ GALLERY DEBUG: selectedFullImageUrl state before render:', selectedFullImageUrl ? 'URL set' : 'null');
 
-  // Convert photos to the format expected by react-grid-gallery
-  const galleryImages = combinedPhotos.map((photo) => {
-    // Extract timestamp in a user-friendly format
-    const date = photo.timestamp ? new Date(photo.timestamp) : new Date();
-    const formattedDate = date.toLocaleString();
-    
-    // Calculate aspect ratio from the original thumbnail
-    // For combined photos, we're using 2160x3840 (9:16 ratio, taller than wide)
-    // But react-grid-gallery wants width and height
-    const width = 270;  // Based on our thumbnail width
-    const height = 480; // Based on our thumbnail height
-    
-    return {
-      src: photo.dataUrl,
-      thumbnail: photo.thumbnailDataUrl || photo.dataUrl,
-      thumbnailWidth: width,
-      thumbnailHeight: height,
-      width: width,
-      height: height,
-      caption: `Combined photo created on ${formattedDate}`,
-      alt: "Combined photo",
-      tags: photo.participantIds ? photo.participantIds.map(id => ({
-        value: id,
-        title: participantInfo && participantInfo[id] ? participantInfo[id].name || id : id
-      })) : [],
-    };
-  });
-
-  // Handle image click in the gallery
-  const handleImageClick = (index) => {
-    console.log('🖼️ CLICK DEBUG: Image clicked at index', index);
-    if (index >= 0 && index < combinedPhotos.length) {
-      setSelectedFullImageUrl(combinedPhotos[index].dataUrl);
-    }
+  // Handle image click
+  const handleClick = (url) => {
+    console.log('🖼️ CLICK DEBUG: Setting image URL, url exists:', !!url);
+    setSelectedFullImageUrl(url);
+  };
+  
+  // Format timestamp into readable date
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleString();
   };
 
   return (
-    <div className="combined-photo-gallery p-2 w-full">
-      <Gallery
-        images={galleryImages}
-        enableImageSelection={false}
-        rowHeight={180}
-        margin={3}
-        onClick={(index) => handleImageClick(index)}
-      />
+    <div className="combined-photo-gallery p-3 w-full">
+      {/* Masonry-style grid layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {combinedPhotos.map((photo, index) => (
+          <div 
+            key={`combined-${photo.id || index}`}
+            className="photo-item flex flex-col rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white"
+            style={{ cursor: 'pointer' }}
+            onClick={() => handleClick(photo.dataUrl)}
+          >
+            {/* Image container with fixed aspect ratio */}
+            <div className="relative pt-[177.78%]"> {/* 16:9 aspect ratio */}
+              <img 
+                src={photo.thumbnailDataUrl || photo.dataUrl} 
+                alt="Combined photo"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                onLoad={() => console.log(`🖼️ GALLERY DEBUG: Thumbnail loaded for ${photo.id}`)}
+                onError={(e) => console.error(`🖼️ GALLERY DEBUG: Error loading thumbnail for ${photo.id}:`, e)}
+              />
+            </div>
+            
+            {/* Image metadata */}
+            <div className="p-2 text-sm">
+              <div className="font-medium text-gray-900">Combined Photo</div>
+              <div className="text-xs text-gray-500">{formatDate(photo.timestamp)}</div>
+              
+              {/* Participants */}
+              {photo.participantIds && photo.participantIds.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {photo.participantIds.map((id, i) => (
+                    <span 
+                      key={id} 
+                      className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs"
+                    >
+                      {participantInfo && participantInfo[id] ? participantInfo[id].name || id : `User ${i+1}`}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
       
-      {/* PhotoModal for displaying full-size images */}
+      {/* Modal for full-size image */}
       <PhotoModal 
         imageUrl={selectedFullImageUrl} 
         onClose={() => {
