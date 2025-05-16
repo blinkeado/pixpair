@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import firebase, { database } from '../../services/firebase';
+import useEmblaCarousel from 'embla-carousel-react';
 import Logo from '../../components/Logo';
 import CombinedPhotoGallery from './CombinedPhotoGallery';
 import AppUtils from '../../utils/AppUtils';
+
+// Add Embla carousel styles
+const emblaStyles = {
+  carousel: "overflow-hidden",
+  container: "flex",
+  slide: "flex-shrink-0 min-w-0 mx-1 rounded"
+};
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [error, setError] = useState(null);
@@ -15,6 +23,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [copySuccess, setCopySuccess] = useState('');
   const [combinedPhotos, setCombinedPhotos] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
+  const [sessionThumbnails, setSessionThumbnails] = useState([]);
+  const [emblaRef] = useEmblaCarousel({ loop: false, align: 'start', containScroll: 'trimSnaps' });
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -692,11 +702,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const canvas = canvasRef.current;
       
       if (!video || !canvas) {
+        console.error('📸 DEBUG: Video or canvas reference is null');
         throw new Error('Video or canvas reference is missing');
       }
       
-      // Extra check for video readiness
-      if (video.videoWidth <= 0 || video.videoHeight <= 0) {
+      // Check if video has valid dimensions
+      if (!video.videoWidth || !video.videoHeight) {
         console.error('📸 DEBUG: Video dimensions are invalid:', video.videoWidth, video.videoHeight);
         throw new Error('Video not ready for capture');
       }
@@ -739,9 +750,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         dataUrl: dataUrl,
         timestamp: firebase.database.ServerValue.TIMESTAMP
       });
-      
-      const photoId = newPhotoRef.key;
-      console.log(`📸 DEBUG: Photo saved successfully to Firebase with ID: ${photoId}`);
       
       // Add a short delay then check Firebase structure and attempt to create combined photo
       setTimeout(() => {
@@ -1043,9 +1051,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   // Create a combined photo from multiple participant photos
   const createCombinedPhoto = async (sessionId, photos, participantIds, mergerInfo) => {
+    console.log('🔄 DEBUG: Create combined photo called with session ID:', sessionId);
     try {
-      console.log('🔄 DEBUG: Starting combined photo creation');
-      console.log(`🔄 DEBUG: Creating combined photo for ${participantIds.length} participants`);
+      console.log('🔄 DEBUG: Creating combined photo for', participantIds.length, 'participants');
       console.log('🔄 DEBUG: Participant IDs:', JSON.stringify(participantIds));
       console.log('🔄 DEBUG: Merger info:', JSON.stringify(mergerInfo));
       
@@ -1201,6 +1209,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       try {
         combinedDataUrl = canvas.toDataURL('image/jpeg', 0.95); // Use 0.95 quality as in your previous code
         console.log(`🔄 DEBUG: Combined photo created, data URL length: ${combinedDataUrl.length}`);
+        
+        // Add to session thumbnails
+        setSessionThumbnails(prev => [...prev, combinedDataUrl]);
       } catch (dataUrlError) {
         console.error('🔄 ERROR: Failed to convert canvas to data URL:', dataUrlError);
         throw dataUrlError;
@@ -1639,6 +1650,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     }
   }, [combinedPhotos]);
   
+  // Reset session thumbnails when session changes
+  useEffect(() => {
+    // Clear session thumbnails when sessionId changes
+    setSessionThumbnails([]);
+  }, [sessionId]);
+  
   return (
     <div className="camera-screen">
       {/* Camera container with video feed */}
@@ -1721,6 +1738,28 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         {!showGallery && (
           <div className="viewfinder-area">
             {/* Empty space for camera view, which is positioned behind in the camera-container */}
+          </div>
+        )}
+        
+        {/* Session Thumbnails Carousel - with improved styling */}
+        {!showGallery && sessionThumbnails.length > 0 && (
+          <div className="absolute bottom-20 left-0 right-0 z-50 p-2 pointer-events-none">
+            <div className={`${emblaStyles.carousel} pointer-events-auto bg-black bg-opacity-30 p-2 rounded-lg`} ref={emblaRef}>
+              <div className={emblaStyles.container}>
+                {sessionThumbnails.map((url, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`${emblaStyles.slide} w-24 h-16 border border-gray-200 overflow-hidden shadow-md`}
+                  >
+                    <img 
+                      src={url} 
+                      alt={`Session photo ${idx + 1}`} 
+                      className="object-cover w-full h-full" 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
         
