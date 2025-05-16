@@ -85,6 +85,20 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     return () => {
       console.log('🎥 CameraScreen unmounting - stopping camera');
       stopCamera();
+      
+      // Remove any legacy slide containers on unmount
+      const slideContainer = document.getElementById('slideContainer');
+      if (slideContainer) {
+        console.log('🧹 DEBUG: Removing legacy slideContainer on unmount');
+        slideContainer.remove();
+      }
+      
+      const hintText = document.getElementById('hintText');
+      if (hintText) {
+        console.log('🧹 DEBUG: Removing legacy hintText on unmount');
+        hintText.remove();
+      }
+      
       if (countdownRef.current) {
         clearInterval(countdownRef.current);
       }
@@ -117,32 +131,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Then initialize the camera
     initializeCamera();
-    
-    // Create the slideContainer if it doesn't exist yet
-    let slideContainer = document.getElementById('slideContainer');
-    if (!slideContainer) {
-      console.log('📊 DEBUG: Creating slideContainer for vertical photo scrolling');
-      slideContainer = document.createElement('div');
-      slideContainer.id = 'slideContainer';
-      slideContainer.className = 'slide-container w-full h-full flex flex-col items-center';
-      slideContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory;';
-      
-      // Add the camera feed as first slide
-      const cameraSlide = document.createElement('div');
-      cameraSlide.className = 'camera-slide slide';
-      cameraSlide.style.cssText = 'width: 100%; height: 100vh; scroll-snap-align: start; position: relative;';
-      slideContainer.appendChild(cameraSlide);
-      
-      // Add a hint text for swiping
-      const hintText = document.createElement('div');
-      hintText.id = 'hintText';
-      hintText.className = 'hint-text';
-      hintText.textContent = 'Swipe up to view photos';
-      hintText.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity 0.3s ease;';
-      
-      document.body.appendChild(slideContainer);
-      document.body.appendChild(hintText);
-    }
     
     // Add current user to participants with authentication info
     const currentUser = firebase.auth().currentUser;
@@ -252,42 +240,24 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       if (combinedPhotosList.length > 0) {
         console.log(`📊 DEBUG: Found ${combinedPhotosList.length} combined photos`);
         
-        // Get the most recent photo (for slideshow if needed)
+        // Update state with combined photos and add to session thumbnails
+        setCombinedPhotos(combinedPhotosList);
+        
+        // Add the latest photo to the session thumbnails for the carousel
         const latestPhoto = combinedPhotosList.sort((a, b) => 
           (b.timestamp || 0) - (a.timestamp || 0)
         )[0];
         
-        // Try to get the slideContainer for showing latest photo
-        const slideContainer = document.getElementById('slideContainer');
-        if (slideContainer && latestPhoto && latestPhoto.dataUrl) {
-          console.log('📊 DEBUG: Adding latest combined photo to slides');
-          // Add this photo to the slide container if it's new
-          const existingSlides = slideContainer.querySelectorAll('.photo-slide');
-          const slideIds = Array.from(existingSlides).map(slide => slide.dataset.photoId);
-          
-          if (!slideIds.includes(latestPhoto.id)) {
-            // Create a new slide for this photo
-            const slide = document.createElement('div');
-            slide.className = 'photo-slide';
-            slide.dataset.photoId = latestPhoto.id;
-            
-            const img = document.createElement('img');
-            img.src = latestPhoto.dataUrl;
-            img.alt = 'Combined Photo';
-            img.className = 'w-full h-auto';
-            
-            slide.appendChild(img);
-            slideContainer.appendChild(slide);
-            
-            // Scroll to the new slide
-            setTimeout(() => {
-              slide.scrollIntoView({ behavior: 'smooth' });
-            }, 300);
-          }
+        if (latestPhoto && latestPhoto.dataUrl) {
+          // Add to session thumbnails for the carousel
+          setSessionThumbnails(prev => {
+            // Only add if not already in the thumbnails
+            if (!prev.includes(latestPhoto.dataUrl)) {
+              return [...prev, latestPhoto.dataUrl];
+            }
+            return prev;
+          });
         }
-        
-        // Update state with ONLY combined photos (no individual photos)
-        setCombinedPhotos(combinedPhotosList);
       }
     });
     
@@ -408,6 +378,23 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const handleExitSession = () => {
     console.log('🎥 Exit session - stopping camera');
     stopCamera();
+    
+    // Remove any existing slideContainer or overlay elements from legacy code
+    const slideContainer = document.getElementById('slideContainer');
+    if (slideContainer) {
+      console.log('🧹 DEBUG: Removing legacy slideContainer');
+      slideContainer.remove();
+    }
+    
+    const hintText = document.getElementById('hintText');
+    if (hintText) {
+      console.log('🧹 DEBUG: Removing legacy hintText');
+      hintText.remove();
+    }
+    
+    // Clear session thumbnails
+    setSessionThumbnails([]);
+    
     if (typeof onExitSession === 'function') {
       onExitSession();
     }
