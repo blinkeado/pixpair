@@ -62,28 +62,21 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     AppUtils.info(`GALLERY: selectedFullImageUrl state changed: ${selectedFullImageUrl ? 'URL set' : 'null'}`);
   }, [selectedFullImageUrl]);
 
-  if (!photos || photos.length === 0) {
-    AppUtils.info('GALLERY: No photos to display');
+  // Filter only for combined photos
+  const combinedPhotos = photos
+    .filter(photo => photo.isCombined || photo.participantIds) // Only combined photos
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    
+  AppUtils.info(`GALLERY: Displaying ${combinedPhotos.length} combined photos only`);
+  
+  if (!combinedPhotos || combinedPhotos.length === 0) {
+    AppUtils.info('GALLERY: No combined photos to display');
     return (
       <div className="combined-photo-empty text-center p-4">
-        <p>No photos captured yet. Combined photos will appear here.</p>
+        <p>No combined photos captured yet. Combined photos will appear here.</p>
       </div>
     );
   }
-
-  // Separate combined and individual photos
-  const combinedPhotos = photos
-    .filter(photo => photo.isCombined || photo.participantIds) // Combined photos
-    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    
-  const individualPhotos = photos
-    .filter(photo => !photo.isCombined && !photo.participantIds) // Individual photos
-    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    
-  AppUtils.info(`GALLERY: Displaying ${combinedPhotos.length} combined photos and ${individualPhotos.length} individual photos`);
-  
-  // Merge photos, prioritizing combined photos first, then individual photos
-  const displayPhotos = [...combinedPhotos, ...individualPhotos];
   
   // Format timestamp into readable date
   const formatDate = (timestamp) => {
@@ -98,7 +91,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     
     try {
       // Get the photo from our combinedPhotos array
-      const photo = displayPhotos[index];
+      const photo = combinedPhotos[index];
       
       if (!photo) {
         console.error('CLICK ERROR: No photo found at index', index);
@@ -117,8 +110,8 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     }
   };
 
-  // Create images array for react-grid-gallery
-  const galleryImages = displayPhotos.map((photo, index) => {
+  // Create images array for react-grid-gallery - ONLY for combined photos
+  const galleryImages = combinedPhotos.map((photo, index) => {
     // Calculate a consistent width and height for the gallery items
     const width = 800;
     const height = 450; // 16:9 aspect ratio

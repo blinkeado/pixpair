@@ -108,6 +108,32 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Then initialize the camera
     initializeCamera();
     
+    // Create the slideContainer if it doesn't exist yet
+    let slideContainer = document.getElementById('slideContainer');
+    if (!slideContainer) {
+      console.log('📊 DEBUG: Creating slideContainer for vertical photo scrolling');
+      slideContainer = document.createElement('div');
+      slideContainer.id = 'slideContainer';
+      slideContainer.className = 'slide-container w-full h-full flex flex-col items-center';
+      slideContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory;';
+      
+      // Add the camera feed as first slide
+      const cameraSlide = document.createElement('div');
+      cameraSlide.className = 'camera-slide slide';
+      cameraSlide.style.cssText = 'width: 100%; height: 100vh; scroll-snap-align: start; position: relative;';
+      slideContainer.appendChild(cameraSlide);
+      
+      // Add a hint text for swiping
+      const hintText = document.createElement('div');
+      hintText.id = 'hintText';
+      hintText.className = 'hint-text';
+      hintText.textContent = 'Swipe up to view photos';
+      hintText.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity 0.3s ease;';
+      
+      document.body.appendChild(slideContainer);
+      document.body.appendChild(hintText);
+    }
+    
     // Add current user to participants with authentication info
     const currentUser = firebase.auth().currentUser;
     if (currentUser) {
@@ -201,7 +227,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     combinedPhotosRef.on('value', (snapshot) => {
       console.log('📊 DEBUG: Combined photos value event triggered');
       const combinedPhotosData = snapshot.val() || {};
-      console.log('📊 DEBUG: Combined photos data structure:', "[data omitted]");
+      console.log('📊 DEBUG: Combined photos count:', Object.keys(combinedPhotosData).length);
       
       // Transform combinedPhotos data into an array of photos
       const combinedPhotosList = Object.entries(combinedPhotosData).map(([photoId, photoData]) => {
@@ -215,34 +241,43 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       
       if (combinedPhotosList.length > 0) {
         console.log(`📊 DEBUG: Found ${combinedPhotosList.length} combined photos`);
-        console.log('📊 DEBUG: Combined photo list:', JSON.stringify(combinedPhotosList.map(p => ({ 
-          id: p.id, 
-          hasDataUrl: !!p.dataUrl, 
-          dataUrlLength: p.dataUrl ? p.dataUrl.length : 0,
-          timestamp: p.timestamp,
-          participantIds: p.participantIds
-        }))));
         
-        // Merge with existing photos instead of replacing
-        setCombinedPhotos(prevPhotos => {
-          // Filter out any previously stored combined photos (we'll replace with latest)
-          const individualPhotos = prevPhotos.filter(p => !p.isCombined && !p.participantIds);
+        // Get the most recent photo (for slideshow if needed)
+        const latestPhoto = combinedPhotosList.sort((a, b) => 
+          (b.timestamp || 0) - (a.timestamp || 0)
+        )[0];
+        
+        // Try to get the slideContainer for showing latest photo
+        const slideContainer = document.getElementById('slideContainer');
+        if (slideContainer && latestPhoto && latestPhoto.dataUrl) {
+          console.log('📊 DEBUG: Adding latest combined photo to slides');
+          // Add this photo to the slide container if it's new
+          const existingSlides = slideContainer.querySelectorAll('.photo-slide');
+          const slideIds = Array.from(existingSlides).map(slide => slide.dataset.photoId);
           
-          // Create a set of existing photo IDs to avoid duplicates
-          const existingIds = new Set(individualPhotos.map(p => p.id));
-          const combinedIds = new Set(combinedPhotosList.map(p => p.id));
-          
-          // Filter out duplicates from the individual photos
-          const filteredIndividual = individualPhotos.filter(p => !combinedIds.has(p.id));
-          
-          // Merge and sort by timestamp
-          const merged = [...combinedPhotosList, ...filteredIndividual].sort((a, b) =>
-            (b.timestamp || 0) - (a.timestamp || 0)
-          );
-          
-          console.log(`📊 DEBUG: Updated combined photos state: ${merged.length} photos (${combinedPhotosList.length} combined, ${filteredIndividual.length} individual)`);
-          return merged;
-        });
+          if (!slideIds.includes(latestPhoto.id)) {
+            // Create a new slide for this photo
+            const slide = document.createElement('div');
+            slide.className = 'photo-slide';
+            slide.dataset.photoId = latestPhoto.id;
+            
+            const img = document.createElement('img');
+            img.src = latestPhoto.dataUrl;
+            img.alt = 'Combined Photo';
+            img.className = 'w-full h-auto';
+            
+            slide.appendChild(img);
+            slideContainer.appendChild(slide);
+            
+            // Scroll to the new slide
+            setTimeout(() => {
+              slide.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+          }
+        }
+        
+        // Update state with ONLY combined photos (no individual photos)
+        setCombinedPhotos(combinedPhotosList);
       }
     });
     
@@ -250,9 +285,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     photosRef.on('value', (snapshot) => {
       console.log('📊 DEBUG: Photos value event triggered');
       const photosData = snapshot.val() || {};
-      console.log('📊 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photosData)));
+      console.log('📊 DEBUG: Photos participants count:', Object.keys(photosData).length);
       
-      // Transform the data into an array of photos with user info
+      // Transform the data into an array of photos with user info - for processing only
       const photoList = [];
       
       Object.entries(photosData).forEach(([userId, userPhotos]) => {
@@ -274,7 +309,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             console.log(`📊 DEBUG: Found ${Object.keys(userPhotos).length} photos for user ${userId}`);
             Object.entries(userPhotos).forEach(([photoId, photoData]) => {
               if (photoData && photoData.dataUrl) {
-                console.log(`📊 DEBUG: Adding photo ${photoId} for user ${userId}`);
+                console.log(`📊 DEBUG: Processing photo ${photoId} for user ${userId}`);
                 photoList.push({
                   userId,
                   photoId,
@@ -291,29 +326,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       
       console.log(`📊 DEBUG: Processed ${photoList.length} individual photos from ${Object.keys(photosData).length} participants`);
       
-      // Update with individual photos regardless of combined photos
-      // This ensures all photos are visible in the gallery
-      if (photoList.length > 0) {
-        // Merge with existing combined photos instead of replacing
-        setCombinedPhotos(prevCombined => {
-          // Get only the combined photos from the current state
-          const existingCombined = prevCombined.filter(p => p.isCombined || p.participantIds);
-          
-          // Create a set of photo IDs to avoid duplicates
-          const photoIds = new Set(existingCombined.map(p => p.id));
-          
-          // Add new photos that aren't already in the list
-          const newPhotos = photoList.filter(p => !photoIds.has(p.photoId));
-          
-          // Merge and re-sort by timestamp
-          const merged = [...existingCombined, ...newPhotos].sort((a, b) => 
-            (b.timestamp || 0) - (a.timestamp || 0)
-          );
-          
-          console.log(`📊 DEBUG: Updated combined photos state: ${merged.length} photos (${existingCombined.length} combined, ${newPhotos.length} new)`);
-          return merged;
-        });
-      }
+      // We no longer add individual photos to the gallery - they are only used for combining
+      // The combinedPhotos state should only contain actual combined photos
+      // This listener is just for debugging and ensuring we have the data
     }, (error) => {
       console.error('📊 DEBUG: Error in value listener:', error);
     });
@@ -1270,46 +1285,85 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         await combinedPhotoRef.set(combinedPhotoData);
         console.log(`🔄 DEBUG: Combined photo saved to Firebase Realtime Database with ID: ${combinedPhotoId}`);
         
-        // If merger is authenticated (not anonymous), also save to Firebase Storage
-        if (mergerInfo && !mergerInfo.mergerIsAnonymous) {
-          console.log(`🔄 DEBUG: Saving combined photo to Firebase Storage for authenticated user: ${mergerInfo.mergedBy}`);
+        // Check authentication status of participants
+        const authParticipantIds = [];
+        const guestParticipantIds = [];
+        
+        // Determine which participants are authenticated vs guests
+        for (const pid of participantIds) {
+          if (participantAuthState[pid] && !participantAuthState[pid].isAnonymous) {
+            authParticipantIds.push(pid);
+          } else {
+            guestParticipantIds.push(pid);
+          }
+        }
+        
+        console.log(`🔄 DEBUG: Auth participants: ${authParticipantIds.length}, Guest participants: ${guestParticipantIds.length}`);
+        
+        // Convert dataUrl to blob for Storage upload
+        const response = await fetch(combinedDataUrl);
+        const blob = await response.blob();
+        
+        // CASE 1: At least one participant is authenticated
+        if (authParticipantIds.length > 0) {
+          console.log('🔄 DEBUG: At least one participant is authenticated, storing in their account');
+          
+          // Store in each authenticated user's folder
+          for (const authUid of authParticipantIds) {
+            try {
+              const storagePath = `users/${authUid}/combined/${combinedPhotoId}.jpg`;
+              console.log(`🔄 DEBUG: Storing photo for auth user ${authUid} at path: ${storagePath}`);
+              
+              const storageRef = firebase.storage().ref(storagePath);
+              const uploadTask = await storageRef.put(blob);
+              const downloadURL = await uploadTask.ref.getDownloadURL();
+              
+              // Record the storage info for this user
+              await combinedPhotoRef.child('storageInfo').child(authUid).set({
+                storagePath: storagePath,
+                downloadURL: downloadURL,
+                isAnonymous: false
+              });
+              
+              console.log(`🔄 DEBUG: Successfully stored for auth user ${authUid}`);
+            } catch (storageError) {
+              console.error(`🔄 ERROR: Failed to save to Storage for auth user ${authUid}:`, storageError);
+            }
+          }
+        }
+        // CASE 2: All participants are guests
+        else if (guestParticipantIds.length > 0) {
+          console.log('🔄 DEBUG: All participants are guests, storing in guest storage');
           
           try {
-            // Convert data URL to blob
-            const response = await fetch(combinedDataUrl);
-            const blob = await response.blob();
-            
-            // Create storage reference
-            const storagePath = `users/${mergerInfo.mergedBy}/combined/${combinedPhotoId}.jpg`;
-            console.log(`🔄 DEBUG: Storage path: ${storagePath}`);
+            // Store in a guest area with sessionId for organization
+            const storagePath = `analysisData/guests/${sessionId}/combined/${combinedPhotoId}.jpg`;
+            console.log(`🔄 DEBUG: Storing photo in guest path: ${storagePath}`);
             
             const storageRef = firebase.storage().ref(storagePath);
-            
-            // Upload to Firebase Storage
             const uploadTask = await storageRef.put(blob);
-            
-            // Get download URL
             const downloadURL = await uploadTask.ref.getDownloadURL();
-            console.log(`🔄 DEBUG: Upload successful, download URL: ${downloadURL}`);
             
-            // Update the database entry with storage info
-            await combinedPhotoRef.update({
+            // Record the storage info
+            await combinedPhotoRef.child('storageInfo').set({
               storagePath: storagePath,
-              downloadURL: downloadURL
+              downloadURL: downloadURL,
+              isGuestStorage: true
             });
             
-            console.log(`🔄 DEBUG: Database updated with storage info for combined photo: ${combinedPhotoId}`);
-            
-            // Show success toast
-            setCopySuccess(`Combined photo saved to cloud storage path: ${storagePath}`);
-            setTimeout(() => setCopySuccess(''), 3000);
+            console.log('🔄 DEBUG: Successfully stored for guest users');
           } catch (storageError) {
-            console.error('🔄 ERROR: Failed to save to Firebase Storage:', storageError);
-            // Continue even if storage upload fails - we still have the data in the realtime database
+            console.error('🔄 ERROR: Failed to save to Storage for guests:', storageError);
           }
-        } else {
-          console.log(`🔄 DEBUG: Skipping Firebase Storage upload - user is anonymous or mergerInfo missing`);
         }
+        
+        // Show success toast with appropriate message
+        if (authParticipantIds.length > 0) {
+          setCopySuccess(`Combined photo saved to ${authParticipantIds.length} authenticated user(s)`);
+        } else {
+          setCopySuccess('Combined photo saved to guest storage');
+        }
+        setTimeout(() => setCopySuccess(''), 3000);
         
         return combinedPhotoId;
       } catch (firebaseError) {
@@ -1394,11 +1448,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       }
       
       const isCurrentUserAnonymous = currentUser.isAnonymous;
-      
       AppUtils.info(`Saving combined photos to album. User: ${currentUser.uid}, isAnonymous: ${isCurrentUserAnonymous}`);
       
       // Get participants authentication status
       const participantAuthStatus = {};
+      const authParticipants = [];
+      const guestParticipants = [];
       
       // Add current user's status
       participantAuthStatus[currentUser.uid] = {
@@ -1407,18 +1462,60 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         email: currentUser.email || null
       };
       
+      if (!isCurrentUserAnonymous) {
+        authParticipants.push(currentUser.uid);
+      } else {
+        guestParticipants.push(currentUser.uid);
+      }
+      
       // Add other participants from the session if available
       Object.entries(participants).forEach(([userId, participantData]) => {
         if (userId !== currentUser.uid) {
+          const isAnonymous = participantData.isAnonymous !== undefined ? participantData.isAnonymous : true;
           participantAuthStatus[userId] = {
-            isAnonymous: participantData.isAnonymous !== undefined ? participantData.isAnonymous : true,
+            isAnonymous: isAnonymous,
             displayName: participantData.displayName || 'Unknown',
             // Don't include email for other participants for privacy
           };
+          
+          if (!isAnonymous) {
+            authParticipants.push(userId);
+          } else {
+            guestParticipants.push(userId);
+          }
         }
       });
       
-      AppUtils.info(`Participant authentication status: ${JSON.stringify(participantAuthStatus)}`);
+      AppUtils.info(`Auth participants: ${authParticipants.length}, Guest participants: ${guestParticipants.length}`);
+      
+      // Determine storage path based on authentication rules
+      let savePath = '';
+      let shouldSave = false;
+      
+      // Case 1: At least one authenticated participant
+      if (authParticipants.length > 0) {
+        // If current user is authenticated, save to their storage
+        if (!isCurrentUserAnonymous) {
+          savePath = `users/${currentUser.uid}/combined/`;
+          shouldSave = true;
+          AppUtils.info('Saving to authenticated user storage (current user)');
+        } else {
+          AppUtils.info('Current user is guest but authenticated users exist - saving skipped for this device');
+          shouldSave = false;
+        }
+      }
+      // Case 2: All participants are guests
+      else {
+        savePath = `analysisData/guests/${sessionId}/combined/`;
+        shouldSave = true;
+        AppUtils.info('All participants are guests - saving to guest storage');
+      }
+      
+      if (!shouldSave) {
+        setCopySuccess('Skipped saving - authenticated users exist');
+        setTimeout(() => setCopySuccess(''), 2000);
+        return;
+      }
       
       // Get existing combined sessions from localStorage
       const existingSessionsJSON = localStorage.getItem('combinedSessions');
@@ -1428,12 +1525,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const newSessionEntry = {
         id: sessionId,
         timestamp: Date.now(),
-        photos: combinedPhotos,
+        photos: combinedPhotos.filter(p => p.isCombined || p.participantIds), // Only combined photos
         participantsCount: Object.keys(participants).length,
         savedByUser: currentUser.uid,
         isAnonymous: isCurrentUserAnonymous,
         participantAuthStatus: participantAuthStatus,
-        savePath: isCurrentUserAnonymous ? 'localStorage' : `users/${currentUser.uid}/combined/`
+        savePath: savePath
       };
       
       // Add to beginning of array (newest first)
@@ -1444,10 +1541,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       
       // Display success message
       setError(null);
-      setCopySuccess(`Saved to ${isCurrentUserAnonymous ? 'local' : 'cloud'} album!`);
+      setCopySuccess(`Saved ${newSessionEntry.photos.length} combined photos to ${savePath}`);
       setTimeout(() => setCopySuccess(''), 2000);
       
-      AppUtils.info(`Successfully saved ${combinedPhotos.length} photos to album at ${newSessionEntry.savePath}`);
+      AppUtils.info(`Successfully saved ${newSessionEntry.photos.length} combined photos to ${savePath}`);
       
     } catch (err) {
       console.error('Error saving combined photos:', err);
