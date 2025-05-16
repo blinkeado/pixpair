@@ -108,6 +108,31 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Then initialize the camera
     initializeCamera();
     
+    // Add current user to participants with authentication info
+    const currentUser = firebase.auth().currentUser;
+    if (currentUser) {
+      const userId = currentUser.uid;
+      const isAnonymous = currentUser.isAnonymous;
+      const displayName = currentUser.displayName || (isAnonymous ? 'Guest User' : currentUser.email || 'Unknown');
+      
+      console.log(`📊 DEBUG: Adding current user to participants: ${userId}, isAnonymous: ${isAnonymous}`);
+      
+      // Add participant with auth info to participants node
+      database.ref(`sessions/${sessionId}/participants/${userId}`).set({
+        connected: true,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        displayName: displayName,
+        photoURL: currentUser.photoURL || null,
+        isAnonymous: isAnonymous
+      });
+      
+      // Also update the members node with authentication status
+      database.ref(`sessions/${sessionId}/members/${userId}`).set({
+        isAnonymous: isAnonymous,
+        joinTime: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+    
     // Set up initial session data check
     const sessionRef = database.ref(`sessions/${sessionId}`);
     sessionRef.once('value', (snapshot) => {
@@ -254,12 +279,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Listen for participants in this session
     console.log('📊 DEBUG: Setting up participants listener');
-    const participantsRef = database.ref(`sessions/${sessionId}/members`);
+    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
     participantsRef.on('value', (snapshot) => {
-      const members = snapshot.val() || {};
-      console.log('📊 DEBUG: Participants updated:', JSON.stringify(members));
-      setParticipants(members);
-      setParticipantCount(Object.keys(members).length);
+      const participantData = snapshot.val() || {};
+      console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
+      setParticipants(participantData);
+      setParticipantCount(Object.keys(participantData).length);
     });
     
     // Listen for capture time updates
@@ -675,7 +700,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     }
   };
   
-  // Modified checkAndCreateCombinedPhoto function
+  // Modified checkAndCreateCombinedPhoto function with improved authentication logic
   const checkAndCreateCombinedPhoto = (sessionId) => {
     console.log('🔄 DEBUG: checkAndCreateCombinedPhoto called');
     console.log(`🔄 DEBUG: Current session ID for check: ${sessionId}`);
@@ -697,147 +722,245 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.error('🔄 ERROR: No authenticated user for combined photo check.');
       return;
     }
+    
     const currentUserId = currentUser.uid;
-    console.log(`🔄 DEBUG: Current user ID for owner check: ${currentUserId}`);
+    const isCurrentUserAnonymous = currentUser.isAnonymous;
+    console.log(`🔄 DEBUG: Current user: ID=${currentUserId}, isAnonymous=${isCurrentUserAnonymous}`);
 
     const startTime = Date.now();
     
-    // Fetch session data to determine the owner
-    const sessionRef = database.ref(`sessions/${sessionId}`);
-    console.log(`🔄 DEBUG: Fetching session data from Firebase path: ${sessionRef.toString()}`);
-    sessionRef.once('value')
-      .then(sessionSnapshot => {
-        const sessionData = sessionSnapshot.val();
-        if (!sessionData || !sessionData.owner) {
-          console.error('🔄 ERROR: Could not fetch session data or owner ID.');
-          return;
-        }
-        const ownerId = sessionData.owner;
-        console.log(`🔄 DEBUG: Fetched session owner ID: ${ownerId}`);
-
-        if (currentUserId !== ownerId) {
-          console.log(`🔄 DEBUG: Current user (${currentUserId}) is NOT session owner (${ownerId}). Skipping combined photo creation.`);
-          return;
-        }
-
-        console.log(`🔄 DEBUG: Current user (${currentUserId}) IS session owner. Proceeding with combined photo creation.`);
+    // Fetch participants data to check authentication status
+    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    console.log(`🔄 DEBUG: Fetching participants data from Firebase path: ${participantsRef.toString()}`);
+    
+    participantsRef.once('value')
+      .then(participantsSnapshot => {
+        const participantsData = participantsSnapshot.val() || {};
+        const participantIds = Object.keys(participantsData);
+        console.log(`🔄 DEBUG: Found ${participantIds.length} participants in the session:`, participantIds);
         
-        // Get photos for all participants
-        const photosRef = database.ref(`sessions/${sessionId}/photos`);
-        console.log(`🔄 DEBUG: Checking photos at Firebase path: ${photosRef.toString()}`);
+        // Fetch all participant authentication details
+        const participantDetailsPromises = participantIds.map(participantId => {
+          return database.ref(`sessions/${sessionId}/participants/${participantId}`).once('value');
+        });
         
-        photosRef.once('value')
-          .then(snapshot => {
-            console.log(`🔄 DEBUG: Successfully retrieved photos data from Firebase (${Date.now() - startTime}ms)`);
+        Promise.all(participantDetailsPromises)
+          .then(participantSnapshots => {
+            const participantDetails = {};
             
-            const photos = snapshot.val() || {};
-            const participantIds = Object.keys(photos);
+            // Build a map of participant details
+            participantSnapshots.forEach(snapshot => {
+              if (snapshot.exists()) {
+                const userId = snapshot.key;
+                const data = snapshot.val();
+                participantDetails[userId] = data;
+              }
+            });
             
-            console.log(`🔄 DEBUG: Found photos from ${participantIds.length} participants:`, participantIds);
-            console.log('🔄 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photos).map(id => ({
-              id,
-              hasDataUrl: !!photos[id].dataUrl,
-              dataUrlLength: photos[id].dataUrl ? photos[id].dataUrl.length : 0,
-              timestamp: photos[id].timestamp
-            }))));
+            console.log('🔄 DEBUG: Participant details:', JSON.stringify(participantDetails));
             
-            // Check all photos have dataUrl property
-            const validPhotos = Object.entries(photos).every(([id, photo]) => photo && photo.dataUrl);
-            console.log(`🔄 DEBUG: All photos valid and contain dataUrl: ${validPhotos}`);
+            // Fetch photos data
+            const photosRef = database.ref(`sessions/${sessionId}/photos`);
+            console.log(`🔄 DEBUG: Checking photos at Firebase path: ${photosRef.toString()}`);
             
-            if (!validPhotos) {
-              console.error('🔄 ERROR: Some photos are missing dataUrl property');
-              return;
-            }
-            
-            // Only proceed if we have multiple photos to combine
-            if (participantIds.length < 2) {
-              console.log('🔄 DEBUG: Not enough photos to create a combined photo yet');
-              return;
-            }
-            
-            // Check if a combined photo already exists with these participants
-            console.log('🔄 DEBUG: Checking for existing combined photos with these participants');
-            const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
-            console.log(`🔄 DEBUG: Checking combined photos at Firebase path: ${combinedPhotosRef.toString()}`);
-            
-            combinedPhotosRef.once('value')
-              .then(combinedSnapshot => {
-                console.log(`🔄 DEBUG: Successfully retrieved combined photos data from Firebase (${Date.now() - startTime}ms)`);
+            photosRef.once('value')
+              .then(async snapshot => {
+                console.log(`🔄 DEBUG: Successfully retrieved photos data from Firebase (${Date.now() - startTime}ms)`);
                 
-                const combinedPhotos = combinedSnapshot.val() || {};
-                console.log(`🔄 DEBUG: Found ${Object.keys(combinedPhotos).length} existing combined photos`);
+                const photos = snapshot.val() || {};
+                const participantIds = Object.keys(photos);
                 
-                if (Object.keys(combinedPhotos).length > 0) {
-                  console.log('🔄 DEBUG: Existing combined photos:', JSON.stringify(Object.keys(combinedPhotos).map(id => ({
-                    id,
-                    hasDataUrl: !!combinedPhotos[id].dataUrl,
-                    hasParticipantIds: !!combinedPhotos[id].participantIds,
-                    participantCount: combinedPhotos[id].participantIds ? combinedPhotos[id].participantIds.length : 0
-                  }))));
-                }
+                console.log(`🔄 DEBUG: Found photos from ${participantIds.length} participants:`, participantIds);
+                console.log('🔄 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photos).map(id => ({
+                  id,
+                  hasDataUrl: !!photos[id].dataUrl,
+                  dataUrlLength: photos[id].dataUrl ? photos[id].dataUrl.length : 0,
+                  timestamp: photos[id].timestamp
+                }))));
                 
-                // Check if we already have a combined photo with these exact participants
-                const alreadyExists = Object.values(combinedPhotos).some(photo => {
-                  if (!photo.participantIds) {
-                    console.log('🔄 DEBUG: Found a combined photo without participantIds field');
-                    return false;
-                  }
-                  
-                  // Check if the participantIds arrays have the same content (order doesn\'t matter)
-                  const sameLength = photo.participantIds.length === participantIds.length;
-                  const sameMembers = participantIds.every(id => photo.participantIds.includes(id));
-                  
-                  if (sameLength && sameMembers) {
-                    console.log('🔄 DEBUG: Found existing combined photo with same participants:', JSON.stringify({
-                      participantIds: photo.participantIds,
-                      timestamp: photo.timestamp
-                    }));
-                  }
-                  
-                  return sameLength && sameMembers;
-                });
+                // Check all photos have dataUrl property
+                const validPhotos = Object.entries(photos).every(([id, photo]) => photo && photo.dataUrl);
+                console.log(`🔄 DEBUG: All photos valid and contain dataUrl: ${validPhotos}`);
                 
-                if (alreadyExists) {
-                  console.log('🔄 DEBUG: A combined photo with these participants already exists, skipping creation');
+                if (!validPhotos) {
+                  console.error('🔄 ERROR: Some photos are missing dataUrl property');
                   return;
                 }
                 
-                console.log('🔄 DEBUG: No existing combined photo found with these participants, creating new one');
-                console.log('🔄 DEBUG: Creating combined photo from participant photos');
+                // Only proceed if we have multiple photos to combine
+                if (participantIds.length < 2) {
+                  console.log('🔄 DEBUG: Not enough photos to create a combined photo yet');
+                  return;
+                }
                 
-                createCombinedPhoto(sessionId, photos, participantIds)
-                  .then(photoId => {
-                    const totalTime = Date.now() - startTime;
-                    if (photoId) {
-                      console.log(`🔄 DEBUG: Successfully created combined photo with ID: ${photoId} (total time: ${totalTime}ms)`);
-                    } else {
-                      console.log(`🔄 DEBUG: Failed to create combined photo (total time: ${totalTime}ms)`);
+                // Check if a combined photo already exists with these participants
+                console.log('🔄 DEBUG: Checking for existing combined photos with these participants');
+                const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+                console.log(`🔄 DEBUG: Checking combined photos at Firebase path: ${combinedPhotosRef.toString()}`);
+                
+                // Get authentication state for each participant who took a photo
+                const participantAuthState = {};
+                
+                // Try to determine auth state for each participant based on user data in the session
+                for (const pid of participantIds) {
+                  // Default to unknown
+                  participantAuthState[pid] = {
+                    uid: pid,
+                    isAnonymous: true // Default to anonymous if not known
+                  };
+                  
+                  // Check if we have details for this participant
+                  if (participantDetails[pid]) {
+                    // Use isAnonymous field if it exists
+                    if (participantDetails[pid].isAnonymous !== undefined) {
+                      participantAuthState[pid].isAnonymous = participantDetails[pid].isAnonymous;
                     }
+                    // Use displayName to infer guest status as fallback
+                    else if (participantDetails[pid].displayName === 'Guest') {
+                      participantAuthState[pid].isAnonymous = true;
+                    }
+                  }
+                  
+                  // Current user's auth state is known directly
+                  if (pid === currentUserId) {
+                    participantAuthState[pid].isAnonymous = isCurrentUserAnonymous;
+                  }
+                }
+                
+                console.log('🔄 DEBUG: Participant authentication state:', JSON.stringify(participantAuthState));
+                
+                // Determine which device should create the combined photo
+                // Logic:
+                // 1. If one user is authenticated and others are guests, the authenticated user should save
+                // 2. If multiple users are authenticated, use lexicographically lowest UID
+                // 3. If all are guests, use lexicographically lowest UID
+                
+                const authenticatedParticipants = participantIds.filter(id => 
+                  participantAuthState[id] && !participantAuthState[id].isAnonymous
+                );
+                console.log('🔄 DEBUG: Authenticated participants:', authenticatedParticipants);
+                
+                let shouldCreateCombinedPhoto = false;
+                let createReason = '';
+                
+                if (authenticatedParticipants.length > 0) {
+                  // At least one authenticated user
+                  if (!isCurrentUserAnonymous && authenticatedParticipants.includes(currentUserId)) {
+                    // Current user is authenticated - check if it should save
+                    if (authenticatedParticipants.length === 1) {
+                      // Only authenticated user, should save
+                      shouldCreateCombinedPhoto = true;
+                      createReason = 'Only authenticated user';
+                    } else {
+                      // Multiple authenticated users, use lowest UID
+                      const lowestAuthId = authenticatedParticipants.sort()[0];
+                      shouldCreateCombinedPhoto = (currentUserId === lowestAuthId);
+                      createReason = `Lowest authenticated UID (${lowestAuthId})`;
+                    }
+                  } else {
+                    // Current user is guest but authenticated users exist, should NOT save
+                    shouldCreateCombinedPhoto = false;
+                    createReason = 'Guest user with authenticated participants present';
+                  }
+                } else {
+                  // All guests - use lowest UID
+                  const lowestGuestId = participantIds.sort()[0];
+                  shouldCreateCombinedPhoto = (currentUserId === lowestGuestId);
+                  createReason = `All guests, using lowest UID (${lowestGuestId})`;
+                }
+                
+                console.log(`🔄 DEBUG: Should create combined photo: ${shouldCreateCombinedPhoto}, Reason: ${createReason}`);
+                
+                // Return if we shouldn't create the combined photo
+                if (!shouldCreateCombinedPhoto) {
+                  console.log('🔄 DEBUG: This device should NOT create the combined photo, skipping creation');
+                  return;
+                }
+                
+                // Check if this exact combination already exists
+                combinedPhotosRef.once('value')
+                  .then(combinedSnapshot => {
+                    console.log(`🔄 DEBUG: Successfully retrieved combined photos data from Firebase (${Date.now() - startTime}ms)`);
+                    
+                    const combinedPhotos = combinedSnapshot.val() || {};
+                    console.log(`🔄 DEBUG: Found ${Object.keys(combinedPhotos).length} existing combined photos`);
+                    
+                    // Check if we already have a combined photo with these exact participants
+                    const alreadyExists = Object.values(combinedPhotos).some(photo => {
+                      if (!photo.participantIds) {
+                        console.log('🔄 DEBUG: Found a combined photo without participantIds field');
+                        return false;
+                      }
+                      
+                      // Check if the participantIds arrays have the same content (order doesn't matter)
+                      const sameLength = photo.participantIds.length === participantIds.length;
+                      const sameMembers = participantIds.every(id => photo.participantIds.includes(id));
+                      
+                      if (sameLength && sameMembers) {
+                        console.log('🔄 DEBUG: Found existing combined photo with same participants:', JSON.stringify({
+                          participantIds: photo.participantIds,
+                          timestamp: photo.timestamp
+                        }));
+                      }
+                      
+                      return sameLength && sameMembers;
+                    });
+                    
+                    if (alreadyExists) {
+                      console.log('🔄 DEBUG: A combined photo with these participants already exists, skipping creation');
+                      return;
+                    }
+                    
+                    console.log('🔄 DEBUG: No existing combined photo found with these participants, creating new one');
+                    console.log('🔄 DEBUG: Creating combined photo from participant photos');
+                    
+                    // Add information about the device performing the merge
+                    const mergerInfo = {
+                      mergedBy: currentUserId,
+                      mergerIsAnonymous: isCurrentUserAnonymous
+                    };
+                    
+                    createCombinedPhoto(sessionId, photos, participantIds, mergerInfo)
+                      .then(photoId => {
+                        const totalTime = Date.now() - startTime;
+                        if (photoId) {
+                          console.log(`🔄 DEBUG: Successfully created combined photo with ID: ${photoId} (total time: ${totalTime}ms)`);
+                          
+                          // Show toast notification
+                          setCopySuccess(`Combined photo saved by ${isCurrentUserAnonymous ? 'guest' : 'authenticated'} user!`);
+                          setTimeout(() => setCopySuccess(''), 3000);
+                        } else {
+                          console.log(`🔄 DEBUG: Failed to create combined photo (total time: ${totalTime}ms)`);
+                        }
+                      })
+                      .catch(error => {
+                        console.error('🔄 ERROR in createCombinedPhoto promise:', error);
+                      });
                   })
                   .catch(error => {
-                    console.error('🔄 ERROR in createCombinedPhoto promise:', error);
+                    console.error('🔄 ERROR checking existing combined photos:', error);
                   });
               })
               .catch(error => {
-                console.error('🔄 ERROR checking existing combined photos:', error);
+                console.error('🔄 ERROR checking for photos:', error);
               });
           })
           .catch(error => {
-            console.error('🔄 ERROR checking for photos:', error);
+            console.error('🔄 ERROR fetching participant details:', error);
           });
       })
-      .catch(sessionError => {
-        console.error('🔄 ERROR fetching session data for owner check:', sessionError);
+      .catch(error => {
+        console.error('🔄 ERROR fetching participants:', error);
       });
   };
   
   // Create a combined photo from multiple participant photos
-  const createCombinedPhoto = async (sessionId, photos, participantIds) => {
+  const createCombinedPhoto = async (sessionId, photos, participantIds, mergerInfo) => {
     try {
       console.log('🔄 DEBUG: Starting combined photo creation');
       console.log(`🔄 DEBUG: Creating combined photo for ${participantIds.length} participants`);
       console.log('🔄 DEBUG: Participant IDs:', JSON.stringify(participantIds));
+      console.log('🔄 DEBUG: Merger info:', JSON.stringify(mergerInfo));
       
       // Extract the dataUrls from the participant photos
       const photoDataUrls = participantIds.map(id => {
@@ -1061,15 +1184,61 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         console.log(`🔄 DEBUG: dataUrl length: ${combinedDataUrl.length}, thumbnailDataUrl length: ${thumbnailDataUrl?.length || 0}`);
         
-        await combinedPhotoRef.set({
+        // Create the combined photo data object with merger info
+        const combinedPhotoData = {
           dataUrl: combinedDataUrl,
           thumbnailDataUrl: thumbnailDataUrl || null, // Use null as fallback if thumbnail generation fails
           timestamp: firebase.database.ServerValue.TIMESTAMP,
           participantIds: participantIds,
-          isCombined: true  // Explicitly mark as combined photo
-        });
+          isCombined: true,  // Explicitly mark as combined photo
+          mergerInfo: mergerInfo || null
+        };
         
-        console.log(`🔄 DEBUG: Combined photo saved to Firebase with ID: ${combinedPhotoId}`);
+        // Save to realtime database
+        await combinedPhotoRef.set(combinedPhotoData);
+        console.log(`🔄 DEBUG: Combined photo saved to Firebase Realtime Database with ID: ${combinedPhotoId}`);
+        
+        // If merger is authenticated (not anonymous), also save to Firebase Storage
+        if (mergerInfo && !mergerInfo.mergerIsAnonymous) {
+          console.log(`🔄 DEBUG: Saving combined photo to Firebase Storage for authenticated user: ${mergerInfo.mergedBy}`);
+          
+          try {
+            // Convert data URL to blob
+            const response = await fetch(combinedDataUrl);
+            const blob = await response.blob();
+            
+            // Create storage reference
+            const storagePath = `users/${mergerInfo.mergedBy}/combined/${combinedPhotoId}.jpg`;
+            console.log(`🔄 DEBUG: Storage path: ${storagePath}`);
+            
+            const storageRef = firebase.storage().ref(storagePath);
+            
+            // Upload to Firebase Storage
+            const uploadTask = await storageRef.put(blob);
+            
+            // Get download URL
+            const downloadURL = await uploadTask.ref.getDownloadURL();
+            console.log(`🔄 DEBUG: Upload successful, download URL: ${downloadURL}`);
+            
+            // Update the database entry with storage info
+            await combinedPhotoRef.update({
+              storagePath: storagePath,
+              downloadURL: downloadURL
+            });
+            
+            console.log(`🔄 DEBUG: Database updated with storage info for combined photo: ${combinedPhotoId}`);
+            
+            // Show success toast
+            setCopySuccess(`Combined photo saved to cloud storage path: ${storagePath}`);
+            setTimeout(() => setCopySuccess(''), 3000);
+          } catch (storageError) {
+            console.error('🔄 ERROR: Failed to save to Firebase Storage:', storageError);
+            // Continue even if storage upload fails - we still have the data in the realtime database
+          }
+        } else {
+          console.log(`🔄 DEBUG: Skipping Firebase Storage upload - user is anonymous or mergerInfo missing`);
+        }
+        
         return combinedPhotoId;
       } catch (firebaseError) {
         console.error('🔄 ERROR: Failed to save combined photo to Firebase:', firebaseError);
@@ -1134,7 +1303,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     setShowGallery(!showGallery);
   };
   
-  // Save combined photos to localStorage
+  // Save combined photos to localStorage with participant authentication info
   const saveCombinedPhotosToAlbum = useCallback(() => {
     if (combinedPhotos.length === 0) {
       setError('No photos to save');
@@ -1152,18 +1321,47 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         return;
       }
       
+      const isCurrentUserAnonymous = currentUser.isAnonymous;
+      
+      AppUtils.info(`Saving combined photos to album. User: ${currentUser.uid}, isAnonymous: ${isCurrentUserAnonymous}`);
+      
+      // Get participants authentication status
+      const participantAuthStatus = {};
+      
+      // Add current user's status
+      participantAuthStatus[currentUser.uid] = {
+        isAnonymous: isCurrentUserAnonymous,
+        displayName: currentUser.displayName || 'Unknown',
+        email: currentUser.email || null
+      };
+      
+      // Add other participants from the session if available
+      Object.entries(participants).forEach(([userId, participantData]) => {
+        if (userId !== currentUser.uid) {
+          participantAuthStatus[userId] = {
+            isAnonymous: participantData.isAnonymous !== undefined ? participantData.isAnonymous : true,
+            displayName: participantData.displayName || 'Unknown',
+            // Don't include email for other participants for privacy
+          };
+        }
+      });
+      
+      AppUtils.info(`Participant authentication status: ${JSON.stringify(participantAuthStatus)}`);
+      
       // Get existing combined sessions from localStorage
       const existingSessionsJSON = localStorage.getItem('combinedSessions');
       const existingSessions = existingSessionsJSON ? JSON.parse(existingSessionsJSON) : [];
       
-      // Create a new session entry
+      // Create a new session entry with enhanced metadata
       const newSessionEntry = {
         id: sessionId,
         timestamp: Date.now(),
         photos: combinedPhotos,
-        participants: Object.keys(participants).length,
+        participantsCount: Object.keys(participants).length,
         savedByUser: currentUser.uid,
-        isAnonymous: currentUser.isAnonymous
+        isAnonymous: isCurrentUserAnonymous,
+        participantAuthStatus: participantAuthStatus,
+        savePath: isCurrentUserAnonymous ? 'localStorage' : `users/${currentUser.uid}/combined/`
       };
       
       // Add to beginning of array (newest first)
@@ -1172,20 +1370,90 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Save back to localStorage
       localStorage.setItem('combinedSessions', JSON.stringify(updatedSessions));
       
-      // If user is authenticated (not anonymous), also save to user's account in Firebase
-      if (!currentUser.isAnonymous) {
-        // Save to user's Firebase collection (optional - can be extended later)
-        AppUtils.info(`Saved combined photos to authenticated user: ${currentUser.uid}`);
-      }
-      
+      // Display success message
       setError(null);
-      setCopySuccess('Saved to album!');
+      setCopySuccess(`Saved to ${isCurrentUserAnonymous ? 'local' : 'cloud'} album!`);
       setTimeout(() => setCopySuccess(''), 2000);
+      
+      AppUtils.info(`Successfully saved ${combinedPhotos.length} photos to album at ${newSessionEntry.savePath}`);
+      
     } catch (err) {
       console.error('Error saving combined photos:', err);
       setError('Failed to save photos to album');
     }
   }, [combinedPhotos, sessionId, participants, setError, setCopySuccess]);
+  
+  // Auto-save combined photos when they are created
+  useEffect(() => {
+    // Check if there are combined photos to save
+    if (combinedPhotos.length > 0) {
+      // Get the current user
+      const currentUser = firebase.auth().currentUser;
+      
+      if (!currentUser) {
+        AppUtils.info('Auto-save skipped - no authenticated user');
+        return;
+      }
+      
+      const isCurrentUserAnonymous = currentUser.isAnonymous;
+      
+      // Check if we have authenticated and anonymous participants
+      const authParticipants = [];
+      const guestParticipants = [];
+      
+      // Sort participants into authenticated and guest groups
+      Object.entries(participants).forEach(([userId, participantData]) => {
+        if (participantData.isAnonymous === false) {
+          authParticipants.push(userId);
+        } else {
+          guestParticipants.push(userId);
+        }
+      });
+      
+      AppUtils.info(`Auto-save check: Auth users: ${authParticipants.length}, Guest users: ${guestParticipants.length}`);
+      
+      let shouldAutoSave = false;
+      let saveReason = '';
+      
+      // Decision logic for auto-saving
+      if (authParticipants.length > 0) {
+        // There's at least one authenticated user
+        if (!isCurrentUserAnonymous) {
+          // Current user is authenticated
+          if (authParticipants.length === 1) {
+            // Only one authenticated user (current user), should save
+            shouldAutoSave = true;
+            saveReason = 'Only authenticated user in session';
+          } else {
+            // Multiple authenticated users, use lowest UID
+            const lowestAuthId = authParticipants.sort()[0];
+            shouldAutoSave = (currentUser.uid === lowestAuthId);
+            saveReason = `Authenticated user with lowest UID (${lowestAuthId})`;
+          }
+        } else {
+          // Current user is guest but authenticated users exist, should NOT save
+          shouldAutoSave = false;
+          saveReason = 'Guest user with authenticated participants present';
+        }
+      } else {
+        // All participants are guests, use lowest UID among all participants
+        const participantIds = Object.keys(participants);
+        const lowestId = participantIds.sort()[0];
+        shouldAutoSave = (currentUser.uid === lowestId);
+        saveReason = `All guests, using lowest UID (${lowestId})`;
+      }
+      
+      AppUtils.info(`Auto-save decision: ${shouldAutoSave ? 'YES' : 'NO'}, Reason: ${saveReason}`);
+      
+      if (shouldAutoSave) {
+        // Auto-save to album
+        saveCombinedPhotosToAlbum();
+        AppUtils.info('Combined photos automatically saved to album');
+      } else {
+        AppUtils.info(`Auto-save skipped - ${saveReason}`);
+      }
+    }
+  }, [combinedPhotos, saveCombinedPhotosToAlbum, participants]);
   
   // Debug for combined photos state changes
   useEffect(() => {
@@ -1201,26 +1469,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       AppUtils.info(`First photo: id=${firstPhoto.id}, combined=${!!firstPhoto.isCombined}`);
     }
   }, [combinedPhotos]);
-  
-  // Auto-save combined photos when they are created
-  useEffect(() => {
-    // Check if there are combined photos to save
-    if (combinedPhotos.length > 0) {
-      // Get the current user
-      const currentUser = firebase.auth().currentUser;
-      
-      // Only save if there's at least one combined photo and the user is authenticated (not a guest)
-      // or if the user is a guest but has no other choice (only participant)
-      if ((currentUser && !currentUser.isAnonymous) || 
-          (currentUser && currentUser.isAnonymous && participantCount <= 1)) {
-        // Auto-save to album
-        saveCombinedPhotosToAlbum();
-        AppUtils.info('Combined photos automatically saved to album');
-      } else {
-        AppUtils.info('Auto-save skipped - guest user with authenticated participant');
-      }
-    }
-  }, [combinedPhotos, saveCombinedPhotosToAlbum, participantCount]); // Include all dependencies
   
   return (
     <div className="camera-screen">
