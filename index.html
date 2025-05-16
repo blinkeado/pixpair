@@ -12,17 +12,6 @@
     <script>
         // App configuration constant - needed for QR generation
         window.APP_BASE_URL = 'https://blinkeado.github.io/pixpair';
-        
-        // Debug toast initialization
-        console.log('[HTML Debug] Document loading...');
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('[HTML Debug] DOMContentLoaded event fired');
-            const toast = document.getElementById('toast');
-            console.log('[HTML Debug] Toast element found:', toast !== null);
-            if (toast) {
-                console.log('[HTML Debug] Toast initial classes:', toast.className);
-            }
-        });
     </script>
     
     <style>
@@ -55,13 +44,6 @@
             opacity: 0;
             transform: translateX(-50%) translateY(-20px);
         }
-        
-        /* Add a clear debug style to test toast visibility */
-        #toast.debug-visible {
-            display: block !important;
-            opacity: 1 !important;
-            background-color: #ff3366 !important;
-        }
     </style>
 </head>
 <body>
@@ -69,29 +51,6 @@
     
     <!-- Toast notification container -->
     <div id="toast" class="hidden">Toast Notification</div>
-    
-    <script>
-        // Test toast immediately after page load
-        window.addEventListener('load', () => {
-            console.log('[HTML Debug] Window load event fired');
-            const toast = document.getElementById('toast');
-            if (toast) {
-                console.log('[HTML Debug] Testing toast visibility on page load');
-                setTimeout(() => {
-                    toast.textContent = 'Page loaded successfully';
-                    toast.classList.remove('hidden');
-                    console.log('[HTML Debug] Toast classes after showing:', toast.className);
-                    // Force visibility through inline styles as a backup
-                    toast.style.display = 'block';
-                    toast.style.opacity = '1';
-                    setTimeout(() => {
-                        toast.classList.add('hidden');
-                        console.log('[HTML Debug] Toast classes after hiding:', toast.className);
-                    }, 2000);
-                }, 1000);
-            }
-        });
-    </script>
     
     <script type="module" src="./main.jsx"></script>
 </body>
