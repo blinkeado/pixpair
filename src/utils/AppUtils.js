@@ -159,6 +159,26 @@ class AppUtils {
             correctLevel: QRCode.CorrectLevel.H
         });
     }
+
+    // Initialize toast event listener
+    static initToastListeners() {
+        // Check if already initialized to prevent duplicate listeners
+        if (window._toastListenersInitialized) {
+            this.info('Toast listeners already initialized, skipping');
+            return;
+        }
+
+        window.addEventListener('showToast', (event) => {
+            if (event.detail && event.detail.message) {
+                this.showToast(event.detail.message, event.detail.duration || 3000);
+            }
+        });
+        
+        // Mark as initialized to prevent duplicates
+        window._toastListenersInitialized = true;
+        
+        this.info('Toast event listeners initialized');
+    }
 }
 
 export default AppUtils; 
