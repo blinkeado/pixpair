@@ -6,6 +6,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
   const [error, setError] = useState(null);
   const [createdSessionId, setCreatedSessionId] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
+  const [user, setUser] = useState(null);
   const qrCodeRef = useRef(null);
   
   useEffect(() => {
@@ -20,6 +21,11 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
       generateQRCode(createdSessionId);
     }
   }, [createdSessionId]);
+  
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(u => setUser(u));
+    return () => unsubscribe();
+  }, []);
   
   const handleCreateNewSession = async () => {
     try {
@@ -187,7 +193,13 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
   
   return (
     <div className="session-setup pt-20">
-      <h1 className="text-3xl font-bold mt-4">PixCrab</h1>
+      <h1 className="text-3xl font-bold mt-4">
+        {user
+          ? user.isAnonymous
+            ? 'Hi Crabbie'
+            : `Hi ${user.displayName || user.email.split('@')[0]}`
+          : 'Welcome'}
+      </h1>
       <p className="text-gray-600 mt-2">Create a new session or join an existing one</p>
       
       {error && <div className="error">{error}</div>}
