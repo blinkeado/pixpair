@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import firebase, { auth, authMethods } from '../../services/firebase';
-import AppUtils from '../../utils/AppUtils';
 
 const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
   const [email, setEmail] = useState('');
@@ -96,11 +95,9 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
       if (isSignUp) {
         // Create new user
         await firebase.auth().createUserWithEmailAndPassword(email, password);
-        AppUtils.showToast('Account created successfully!');
       } else {
         // Sign in existing user
         await firebase.auth().signInWithEmailAndPassword(email, password);
-        AppUtils.showToast('Signed in successfully!');
       }
       
       // Get current user - added safety check
@@ -134,7 +131,6 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         throw new Error('Google authentication succeeded but user is not available.');
       }
       
-      AppUtils.showToast('Signed in successfully!');
       // Don't create a session here - let the user go to the session screen first
       // The auth state change in App.jsx will automatically navigate to the session screen
       
@@ -164,7 +160,6 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
         throw new Error('Anonymous authentication succeeded but user is not available.');
       }
       
-      AppUtils.showToast('Signed in as guest!');
       // Don't create a session here - let the user go to the session screen first
       // The auth state change in App.jsx will automatically navigate to the session screen
       
