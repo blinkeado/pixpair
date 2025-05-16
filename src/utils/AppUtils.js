@@ -24,14 +24,31 @@ class AppUtils {
     }
 
     static showToast(message, duration = 3000) {
+        console.log(`[Toast Debug] showToast called with message: "${message}"`);
         const toast = document.getElementById('toast');
-        if (toast) {
-            toast.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, duration);
+        if (!toast) {
+            console.error('[Toast Debug] Toast element not found in DOM!');
+            this.info('Toast element not found when trying to show message');
+            return;
         }
+        
+        console.log('[Toast Debug] Toast element found, updating content and visibility');
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        
+        // Log toast element state for debugging
+        console.log(`[Toast Debug] Toast element classes: "${toast.className}"`);
+        console.log(`[Toast Debug] Toast element style: display=${getComputedStyle(toast).display}, visibility=${getComputedStyle(toast).visibility}, opacity=${getComputedStyle(toast).opacity}, z-index=${getComputedStyle(toast).zIndex}`);
+        
+        // Clear any previous timeout to prevent hiding too soon
+        if (window._toastHideTimeout) {
+            clearTimeout(window._toastHideTimeout);
+        }
+        
+        window._toastHideTimeout = setTimeout(() => {
+            console.log('[Toast Debug] Hide timeout triggered, adding hidden class');
+            toast.classList.add('hidden');
+        }, duration);
     }
 
     static formatSessionId(sessionId) {
@@ -162,13 +179,59 @@ class AppUtils {
 
     // Initialize toast event listener
     static initToastListeners() {
+        console.log(`[Toast Debug] initToastListeners called, document.readyState=${document.readyState}`);
+        
         // Check if already initialized to prevent duplicate listeners
         if (window._toastListenersInitialized) {
+            console.log('[Toast Debug] Toast listeners already initialized, skipping');
             this.info('Toast listeners already initialized, skipping');
             return;
         }
 
+        // Check if document is ready
+        if (document.readyState !== 'complete') {
+            console.log('[Toast Debug] DOM not ready, will retry on DOMContentLoaded');
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('[Toast Debug] DOMContentLoaded fired, retrying initialization');
+                this.initToastListeners();
+            });
+            return;
+        }
+        
+        // Verify toast element exists
+        const toastElement = document.getElementById('toast');
+        if (!toastElement) {
+            console.error('[Toast Debug] Toast element not found in DOM during initialization!');
+            this.info('Toast element not found in DOM');
+            
+            // Attempt to create toast element if missing
+            if (!document.getElementById('toast')) {
+                console.log('[Toast Debug] Creating toast element dynamically');
+                const toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.className = 'hidden';
+                toast.style.position = 'fixed';
+                toast.style.top = '20px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%)';
+                toast.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                toast.style.color = 'white';
+                toast.style.padding = '12px 24px';
+                toast.style.borderRadius = '24px';
+                toast.style.zIndex = '9999';
+                toast.style.textAlign = 'center';
+                toast.style.minWidth = '200px';
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                document.body.appendChild(toast);
+            }
+        } else {
+            console.log('[Toast Debug] Toast element found during initialization');
+        }
+
+        console.log('[Toast Debug] Adding showToast event listener');
         window.addEventListener('showToast', (event) => {
+            console.log(`[Toast Debug] showToast event received: ${JSON.stringify(event.detail)}`);
             if (event.detail && event.detail.message) {
                 this.showToast(event.detail.message, event.detail.duration || 3000);
             }
@@ -176,8 +239,14 @@ class AppUtils {
         
         // Mark as initialized to prevent duplicates
         window._toastListenersInitialized = true;
-        
+        console.log('[Toast Debug] Toast listeners initialized successfully');
         this.info('Toast event listeners initialized');
+        
+        // Test toast system
+        setTimeout(() => {
+            console.log('[Toast Debug] Testing toast system with test message');
+            this.showToast('Toast system initialized', 2000);
+        }, 500);
     }
 }
 
