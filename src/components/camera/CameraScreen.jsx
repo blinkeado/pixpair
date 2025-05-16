@@ -8,7 +8,7 @@ import AppUtils from '../../utils/AppUtils';
 // Add Embla carousel styles
 const emblaStyles = {
   carousel: "overflow-hidden",
-  container: "flex",
+  container: "flex items-center",
   slide: "flex-shrink-0 min-w-0 mx-1 rounded"
 };
 
@@ -1736,12 +1736,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                 {sessionThumbnails.map((url, idx) => (
                   <div 
                     key={idx} 
-                    className={`${emblaStyles.slide} w-24 h-16 border border-gray-200 overflow-hidden shadow-md`}
+                    className="w-auto max-h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-black shadow-md"
                   >
                     <img 
                       src={url} 
                       alt={`Session photo ${idx + 1}`} 
-                      className="object-cover w-full h-full" 
+                      className="h-full object-contain" 
                     />
                   </div>
                 ))}
