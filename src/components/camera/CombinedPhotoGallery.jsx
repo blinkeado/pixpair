@@ -50,6 +50,11 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
 
   useEffect(() => {
     AppUtils.info(`GALLERY: Photos received by gallery: ${photos.length}`);
+    
+    // Debug details of received photos
+    const combinedCount = photos.filter(p => p.isCombined || p.participantIds).length;
+    const individualCount = photos.length - combinedCount;
+    AppUtils.info(`GALLERY: Received ${combinedCount} combined photos and ${individualCount} individual photos`);
   }, [photos]);
 
   // Debug useEffect to monitor state changes
@@ -66,11 +71,20 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     );
   }
 
-  // Filter for combined photos directly and sort them by timestamp (newest first)
+  // Separate combined and individual photos
   const combinedPhotos = photos
-    .filter(photo => photo.isCombined || photo.participantIds) // Ensure it's a combined photo
+    .filter(photo => photo.isCombined || photo.participantIds) // Combined photos
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
+    
+  const individualPhotos = photos
+    .filter(photo => !photo.isCombined && !photo.participantIds) // Individual photos
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    
+  AppUtils.info(`GALLERY: Displaying ${combinedPhotos.length} combined photos and ${individualPhotos.length} individual photos`);
+  
+  // Merge photos, prioritizing combined photos first, then individual photos
+  const displayPhotos = [...combinedPhotos, ...individualPhotos];
+  
   // Format timestamp into readable date
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
@@ -84,7 +98,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
     
     try {
       // Get the photo from our combinedPhotos array
-      const photo = combinedPhotos[index];
+      const photo = displayPhotos[index];
       
       if (!photo) {
         console.error('CLICK ERROR: No photo found at index', index);
@@ -93,7 +107,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
       
       // Always try to use the full dataUrl for the modal
       if (photo.dataUrl) {
-        AppUtils.info(`CLICK: Setting full image URL from photo.dataUrl (length: ${photo.dataUrl.length})`);
+        AppUtils.info(`CLICK: Setting full image URL from photo.dataUrl (length: ${photo.dataUrl.length}) [dataUrl omitted]`);
         setSelectedFullImageUrl(photo.dataUrl);
       } else {
         console.error('CLICK ERROR: No dataUrl found for full image');
@@ -104,7 +118,7 @@ const CombinedPhotoGallery = ({ photos, participantInfo }) => {
   };
 
   // Create images array for react-grid-gallery
-  const galleryImages = combinedPhotos.map((photo, index) => {
+  const galleryImages = displayPhotos.map((photo, index) => {
     // Calculate a consistent width and height for the gallery items
     const width = 800;
     const height = 450; // 16:9 aspect ratio

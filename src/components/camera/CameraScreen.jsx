@@ -201,7 +201,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     combinedPhotosRef.on('value', (snapshot) => {
       console.log('📊 DEBUG: Combined photos value event triggered');
       const combinedPhotosData = snapshot.val() || {};
-      console.log('📊 DEBUG: Combined photos data structure:', JSON.stringify(combinedPhotosData));
+      console.log('📊 DEBUG: Combined photos data structure:', "[data omitted]");
       
       // Transform combinedPhotos data into an array of photos
       const combinedPhotosList = Object.entries(combinedPhotosData).map(([photoId, photoData]) => {
@@ -223,8 +223,26 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           participantIds: p.participantIds
         }))));
         
-        // Update state with combined photos - replace the entire array
-        setCombinedPhotos(combinedPhotosList);
+        // Merge with existing photos instead of replacing
+        setCombinedPhotos(prevPhotos => {
+          // Filter out any previously stored combined photos (we'll replace with latest)
+          const individualPhotos = prevPhotos.filter(p => !p.isCombined && !p.participantIds);
+          
+          // Create a set of existing photo IDs to avoid duplicates
+          const existingIds = new Set(individualPhotos.map(p => p.id));
+          const combinedIds = new Set(combinedPhotosList.map(p => p.id));
+          
+          // Filter out duplicates from the individual photos
+          const filteredIndividual = individualPhotos.filter(p => !combinedIds.has(p.id));
+          
+          // Merge and sort by timestamp
+          const merged = [...combinedPhotosList, ...filteredIndividual].sort((a, b) =>
+            (b.timestamp || 0) - (a.timestamp || 0)
+          );
+          
+          console.log(`📊 DEBUG: Updated combined photos state: ${merged.length} photos (${combinedPhotosList.length} combined, ${filteredIndividual.length} individual)`);
+          return merged;
+        });
       }
     });
     
@@ -232,46 +250,69 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     photosRef.on('value', (snapshot) => {
       console.log('📊 DEBUG: Photos value event triggered');
       const photosData = snapshot.val() || {};
-      console.log('📊 DEBUG: Photos data structure:', JSON.stringify(photosData));
+      console.log('📊 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photosData)));
       
       // Transform the data into an array of photos with user info
       const photoList = [];
       
       Object.entries(photosData).forEach(([userId, userPhotos]) => {
-        console.log(`📊 DEBUG: Processing photos for user ${userId}:`, JSON.stringify(userPhotos));
-        // If userPhotos is directly a photo object (dataUrl + timestamp)
-        if (userPhotos.dataUrl) {
-          console.log(`📊 DEBUG: Found direct photo object for user ${userId}`);
-          photoList.push({
-            userId,
-            dataUrl: userPhotos.dataUrl,
-            timestamp: userPhotos.timestamp
-          });
-        } 
-        // If userPhotos is a collection of photos from this user
-        else if (typeof userPhotos === 'object') {
-          console.log(`📊 DEBUG: Found collection of photos for user ${userId}`);
-          Object.entries(userPhotos).forEach(([photoId, photoData]) => {
-            console.log(`📊 DEBUG: Adding photo ${photoId} to combined list`);
+        console.log(`📊 DEBUG: Processing photos for user ${userId}`);
+        
+        // If userPhotos is an object with multiple photo entries
+        if (typeof userPhotos === 'object') {
+          // Check if it's the old format (direct dataUrl + timestamp) or new format (nested photo objects)
+          if (userPhotos.dataUrl) {
+            // Legacy format - single photo directly under user ID
+            console.log(`📊 DEBUG: Found legacy format photo for user ${userId}`);
             photoList.push({
               userId,
-              photoId,
-              ...photoData
+              dataUrl: userPhotos.dataUrl,
+              timestamp: userPhotos.timestamp
             });
-          });
+          } else {
+            // New format - multiple photos with unique IDs
+            console.log(`📊 DEBUG: Found ${Object.keys(userPhotos).length} photos for user ${userId}`);
+            Object.entries(userPhotos).forEach(([photoId, photoData]) => {
+              if (photoData && photoData.dataUrl) {
+                console.log(`📊 DEBUG: Adding photo ${photoId} for user ${userId}`);
+                photoList.push({
+                  userId,
+                  photoId,
+                  ...photoData
+                });
+              }
+            });
+          }
         }
       });
       
-      // Sort by timestamp
-      photoList.sort((a, b) => b.timestamp - a.timestamp); // Newest first
+      // Sort by timestamp, newest first
+      photoList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       
-      console.log(`📊 DEBUG: Combined photos state update: ${photoList.length} photos from ${Object.keys(photosData).length} participants`);
-      console.log('📊 DEBUG: Full photo list:', JSON.stringify(photoList));
+      console.log(`📊 DEBUG: Processed ${photoList.length} individual photos from ${Object.keys(photosData).length} participants`);
       
-      // Update with individual photos only if we don't have any combined photos yet
-      // This ensures the user sees something while waiting for the combined photo to be created
-      if (combinedPhotos.length === 0) {
-        setCombinedPhotos(photoList);
+      // Update with individual photos regardless of combined photos
+      // This ensures all photos are visible in the gallery
+      if (photoList.length > 0) {
+        // Merge with existing combined photos instead of replacing
+        setCombinedPhotos(prevCombined => {
+          // Get only the combined photos from the current state
+          const existingCombined = prevCombined.filter(p => p.isCombined || p.participantIds);
+          
+          // Create a set of photo IDs to avoid duplicates
+          const photoIds = new Set(existingCombined.map(p => p.id));
+          
+          // Add new photos that aren't already in the list
+          const newPhotos = photoList.filter(p => !photoIds.has(p.photoId));
+          
+          // Merge and re-sort by timestamp
+          const merged = [...existingCombined, ...newPhotos].sort((a, b) => 
+            (b.timestamp || 0) - (a.timestamp || 0)
+          );
+          
+          console.log(`📊 DEBUG: Updated combined photos state: ${merged.length} photos (${existingCombined.length} combined, ${newPhotos.length} new)`);
+          return merged;
+        });
       }
     }, (error) => {
       console.error('📊 DEBUG: Error in value listener:', error);
@@ -601,14 +642,14 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     database.ref(`sessions/${sessionId}/photos`).once('value')
       .then(snapshot => {
         const data = snapshot.val();
-        console.log('🔍 DEBUG: Direct Firebase check - Session photos data:', JSON.stringify(data));
+        console.log('🔍 DEBUG: Direct Firebase check - Session photos data:', "[data omitted]");
         
         if (!data) {
           console.log('🔍 DEBUG: No photos found in this session');
         } else {
           // Check if the user's photo exists
           if (data[userId]) {
-            console.log(`🔍 DEBUG: Found photo for user ${userId}:`, JSON.stringify(data[userId]));
+            console.log(`🔍 DEBUG: Found photo for user ${userId}: [data omitted]`);
           } else {
             console.log(`🔍 DEBUG: No photo found for user ${userId} in the session`);
           }
@@ -659,7 +700,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Convert canvas to data URL - this avoids CORS issues
       console.log('📸 DEBUG: Converting canvas to data URL');
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      console.log(`📸 DEBUG: Data URL generated, length: ${dataUrl.length} characters`);
+      console.log(`📸 DEBUG: Data URL generated, length: ${dataUrl.length} characters [dataUrl omitted]`);
       
       // Get current user
       const currentUser = firebase.auth().currentUser;
@@ -676,13 +717,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.log('📸 DEBUG: Session ID:', sessionId);
       console.log('📸 DEBUG: Building reference path:', `sessions/${sessionId}/photos/${userId}`);
       
-      const photosRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
-      await photosRef.set({
+      // Modified: Use push() to create a unique ID for each photo rather than overwriting
+      const userPhotosRef = database.ref(`sessions/${sessionId}/photos/${userId}`);
+      const newPhotoRef = userPhotosRef.push();
+      await newPhotoRef.set({
         dataUrl: dataUrl,
         timestamp: firebase.database.ServerValue.TIMESTAMP
       });
       
-      console.log('📸 DEBUG: Photo saved successfully to Firebase');
+      const photoId = newPhotoRef.key;
+      console.log(`📸 DEBUG: Photo saved successfully to Firebase with ID: ${photoId}`);
       
       // Add a short delay then check Firebase structure and attempt to create combined photo
       setTimeout(() => {
@@ -771,15 +815,43 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                 const participantIds = Object.keys(photos);
                 
                 console.log(`🔄 DEBUG: Found photos from ${participantIds.length} participants:`, participantIds);
-                console.log('🔄 DEBUG: Photos data structure:', JSON.stringify(Object.keys(photos).map(id => ({
+                
+                // Get the most recent photo from each participant
+                const latestPhotos = {};
+                
+                for (const userId of participantIds) {
+                  const userPhotos = photos[userId];
+                  
+                  // Handle both old and new format
+                  if (userPhotos.dataUrl) {
+                    // Legacy format - single photo directly under user ID
+                    console.log(`🔄 DEBUG: Using legacy format photo for user ${userId}`);
+                    latestPhotos[userId] = userPhotos;
+                  } else {
+                    // New format - multiple photos with unique IDs
+                    // Find the photo with the latest timestamp
+                    const photoEntries = Object.entries(userPhotos);
+                    if (photoEntries.length === 0) continue;
+                    
+                    // Sort by timestamp descending
+                    photoEntries.sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+                    
+                    // Use the most recent photo
+                    const [latestPhotoId, latestPhotoData] = photoEntries[0];
+                    console.log(`🔄 DEBUG: Using latest photo ${latestPhotoId} for user ${userId} from ${photoEntries.length} photos`);
+                    latestPhotos[userId] = latestPhotoData;
+                  }
+                }
+                
+                console.log('🔄 DEBUG: Latest photos data structure:', JSON.stringify(Object.keys(latestPhotos).map(id => ({
                   id,
-                  hasDataUrl: !!photos[id].dataUrl,
-                  dataUrlLength: photos[id].dataUrl ? photos[id].dataUrl.length : 0,
-                  timestamp: photos[id].timestamp
+                  hasDataUrl: !!latestPhotos[id].dataUrl,
+                  dataUrlLength: latestPhotos[id].dataUrl ? latestPhotos[id].dataUrl.length : 0,
+                  timestamp: latestPhotos[id].timestamp
                 }))));
                 
                 // Check all photos have dataUrl property
-                const validPhotos = Object.entries(photos).every(([id, photo]) => photo && photo.dataUrl);
+                const validPhotos = Object.entries(latestPhotos).every(([id, photo]) => photo && photo.dataUrl);
                 console.log(`🔄 DEBUG: All photos valid and contain dataUrl: ${validPhotos}`);
                 
                 if (!validPhotos) {
@@ -920,7 +992,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                       mergerIsAnonymous: isCurrentUserAnonymous
                     };
                     
-                    createCombinedPhoto(sessionId, photos, participantIds, mergerInfo)
+                    createCombinedPhoto(sessionId, latestPhotos, participantIds, mergerInfo)
                       .then(photoId => {
                         const totalTime = Date.now() - startTime;
                         if (photoId) {
