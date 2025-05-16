@@ -197,7 +197,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
         {user
           ? user.isAnonymous
             ? 'Hi Crabbie'
-            : `Hi ${user.displayName || user.email.split('@')[0]}`
+            : `Hi ${(user.displayName || user.email.split('@')[0]).split(' ')[0]}`
           : 'Welcome'}
       </h1>
       <p className="text-gray-600 mt-2">Create a new session or join an existing one</p>
