@@ -1,6 +1,6 @@
 [build]
   publish = "dist"
-  command = "npm run build"
+  command = "npm ci && npm install embla-carousel-react && npm run build"
 
 # Redirect rule for SPA routing
 [[redirects]]

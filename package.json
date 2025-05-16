@@ -16,6 +16,7 @@
     "watch": "chokidar \"src/**/*\" \"public/**/*\" -c \"npm run push\" --throttle 300"
   },
   "dependencies": {
+    "embla-carousel-react": "^8.6.0",
     "firebase": "^9.22.0",
     "qrcodejs": "^1.0.0",
     "react": "^18.2.0",

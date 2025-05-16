@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import firebase, { database } from '../../services/firebase';
-import useEmblaCarousel from 'embla-carousel-react';
+import useEmblaCarousel from '../../utils/embla-shim';
 import Logo from '../../components/Logo';
 import CombinedPhotoGallery from './CombinedPhotoGallery';
 import AppUtils from '../../utils/AppUtils';

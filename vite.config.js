@@ -16,7 +16,13 @@ export default defineConfig({
       input: {
         main: './index.html'
       },
-      external: ['firebase']
+      external: ['firebase'],
+      resolveId(id) {
+        if (id === 'embla-carousel-react') {
+          return { id: 'embla-carousel-react', external: false };
+        }
+        return null;
+      }
     }
   },
   optimizeDeps: {
@@ -30,7 +36,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/src'
+      '@': '/src',
+      'embla-carousel-react': path.resolve(__dirname, 'node_modules/embla-carousel-react')
     }
   }
 })
