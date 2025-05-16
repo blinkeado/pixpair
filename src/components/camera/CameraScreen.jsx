@@ -1736,12 +1736,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                 {sessionThumbnails.map((url, idx) => (
                   <div 
                     key={idx} 
-                    className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-black shadow-md"
+                    className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-transparent"
                   >
                     <img 
                       src={url} 
                       alt={`Session photo ${idx + 1}`} 
-                      className="max-h-full max-w-full object-contain"
+                      className="object-contain w-[110%] h-[110%]"
                     />
                   </div>
                 ))}
