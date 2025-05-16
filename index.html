@@ -44,6 +44,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             font-size: 14px;
             pointer-events: none; /* Make sure toast doesn't block interactions */
+            /* Default visible state */
+            display: block;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
         
         #toast.hidden {
@@ -77,6 +81,9 @@
                     toast.textContent = 'Page loaded successfully';
                     toast.classList.remove('hidden');
                     console.log('[HTML Debug] Toast classes after showing:', toast.className);
+                    // Force visibility through inline styles as a backup
+                    toast.style.display = 'block';
+                    toast.style.opacity = '1';
                     setTimeout(() => {
                         toast.classList.add('hidden');
                         console.log('[HTML Debug] Toast classes after hiding:', toast.className);

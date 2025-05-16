@@ -36,6 +36,11 @@ class AppUtils {
         toast.textContent = message;
         toast.classList.remove('hidden');
         
+        // Force visibility with inline styles (critical fix)
+        toast.style.display = 'block';
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+        
         // Log toast element state for debugging
         console.log(`[Toast Debug] Toast element classes: "${toast.className}"`);
         console.log(`[Toast Debug] Toast element style: display=${getComputedStyle(toast).display}, visibility=${getComputedStyle(toast).visibility}, opacity=${getComputedStyle(toast).opacity}, z-index=${getComputedStyle(toast).zIndex}`);
