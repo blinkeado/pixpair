@@ -3,6 +3,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./src/components/ui/ui/**/*.{tsx,ts,js,jsx}"
   ],
   safelist: [
     'btn-circle',
@@ -18,4 +19,5 @@ export default {
     },
   },
   plugins: [],
+  presets: [require("./src/components/ui/ui/tailwind.config.js")]
 }
