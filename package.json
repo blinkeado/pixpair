@@ -18,6 +18,9 @@
     "css-dev": "node css-dev.js"
   },
   "dependencies": {
+    "@builder.io/react": "^8.2.0",
+    "@builder.io/sdk": "^6.0.9",
+    "@builder.io/widgets": "^2.0.3",
     "@subframe/core": "^1.143.0",
     "chokidar": "^4.0.3",
     "embla-carousel-react": "^8.6.0",

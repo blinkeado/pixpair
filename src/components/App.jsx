@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthScreen from './auth/AuthScreen';
 import SessionSetup from './session/SessionSetup';
 import CameraScreen from './camera/CameraScreen';
 import AlbumScreen from './album/AlbumScreen';
+import BuilderPage from './builder/BuilderPage';
 import firebase, { auth, initializeFirebase } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
 import Logo from './Logo';
+
+// Import Builder.io integration
+import '../builder/builder-styles.css';
+
+// Initialize Builder.io
+import { initBuilder } from '../builder/builder-integration';
+
+// Call initBuilder to register components
+initBuilder();
 
 // Firebase is already initialized in the firebase.js module
 // No need to call initializeFirebase() again or check window.firebaseConfig
@@ -107,7 +118,22 @@ function App() {
     );
   }
   
-  // Render the current screen
+  // Check if we're in Builder.io mode via URL
+  const isBuilderMode = window.location.pathname.startsWith('/builder');
+  
+  // Use Router for Builder.io paths, but keep existing code for the main app flow
+  if (isBuilderMode) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/builder" element={<BuilderPage />} />
+          <Route path="/builder/:page" element={<BuilderPage />} />
+        </Routes>
+      </Router>
+    );
+  }
+  
+  // Render the current screen (original flow)
   return (
     <PixCrabProvider value={{ user, sessionId }}>
       <div className={`app-container ${currentScreen === 'camera' ? 'camera-mode' : ''}`}>

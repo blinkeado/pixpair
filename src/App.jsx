@@ -4,7 +4,14 @@ import firebase, { auth, database } from './services/firebase';
 import AuthScreen from './components/auth/AuthScreen';
 import CameraScreen from './components/camera/CameraScreen';
 import AlbumScreen from './components/album/AlbumScreen';
+import BuilderPage from './components/builder/BuilderPage';
 import AppUtils from './utils/AppUtils';
+
+// Import and initialize Builder.io
+import { initBuilder } from './builder/builder-integration';
+
+// Initialize Builder with components and configuration
+initBuilder();
 
 function App() {
   const [sessionId, setSessionId] = useState(null);
@@ -89,6 +96,9 @@ function App() {
               />
             } 
           />
+          {/* Builder.io Routes */}
+          <Route path="/builder" element={<BuilderPage />} />
+          <Route path="/builder/:page" element={<BuilderPage />} />
         </Routes>
       </div>
     </Router>

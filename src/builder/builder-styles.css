@@ -1,0 +1,89 @@
+/* Builder.io Integration Styles */
+
+/* Loading spinner for Builder content */
+.builder-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  font-family: var(--font-sans);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color, #4831d4);
+  animation: spin 1s infinite ease-in-out;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* No content found message */
+.builder-no-content {
+  text-align: center;
+  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+  color: var(--text-dark);
+}
+
+.builder-no-content h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Builder content wrapper */
+.builder-content-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+/* Ensure Builder components respect PixCrab's design system */
+.builder-component {
+  font-family: var(--font-sans);
+  color: var(--text-dark);
+}
+
+/* Add same button styling to Builder buttons */
+.builder-component button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.builder-component button:hover {
+  opacity: 0.9;
+}
+
+/* Ensure images in Builder are responsive */
+.builder-component img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make text inputs match PixCrab style */
+.builder-component input[type="text"],
+.builder-component textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+}
