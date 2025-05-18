@@ -13,7 +13,7 @@ import Logo from './Logo';
 import '../builder/builder-styles.css';
 
 // Initialize Builder.io
-import { initBuilder } from '../builder/builder-integration';
+import { initBuilder } from '../builder/builder-integration.jsx';
 
 // Call initBuilder to register components
 initBuilder();

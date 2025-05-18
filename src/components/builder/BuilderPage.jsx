@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { BuilderComponent, builder } from '@builder.io/react';
+// Import the API key from a separate file to avoid duplication
+import { BUILDER_API_KEY } from '../../builder/builder-integration.jsx';
 
-// Make sure to replace with your actual API key
-const BUILDER_API_KEY = 'YOUR_BUILDER_API_KEY';
-
-// Initialize Builder with your API key
+// Initialize Builder with the imported API key
 builder.init(BUILDER_API_KEY);
 
 export default function BuilderPage() {
@@ -65,7 +64,11 @@ export default function BuilderPage() {
   // Render the Builder content
   return (
     <div className="builder-content-wrapper">
-      <BuilderComponent model="page" content={content} />
+      {content ? (
+        <BuilderComponent model="page" content={content} />
+      ) : (
+        <BuilderComponent model="page" />
+      )}
     </div>
   );
 }

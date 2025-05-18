@@ -1,8 +1,9 @@
+import React from 'react';
 import { Builder, BuilderComponent } from '@builder.io/react';
 
 // Replace with your Builder.io API key
 // You should ideally store this in an environment variable
-const BUILDER_API_KEY = 'YOUR_BUILDER_API_KEY';
+export const BUILDER_API_KEY = 'YOUR_BUILDER_API_KEY';
 
 // Initialize Builder.io with your API key
 export function initBuilder() {
@@ -21,14 +22,11 @@ export function initBuilder() {
   // Register more components as needed...
 }
 
-// BuilderPage component to use in your routes
+// Simple BuilderPage component to use in your routes
 export function BuilderPage({ model = 'page' }) {
   return (
     <div className="builder-page-wrapper">
-      <BuilderComponent 
-        model={model} 
-        contentLoaderFunction={contentLoaderFunction}
-      />
+      <BuilderComponent model={model} />
     </div>
   );
 }
@@ -39,3 +37,6 @@ function contentLoaderFunction(options) {
   // This is particularly useful for handling preview states, etc.
   return Builder.get(options.model, options);
 }
+
+// Export the content loader function for use in other components
+export { contentLoaderFunction };

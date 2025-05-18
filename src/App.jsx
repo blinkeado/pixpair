@@ -8,7 +8,7 @@ import BuilderPage from './components/builder/BuilderPage';
 import AppUtils from './utils/AppUtils';
 
 // Import and initialize Builder.io
-import { initBuilder } from './builder/builder-integration';
+import { initBuilder } from './builder/builder-integration.jsx';
 
 // Initialize Builder with components and configuration
 initBuilder();
