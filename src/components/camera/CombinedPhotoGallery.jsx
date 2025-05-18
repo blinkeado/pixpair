@@ -1,49 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Gallery } from "react-grid-gallery";
 import AppUtils from '../../utils/AppUtils';
-
-// Simple Modal Component (can be moved to its own file later)
-const PhotoModal = ({ imageUrl, onClose }) => {
-  AppUtils.info(`MODAL: PhotoModal render, imageUrl exists: ${!!imageUrl}`);
-  
-  if (!imageUrl) return null;
-
-  return (
-    <div 
-      className="photo-modal fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[9999]"
-      onClick={onClose} // Close on backdrop click
-      style={{ pointerEvents: 'auto' }}
-    >
-      <div 
-        className="modal-content bg-white p-2 rounded-lg shadow-xl max-w-full max-h-full relative"
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on image/content
-      >
-        <img 
-          src={imageUrl} 
-          alt="Full size" 
-          className="modal-image max-w-[90vw] max-h-[90vh] object-contain"
-          onLoad={() => AppUtils.info('MODAL: Full-size image loaded successfully')}
-          onError={(e) => console.error('MODAL ERROR: Error loading full-size image:', e)}
-        />
-        <button 
-          onClick={onClose}
-          className="close-modal-button absolute top-2 right-2 text-white rounded-full"
-          aria-label="Close modal"
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            border: '0px none rgb(255, 255, 255)',
-            borderRadius: '50%',
-            padding: '4px 12px',
-            width: '36px',
-            height: '36px',
-          }}
-        >
-          ✕
-        </button>
-      </div>
-    </div>
-  );
-};
+import PhotoModal from './PhotoModal';
 
 const CombinedPhotoGallery = ({ photos, participantInfo }) => {
   const [selectedFullImageUrl, setSelectedFullImageUrl] = useState(null);

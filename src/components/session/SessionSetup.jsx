@@ -205,43 +205,53 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
       {error && <div className="error">{error}</div>}
       
       <div className="session-actions">
-        <button 
-          className="btn btn-primary rainbow-button" 
-          onClick={handleCreateNewSession}
-          aria-label="Create New Session"
-        >
-          Create New Session
-        </button>
-        
-        <div className="session-join">
-          <label htmlFor="sessionId" className="sr-only">Enter Session ID</label>
-          <input 
-            id="sessionId"
-            name="sessionId"
-            type="text" 
-            placeholder="Enter Session ID" 
-            value={sessionIdInput}
-            onChange={(e) => setSessionIdInput(e.target.value)}
-            autoComplete="off"
-            aria-label="Session ID"
-          />
+        <div className="w-full flex justify-center">
           <button 
-            className="btn btn-secondary" 
-            onClick={() => handleJoinExistingSession()}
-            aria-label="Join Session"
+            className="btn btn-primary rainbow-button" 
+            onClick={handleCreateNewSession}
+            aria-label="Create New Session"
+            style={{width: '100%', maxWidth: '20rem'}}
           >
-            Join Session
+            Create New Session
           </button>
         </div>
         
+        <div className="session-join w-full flex flex-col items-center">
+          <label htmlFor="sessionId" className="sr-only">Enter Session ID</label>
+          <div className="w-full max-w-xs">
+            <input 
+              id="sessionId"
+              name="sessionId"
+              type="text" 
+              placeholder="Enter Session ID" 
+              value={sessionIdInput}
+              onChange={(e) => setSessionIdInput(e.target.value)}
+              autoComplete="off"
+              aria-label="Session ID"
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="w-full flex justify-center">
+            <button 
+              className="album-button w-full max-w-xs"
+              onClick={() => handleJoinExistingSession()}
+              aria-label="Join Session"
+            >
+              Join Session
+            </button>
+          </div>
+        </div>
+        
         {/* View Album Button */}
-        <button 
-          className="btn btn-secondary view-album-btn"
-          onClick={onViewAlbum}
-          aria-label="View Photo Album"
-        >
-          View Photo Album
-        </button>
+        <div className="w-full flex justify-center mt-4">
+          <button 
+            className="album-button w-full max-w-xs"
+            onClick={onViewAlbum}
+            aria-label="View Photo Album"
+          >
+            View Photo Album
+          </button>
+        </div>
       </div>
       
       {createdSessionId && (

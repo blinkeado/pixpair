@@ -3,6 +3,7 @@ import firebase, { database } from '../../services/firebase';
 import useEmblaCarousel from '../../utils/embla-shim';
 import Logo from '../../components/Logo';
 import CombinedPhotoGallery from './CombinedPhotoGallery';
+import PhotoModal from './PhotoModal';
 import AppUtils from '../../utils/AppUtils';
 
 // Add Embla carousel styles
@@ -24,6 +25,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const [combinedPhotos, setCombinedPhotos] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
   const [sessionThumbnails, setSessionThumbnails] = useState([]);
+  const [selectedFullImageUrl, setSelectedFullImageUrl] = useState(null);
+  console.log(`💾 DEBUG: Current thumbnails in carousel: ${sessionThumbnails.length}`);
   const [emblaRef] = useEmblaCarousel({ loop: false, align: 'start', containScroll: 'trimSnaps' });
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
@@ -220,44 +223,60 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       }
     });
     
+
+    
     // Set up value listener for combined photos
     console.log('📊 DEBUG: Setting up value listener for combined photos');
     combinedPhotosRef.on('value', (snapshot) => {
-      console.log('📊 DEBUG: Combined photos value event triggered');
-      const combinedPhotosData = snapshot.val() || {};
-      console.log('📊 DEBUG: Combined photos count:', Object.keys(combinedPhotosData).length);
-      
-      // Transform combinedPhotos data into an array of photos
-      const combinedPhotosList = Object.entries(combinedPhotosData).map(([photoId, photoData]) => {
-        console.log(`📊 DEBUG: Processing combined photo ${photoId}`);
-        return {
-          id: photoId,
-          isCombined: true, // Add explicit combined flag
-          ...photoData
-        };
-      });
-      
-      if (combinedPhotosList.length > 0) {
-        console.log(`📊 DEBUG: Found ${combinedPhotosList.length} combined photos`);
+      try {
+        const combinedPhotos = snapshot.val() || {};
+        AppUtils.info(`combinedPhotos state changed: ${Object.keys(combinedPhotos).length} photos`);
         
-        // Update state with combined photos and add to session thumbnails
-        setCombinedPhotos(combinedPhotosList);
+        // Format and sort data for easier consumption
+        const photosList = Object.entries(combinedPhotos)
+          .map(([id, photo]) => ({ id, ...photo }))
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         
-        // Add the latest photo to the session thumbnails for the carousel
-        const latestPhoto = combinedPhotosList.sort((a, b) => 
-          (b.timestamp || 0) - (a.timestamp || 0)
-        )[0];
+        const combinedCount = photosList.filter(p => p.isCombined).length;
+        const individualCount = photosList.length - combinedCount;
+        AppUtils.info(`Photo breakdown - ${combinedCount} combined, ${individualCount} individual`);
         
-        if (latestPhoto && latestPhoto.dataUrl) {
-          // Add to session thumbnails for the carousel
-          setSessionThumbnails(prev => {
-            // Only add if not already in the thumbnails
-            if (!prev.includes(latestPhoto.dataUrl)) {
-              return [...prev, latestPhoto.dataUrl];
-            }
-            return prev;
-          });
+        if (photosList.length > 0) {
+          AppUtils.info(`First photo: id=${photosList[0].id}, combined=${photosList[0].isCombined}`);
+          
+          // Extract thumbnail URLs for the carousel
+          const thumbnails = photosList
+            .filter(photo => photo.isCombined)
+            .map(photo => photo.thumbnailUrl || photo.url || '')
+            .filter(url => url && url.length > 0);
+            
+          console.log(`🔄 DEBUG: Found ${thumbnails.length} combined photo thumbnails for carousel`);
+          
+          // Update carousel thumbnails, avoiding duplicates
+          if (thumbnails.length > 0) {
+            setSessionThumbnails(prevThumbnails => {
+              // Deep copy to avoid potential reference issues
+              const updatedThumbnails = [...prevThumbnails];
+              let changed = false;
+              
+              // Add any new thumbnails that aren't already in the array
+              thumbnails.forEach(thumbnail => {
+                if (!updatedThumbnails.includes(thumbnail)) {
+                  console.log(`🔄 DEBUG: Adding combined photo thumbnail to carousel`);
+                  updatedThumbnails.push(thumbnail);
+                  changed = true;
+                }
+              });
+              
+              console.log(`🔄 DEBUG: Carousel now has ${updatedThumbnails.length} thumbnails after update`);
+              return changed ? updatedThumbnails : prevThumbnails;
+            });
+          }
         }
+        
+        setCombinedPhotos(photosList);
+      } catch (error) {
+        console.error('Error in combined photos listener:', error);
       }
     });
     
@@ -1247,7 +1266,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         console.log(`🔄 DEBUG: Drawing thumbnail with source dimensions: ${sourceWidth}x${sourceHeight}, target: ${thumbWidth}x${thumbHeight}, draw dimensions: ${drawWidth}x${drawHeight} at ${drawX},${drawY}`);
         thumbCtx.drawImage(tempImg, drawX, drawY, drawWidth, drawHeight);
         thumbnailDataUrl = thumbCanvas.toDataURL('image/jpeg', 0.9); // Slightly lower quality for thumbnail
-        console.log(`🔄 DEBUG: Thumbnail created, data URL length: ${thumbnailDataUrl.length}`);
+        console.log(`📸 DEBUG: Thumbnail created, data URL length: ${thumbnailDataUrl.length}`);
       } catch (thumbError) {
         console.error('🔄 ERROR: Failed to generate thumbnail:', thumbError);
         // Continue without thumbnail if it fails
@@ -1256,7 +1275,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Save to Firebase under combinedPhotos
       console.log('🔄 DEBUG: Saving combined photo to Firebase');
       try {
-        const combinedPhotoId = firebase.database().ref().push().key;
+        let combinedPhotoId = firebase.database().ref().push().key;
         console.log(`🔄 DEBUG: Generated Firebase key: ${combinedPhotoId}`);
         
         const combinedPhotoRef = database.ref(`sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
@@ -1269,19 +1288,40 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         console.log(`🔄 DEBUG: dataUrl length: ${combinedDataUrl.length}, thumbnailDataUrl length: ${thumbnailDataUrl?.length || 0}`);
         
-        // Create the combined photo data object with merger info
+        // Now save the combined photo to Firebase
         const combinedPhotoData = {
-          dataUrl: combinedDataUrl,
-          thumbnailDataUrl: thumbnailDataUrl || null, // Use null as fallback if thumbnail generation fails
+          url: combinedPhotoUrl,
+          thumbnailUrl: thumbnailDataUrl,
+          dataUrl: combinedPhotoDataUrl, // Store the data URL for immediate display
+          width: combinedCanvasWidth,
+          height: combinedCanvasHeight,
           timestamp: firebase.database.ServerValue.TIMESTAMP,
+          isCombined: true,
+          sessionId,
+          creatorId: userId,
           participantIds: participantIds,
-          isCombined: true,  // Explicitly mark as combined photo
-          mergerInfo: mergerInfo || null
+          combinationInfo: mergerInfo
         };
         
-        // Save to realtime database
-        await combinedPhotoRef.set(combinedPhotoData);
-        console.log(`🔄 DEBUG: Combined photo saved to Firebase Realtime Database with ID: ${combinedPhotoId}`);
+        // Save the photo to both session and personal gallery
+        const metadata = {
+          isCombined: true,
+          participantIds: participantIds,
+          width: combinedCanvasWidth,
+          height: combinedCanvasHeight,
+          thumbnailUrl: thumbnailDataUrl,
+          dataUrl: combinedPhotoDataUrl
+        };
+        
+        // Use the new savePhotoToAlbum function to store in both places
+        combinedPhotoId = await savePhotoToAlbum(combinedPhotoUrl, combinedPhotoData, metadata);
+        
+        if (combinedPhotoId) {
+          console.log(`✅ Successfully created and saved combined photo with ID: ${combinedPhotoId}`);
+          AppUtils.info(`COMBINED: Successfully created and saved combined photo with ID: ${combinedPhotoId}`);
+        } else {
+          console.error('Failed to save combined photo');
+        }
         
         // Check authentication status of participants
         const authParticipantIds = [];
@@ -1395,16 +1435,38 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     );
   };
   
-  const savePhotoToAlbum = (photoUrl) => {
-    const savedPhotos = JSON.parse(localStorage.getItem('albumPhotos') || '[]');
-    const newPhoto = {
-      url: photoUrl,
-      width: 1920, // Default width, adjust as needed
-      height: 1080, // Default height, adjust as needed
-      timestamp: new Date().toISOString()
-    };
-    savedPhotos.push(newPhoto);
-    localStorage.setItem('albumPhotos', JSON.stringify(savedPhotos));
+  const savePhotoToAlbum = async (photoUrl, photoData, metadata = {}) => {
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        console.error('Cannot save photo - user not logged in');
+        return null;
+      }
+      
+      const userId = currentUser.uid;
+      const photoId = firebase.database().ref().push().key;
+      
+      // Data to save with the photo
+      const photoMetadata = {
+        url: photoUrl,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        userId,
+        sessionId,
+        ...metadata
+      };
+      
+      // 1. Save to session path if not already there
+      await database.ref(`sessions/${sessionId}/photos/${photoId}`).set(photoMetadata);
+      
+      // 2. Also save to user's permanent gallery
+      await database.ref(`users/${userId}/photos/${photoId}`).set(photoMetadata);
+      
+      AppUtils.info(`Photo saved to both session and personal gallery: ${photoId}`);
+      return photoId;
+    } catch (error) {
+      console.error('Error saving photo to album:', error);
+      return null;
+    }
   };
 
   const handlePhotoTaken = (photoUrl) => {
@@ -1684,16 +1746,16 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           {error && <div className="error">{error}</div>}
           
           <div className="session-header">
-            {/* Toggle Gallery Button */}
+            {/* Toggle Gallery Button - Fit content with padding */}
             <button 
-              className="btn btn-primary rainbow-button"
+              className="btn btn-primary rainbow-button gallery-btn"
               onClick={toggleGallery}
               title={showGallery ? "Return to Camera" : "View Combined Photos"}
             >
               {showGallery ? "Camera" : "Gallery"}
             </button>
             
-            {/* Exit button (X icon) */}
+            {/* Exit button (X icon) - Perfect circle */}
             <button 
               className="btn-icon exit-btn" 
               onClick={handleExitSession}
@@ -1736,12 +1798,23 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                 {sessionThumbnails.map((url, idx) => (
                   <div 
                     key={idx} 
-                    className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-transparent"
+                    className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-transparent cursor-pointer"
+                    onClick={() => {
+                      console.log(`🖱️ DEBUG: Thumbnail clicked, setting modal image URL: ${url}`);
+                      setSelectedFullImageUrl(url);
+                    }}
+                    style={{ pointerEvents: 'auto' }}
                   >
                     <img 
                       src={url} 
                       alt={`Session photo ${idx + 1}`} 
                       className="object-contain w-[110%] h-[110%]"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Stop event bubbling
+                        console.log(`🖱️ DEBUG: Image clicked directly, setting modal image URL: ${url}`);
+                        setSelectedFullImageUrl(url);
+                      }}
+                      style={{ pointerEvents: 'auto' }}
                     />
                   </div>
                 ))}
@@ -1779,6 +1852,17 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         <div className="photos-grid">
           {photosTaken.map(renderPhotoItem)}
         </div>
+      )}
+      
+      {/* Modal for full-size image when clicking on a carousel thumbnail */}
+      {selectedFullImageUrl && (
+        <PhotoModal 
+          imageUrl={selectedFullImageUrl} 
+          onClose={() => {
+            console.log('🖱️ DEBUG: Closing photo modal');
+            setSelectedFullImageUrl(null);
+          }} 
+        />
       )}
     </div>
   );

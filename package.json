@@ -13,9 +13,12 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "push": "./auto-commit.sh",
-    "watch": "chokidar \"src/**/*\" \"public/**/*\" -c \"npm run push\" --throttle 300"
+    "watch": "chokidar \"src/**/*\" \"public/**/*\" -c \"npm run push\" --throttle 300",
+    "dev": "node dev.js",
+    "css-dev": "node css-dev.js"
   },
   "dependencies": {
+    "chokidar": "^4.0.3",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^9.22.0",
     "qrcodejs": "^1.0.0",
@@ -29,6 +32,7 @@
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.14",
     "chokidar-cli": "^3.0.0",
+    "express": "^5.1.0",
     "gh-pages": "^5.0.0",
     "http-server": "^14.1.1",
     "jest": "^29.5.0",

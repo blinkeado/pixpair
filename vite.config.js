@@ -2,8 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// Determine the base URL based on the deployment target
-const baseUrl = process.env.NETLIFY ? '/' : '/pixpair/'
+// Always use '/' for local preview to avoid 'Cannot GET /' errors
+// For GitHub Pages deployment, we'll explicitly set base during the gh-pages deploy
+const baseUrl = '/';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -14,7 +15,7 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        main: './index.html'
+        main: path.resolve(__dirname, 'index.html')
       },
       external: ['firebase'],
       resolveId(id) {

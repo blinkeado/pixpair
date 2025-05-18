@@ -179,82 +179,87 @@ const AuthScreen = ({ onCreateSession, onJoinSession, onSignOut }) => {
 
   return (
     <div className="auth-screen">
-      <h1>PixCrab</h1>
-      <p>Synchronized Photo Capture</p>
-
-      {error && <div className="error">{error}</div>}
-
-      <div className="auth-options">
-        <button 
-          className="btn btn-google rainbow-button w-full" 
-          onClick={handleGoogleAuth}
-          disabled={loading}
-          aria-label="Continue with Google"
-        >
-          Continue with Google
-        </button>
-        
-        <button 
-          className="btn btn-text" 
-          onClick={handleAnonymousAuth}
-          disabled={loading}
-          aria-label="Continue as Guest"
-        >
-          Continue as Guest
-        </button>
-        
-        <div className="auth-separator">
-          <span>or</span>
-        </div>
+      {/* Logo and title outside the container */}
+      <div className="auth-header">
+        <h1>PixCrab</h1>
       </div>
 
-      <form onSubmit={handleAuth}>
-        <h2>{isSignUp ? 'Create Account' : 'Sign In'}</h2>
-        
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            aria-required="true"
-          />
+      {/* Container box for all form elements */}
+      <div className="auth-container">
+        {error && <div className="error">{error}</div>}
+
+        <div className="auth-options">
+          <button 
+            className="btn btn-google rainbow-button w-full" 
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            aria-label="Continue with Google"
+          >
+            Continue with Google
+          </button>
+          
+          <button 
+            className="btn btn-text" 
+            onClick={handleAnonymousAuth}
+            disabled={loading}
+            aria-label="Continue as Guest"
+          >
+            Continue as Guest
+          </button>
+          
+          <div className="auth-separator">
+            <span>or</span>
+          </div>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete={isSignUp ? "new-password" : "current-password"}
-            aria-required="true"
-          />
-        </div>
+
+        <form onSubmit={handleAuth}>
+          <h2>{isSignUp ? 'Create Account' : 'Sign In'}</h2>
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              aria-required="true"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              aria-required="true"
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            className="auth-form-button"
+            disabled={loading}
+          >
+            {isSignUp ? 'Sign Up' : 'Sign In'}
+          </button>
+        </form>
         
         <button 
-          type="submit" 
-          className="auth-form-button"
+          className="btn btn-secondary"
+          onClick={() => setIsSignUp(!isSignUp)}
           disabled={loading}
         >
-          {isSignUp ? 'Sign Up' : 'Sign In'}
+          {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
         </button>
-      </form>
-      
-      <button 
-        className="btn btn-secondary"
-        onClick={() => setIsSignUp(!isSignUp)}
-        disabled={loading}
-      >
-        {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-      </button>
+      </div>
     </div>
   );
 };
