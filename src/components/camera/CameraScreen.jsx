@@ -516,6 +516,32 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const buffer = Math.max(1000, approximateLatency * 2);
       console.log(`📸 DEBUG: Calculated buffer time: ${buffer}ms`);
       
+      // Set capture time in the future with buffer
+      const captureTime = Date.now() + 3000 + buffer;
+      console.log(`📸 DEBUG: Set capture time to: ${new Date(captureTime).toISOString()}`);
+      
+      // Save to Firebase
+      console.log('📸 DEBUG: Saving capture data to Firebase...');
+      await database.ref(`sessions/${sessionId}/capture`).set({
+        captureTime,
+        initiatedBy: firebase.auth().currentUser?.uid || 'anonymous',
+        initiated: firebase.database.ServerValue.TIMESTAMP,
+        approximateLatency
+      });
+      
+      console.log(`📸 DEBUG: Capture data saved successfully! Starting countdown for time: ${new Date(captureTime).toISOString()} (buffer: ${buffer}ms)`);
+      
+      // Start the countdown
+      startCountdown(captureTime);
+      
+    } catch (error) {
+      console.error('❌ ERROR in initiateCapture:', error);
+      setError('Failed to initiate synchronized capture.');
+    }
+  };
+  
+  // Improved countdown with better timing and error handling
+  const startCountdown = (captureTime) => {
     console.log('📸 DEBUG: startCountdown function called with captureTime:', captureTime);
     
     try {

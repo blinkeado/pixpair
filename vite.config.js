@@ -6,9 +6,20 @@ import path from 'path'
 // This ensures assets load correctly in both embedded preview and external browser
 const baseUrl = './';
 
+// Custom plugin to handle embla-carousel-react resolution
+const emblaCarouselPlugin = {
+  name: 'embla-carousel-resolver',
+  resolveId(id) {
+    if (id === 'embla-carousel-react') {
+      return { id: 'embla-carousel-react', external: false };
+    }
+    return null;
+  }
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), emblaCarouselPlugin],
   base: baseUrl,
   build: {
     outDir: 'dist',
@@ -28,13 +39,8 @@ export default defineConfig({
           return;
         }
         warn(warning);
-      },
-      resolveId(id) {
-        if (id === 'embla-carousel-react') {
-          return { id: 'embla-carousel-react', external: false };
-        }
-        return null;
       }
+      // resolveId has been moved to a proper plugin below
     }
   },
   optimizeDeps: {
