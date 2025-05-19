@@ -9,15 +9,13 @@ const debugLog = (...args) => {
   console.log(`[${timestamp}] DEBUG:`, message);
 };
 
-// Helper function to handle participant updates
-function handleParticipants(snapshot, setParticipants, setParticipantCount) {
+// Stable callback for participant updates
+const onParticipants = useCallback((snapshot) => {
   const participantData = snapshot.val() || {};
   console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
   setParticipants(participantData);
-  const count = Object.keys(participantData).length;
-  setParticipantCount(count);
-  console.log('[PixCrab] Participant count updated:', count);
-}
+  setParticipantCount(Object.keys(participantData).length);
+}, []);
 import firebase, { database } from '../../services/firebase';
 import useEmblaCarousel from '../../utils/embla-shim';
 import Logo from '../../components/Logo';
@@ -33,6 +31,10 @@ const emblaStyles = {
 };
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
+    console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
+    setParticipants(participantData);
+    setParticipantCount(Object.keys(participantData).length);
+  }, []);
   const [error, setError] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [photosTaken, setPhotosTaken] = useState([]);
@@ -254,7 +256,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         // Remove all listeners
         sessionRef.off('value');
-        participantsRef.off('value');
+        participantsRef.off('value', onParticipants);
         combinedPhotosRef.off('child_added');
         captureRef.off('value');
         
@@ -298,12 +300,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Listen for participants in this session
     console.log('📊 DEBUG: Setting up participants listener');
     // Using the participantsRef defined at the top level
-    participantsRef.on('value', (snapshot) => {
-      const participantData = snapshot.val() || {};
-      console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
-      setParticipants(participantData);
-      setParticipantCount(Object.keys(participantData).length);
-    });
+    participantsRef.on('value', onParticipants);
     
     // Listen for capture time updates
     console.log('📊 DEBUG: Setting up capture time listener');
@@ -563,12 +560,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Listen for participants in this session
     console.log('📊 DEBUG: Setting up participants listener');
     // Using the participantsRef defined at the top level
-    participantsRef.on('value', (snapshot) => {
-      const participantData = snapshot.val() || {};
-      console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
-      setParticipants(participantData);
-      setParticipantCount(Object.keys(participantData).length);
-    });
+    participantsRef.on(\'value', onParticipants);
     
     // Listen for capture time updates
     console.log('📊 DEBUG: Setting up capture time listener');
@@ -593,7 +585,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       photosRef.off();
       combinedPhotosRef.off();
       connectedRef.off();
-      participantsRef.off();
+      participantsRef.off('value', onParticipants);
       captureRef.off();
       
       if (countdownRef.current) {
