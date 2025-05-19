@@ -231,15 +231,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         // Get references to all Firebase paths we're listening to
         const sessionRef = database.ref(`sessions/${sessionId}`);
-        const participantsRef = database.ref(`sessions/${sessionId}/participants`);
-        const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
-        const captureRef = database.ref(`sessions/${sessionId}/capture`);
         
         // Remove all listeners
         sessionRef.off('value');
-        participantsRef.off('value');
-        combinedPhotosRef.off('child_added');
-        captureRef.off('value');
+        database.ref(`sessions/${sessionId}/participants`).off('value');
+        database.ref(`sessions/${sessionId}/combinedPhotos`).off('child_added');
+        database.ref(`sessions/${sessionId}/capture`).off('value');
         
         // Update user's connection status
         const currentUser = firebase.auth().currentUser;
@@ -263,34 +260,25 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.log('🧹 CLEANUP COMPLETE');
     };
     
-    // Set up initial session data check
+    // Set up all Firebase references
     const sessionRef = database.ref(`sessions/${sessionId}`);
+    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    const captureRef = database.ref(`sessions/${sessionId}/capture`);
+    
+    // Set up initial session data check
     sessionRef.once('value', (snapshot) => {
-      console.log('📊 DEBUG: Initial session data check:', JSON.stringify(snapshot.val()));
-      const sessionData = snapshot.val();
-      if (sessionData) {
-        const fields = Object.keys(sessionData);
-        console.log('📊 DEBUG: Session exists with fields:', fields);
-      } else {
-        console.log('📊 DEBUG: Session does not exist');
+      const sessionData = snapshot.val() || {};
+      console.log('📊 DEBUG: Initial session data check:', JSON.stringify(sessionData));
+      
+      // Update participants from session data if available
+      if (sessionData.participants) {
+        setParticipants(sessionData.participants);
+        setParticipantCount(Object.keys(sessionData.participants).length);
       }
     });
     
-    // Set up all Firebase listeners
-    console.log('📊 DEBUG: Setting up all Firebase listeners for path:', `sessions/${sessionId}`);
-    
-    // Firebase realtime status check
-    const connectedRef = database.ref('.info/connected');
-    
-    // Reference to session photos
-    const photosRef = database.ref(`sessions/${sessionId}/photos`);
-    
-    // Reference to combined photos
-    const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
-    
-    // Listen for participants in this session
+    // Listen for participants updates
     console.log('📊 DEBUG: Setting up participants listener');
-    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
     participantsRef.on('value', (snapshot) => {
       const participantData = snapshot.val() || {};
       console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
@@ -300,7 +288,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Listen for capture time updates
     console.log('📊 DEBUG: Setting up capture time listener');
-    const captureRef = database.ref(`sessions/${sessionId}/capture`);
     captureRef.on('value', (snapshot) => {
       const captureData = snapshot.val();
       console.log('📊 DEBUG: Capture data update:', JSON.stringify(captureData));
@@ -554,29 +541,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.error('📊 DEBUG: Error in value listener:', error);
     });
     
-    // Listen for participants in this session
-    console.log('📊 DEBUG: Setting up participants listener');
-    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
-    participantsRef.on('value', (snapshot) => {
-      const participantData = snapshot.val() || {};
-      console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
-      setParticipants(participantData);
-      setParticipantCount(Object.keys(participantData).length);
-    });
-    
-    // Listen for capture time updates
-    console.log('📊 DEBUG: Setting up capture time listener');
-    const captureRef = database.ref(`sessions/${sessionId}/capture`);
-    captureRef.on('value', (snapshot) => {
-      const captureData = snapshot.val();
-      console.log('📊 DEBUG: Capture data update:', JSON.stringify(captureData));
-      if (captureData && captureData.captureTime) {
-        console.log('📊 DEBUG: Valid capture time received, starting countdown');
-        startCountdown(captureData.captureTime);
-      } else {
-        console.log('📊 DEBUG: No valid capture time in the data');
-      }
-    });
+    // Listeners are already set up above
     
     return () => {
       // Clean up
