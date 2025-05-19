@@ -1336,13 +1336,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                   participantAuthState[id] && !participantAuthState[id].isAnonymous
                 );
 
-  // Cleanup function to handle participant removal
-  return () => {
-    // Participant removal logic here
-    console.log('🔄 DEBUG: Participant removed');
-    // ... (add participant removal logic here)
-  };
-}, [participants]);
       // Add to beginning of array (newest first)
       const updatedSessions = [newSessionEntry, ...existingSessions];
       
