@@ -1,4 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// Add debugLog function at the top of the file (outside the component)
+const debugLog = (...args) => {
+  const timestamp = new Date().toISOString();
+  const message = args.map(arg => 
+    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+  ).join(' ');
+  console.log(`[${timestamp}] DEBUG:`, message);
+};
 import firebase, { database } from '../../services/firebase';
 import useEmblaCarousel from '../../utils/embla-shim';
 import Logo from '../../components/Logo';
@@ -219,28 +228,60 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     };
     
     // Load all user photos (persistent across sessions)
-    const loadUserPhotos = (userId) => {
-      console.log('📊 DEBUG: Loading persistent photos for user:', userId);
+    const loadUserPhotos = useCallback(async (userId) => {
+      if (!userId) {
+        debugLog('No userId provided to loadUserPhotos');
+        return;
+      }
       
-      // First load session photos
-      loadSessionPhotos();
+      debugLog(`Gallery loader starting for user: ${userId}`);
+      console.log(`🔄 DEBUG: Loading photos for user: ${userId}`);
       
-      // Then load user's personal collection
-      database.ref(`users/${userId}/combinedPhotos`).on('value', (snapshot) => {
-        const photosData = snapshot.val() || {};
-        const userPhotos = Object.entries(photosData).map(([id, data]) => {
-          return { id, ...data };
-        });
+      try {
+        setLoading(true);
+        setError(null);
         
-        console.log(`📊 DEBUG: Loaded ${userPhotos.length} persistent photos for user`);
-        
-        setCombinedPhotos((prevPhotos) => {
-          // Combine session photos with user photos, avoiding duplicates
-          const sessionPhotos = prevPhotos.filter(p => !userPhotos.some(up => up.id === p.id));
-          return [...sessionPhotos, ...userPhotos].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        });
-      });
-    };
+        // First, check if we have the UserProfile component
+        if (typeof UserProfile !== 'undefined') {
+          debugLog('Using UserProfile component to load photos');
+          // If we have the UserProfile component, use it to load photos
+          const userPhotos = await UserProfile.loadUserPhotos(userId);
+          debugLog(`Loaded ${userPhotos.length} photos from UserProfile`);
+          setUserPhotos(userPhotos);
+        } else {
+          debugLog('UserProfile not available, falling back to direct Firebase query');
+          // Fallback to direct Firebase query if UserProfile is not available
+          const userRef = database.ref(`users/${userId}/combinedPhotos`);
+          
+          debugLog('Setting up Firebase value listener for user photos');
+          userRef.on('value', (snapshot) => {
+            const photosData = snapshot.val() || {};
+            debugLog(`Received ${Object.keys(photosData).length} photos from Firebase`);
+            
+            const photosList = Object.entries(photosData).map(([id, data]) => ({
+              id,
+              ...data
+            }));
+            
+            debugLog(`Processed ${photosList.length} photos for gallery`);
+            setUserPhotos(photosList);
+          });
+          
+          return () => {
+            debugLog('Cleaning up Firebase listener for user photos');
+            userRef.off('value');
+          };
+        }
+      } catch (err) {
+        const errorMsg = `Error loading user photos: ${err.message}`;
+        console.error('❌ ERROR:', errorMsg, err);
+        debugLog('Error in loadUserPhotos:', { error: err.message, stack: err.stack });
+        setError('Failed to load your photos');
+      } finally {
+        debugLog('Finished loading user photos');
+        setLoading(false);
+      }
+    }, []);
     
     // Initialize photo loading based on authentication
     loadPhotosBasedOnAuthentication();
@@ -1304,8 +1345,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.log('🔄 DEBUG: Converting canvas to data URL');
       let combinedDataUrl;
       try {
-        combinedDataUrl = canvas.toDataURL('image/jpeg', 0.95); // Use 0.95 quality as in your previous code
-        console.log(`🔄 DEBUG: Combined photo created, data URL length: ${combinedDataUrl.length}`);
+        combinedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        console.log(`✅ DEBUG: Combined photo created, data URL length: ${combinedDataUrl.length}`);
+        
+        // Debug log the combined photo URL
+        debugLog(`Combined photo URL generated (${combinedDataUrl.length} chars)`);
+        debugLog(`Combined photo URL starts with: ${combinedDataUrl.substring(0, 50)}...`);
         
         // Add to session thumbnails
         setSessionThumbnails(prev => [...prev, combinedDataUrl]);
@@ -1367,23 +1412,27 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.log('🔄 DEBUG: Saving combined photo to Firebase');
       try {
         let combinedPhotoId = firebase.database().ref().push().key;
-        console.log(`🔄 DEBUG: Generated Firebase key: ${combinedPhotoId}`);
+        console.log(`✅ DEBUG: Generated Firebase key: ${combinedPhotoId}`);
         
         const combinedPhotoRef = database.ref(`sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
-        console.log(`🔄 DEBUG: Created Firebase reference at: sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`);
+        const firebasePath = `sessions/${sessionId}/combinedPhotos/${combinedPhotoId}`;
+        debugLog(`Uploading combined photo to Firebase path: ${firebasePath}`);
+        console.log(`✅ DEBUG: Created Firebase reference at: ${firebasePath}`);
         
         // Check if both data URLs are valid before saving
         if (!combinedDataUrl) {
-          throw new Error('Combined photo data URL is missing');
+          const errorMsg = 'Combined photo data URL is missing';
+          console.error('❌ ERROR:', errorMsg);
+          throw new Error(errorMsg);
         }
         
-        console.log(`🔄 DEBUG: dataUrl length: ${combinedDataUrl.length}, thumbnailDataUrl length: ${thumbnailDataUrl?.length || 0}`);
+        console.log(`✅ DEBUG: dataUrl length: ${combinedDataUrl.length}, thumbnailDataUrl length: ${thumbnailDataUrl?.length || 0}`);
         
         // Now save the combined photo to Firebase
         const combinedPhotoData = {
-          url: combinedPhotoUrl,
+          url: combinedDataUrl, // Use the actual data URL here
           thumbnailUrl: thumbnailDataUrl,
-          dataUrl: combinedPhotoDataUrl, // Store the data URL for immediate display
+          dataUrl: combinedDataUrl, // Store the data URL for immediate display
           width: combinedCanvasWidth,
           height: combinedCanvasHeight,
           timestamp: firebase.database.ServerValue.TIMESTAMP,
@@ -1393,6 +1442,14 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           participantIds: participantIds,
           combinationInfo: mergerInfo
         };
+        
+        // Debug log the photo data before saving
+        debugLog('Combined photo data prepared for saving:', {
+          width: combinedCanvasWidth,
+          height: combinedCanvasHeight,
+          participantCount: participantIds?.length || 0,
+          hasThumbnail: !!thumbnailDataUrl
+        });
         
         // Save the photo to both session and personal gallery
         const metadata = {
@@ -1405,13 +1462,22 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         };
         
         // Use the new savePhotoToAlbum function to store in both places
-        combinedPhotoId = await savePhotoToAlbum(combinedPhotoUrl, combinedPhotoData, metadata);
+        debugLog('Calling savePhotoToAlbum with combined photo data');
+        combinedPhotoId = await savePhotoToAlbum(combinedDataUrl, combinedPhotoData, metadata);
         
         if (combinedPhotoId) {
-          console.log(`✅ Successfully created and saved combined photo with ID: ${combinedPhotoId}`);
+          const successMsg = `✅ Successfully created and saved combined photo with ID: ${combinedPhotoId}`;
+          console.log(successMsg);
+          debugLog(successMsg, {
+            photoId: combinedPhotoId,
+            dataUrlLength: combinedDataUrl?.length || 0,
+            hasThumbnail: !!thumbnailDataUrl
+          });
           AppUtils.info(`COMBINED: Successfully created and saved combined photo with ID: ${combinedPhotoId}`);
         } else {
-          console.error('Failed to save combined photo');
+          const errorMsg = 'Failed to save combined photo: savePhotoToAlbum returned null/undefined';
+          console.error(errorMsg);
+          debugLog(errorMsg);
         }
         
         // Check authentication status of participants
@@ -1652,21 +1718,27 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   // Toggle gallery view - restrict to authenticated users only
   const toggleGallery = () => {
     console.log('🔘 DEBUG: Gallery button clicked');
+    debugLog('Gallery button clicked');
     const currentUser = firebase.auth().currentUser;
     
     if (currentUser && !currentUser.isAnonymous) {
       // Only allow gallery toggle for authenticated users
       const newGalleryState = !showGallery;
+      debugLog(`showGallery state toggling to: ${newGalleryState}`);
       console.log(`👥 DEBUG: Authenticated user accessing gallery. Setting showGallery to: ${newGalleryState}`);
       
       // Check if we have the UserProfile component available
       if (newGalleryState) {
         // Get user data for gallery
         const userId = currentUser.uid;
+        debugLog(`Loading gallery for user: ${userId}`);
         console.log(`🔍 DEBUG: Loading gallery for user: ${userId}`);
       }
       
-      setShowGallery(newGalleryState);
+      setShowGallery(prevState => {
+        debugLog(`showGallery state changed from ${prevState} to ${newGalleryState}`);
+        return newGalleryState;
+      });
     } else {
       // Guests only see session photos in carousel
       console.log('👥 DEBUG: Guest user attempted to access gallery');
