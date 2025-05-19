@@ -1296,6 +1296,23 @@ button.album-button:hover::after,
   pointer-events: auto; 
 }
 
+/* Repositioned participants count indicator */
+.participants-count {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  z-index: 40; /* Below shutter button */
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: 16px;
+  padding: 5px 10px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
 .gallery-controls {
   display: flex;
   justify-content: center;

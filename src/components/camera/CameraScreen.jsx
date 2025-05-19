@@ -185,6 +185,72 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Reference to combined photos
     const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
     
+    // Load photos based on user authentication status
+    const loadPhotosBasedOnAuthentication = () => {
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        console.log('📊 DEBUG: No authenticated user, only loading session photos');
+        // For guests or unauthenticated users, only load session photos
+        loadSessionPhotos();
+      } else if (currentUser.isAnonymous) {
+        console.log('📊 DEBUG: Guest user, only loading session photos');
+        // For guest users, only load session photos
+        loadSessionPhotos();
+      } else {
+        console.log('📊 DEBUG: Authenticated user, loading all user photos');
+        // For authenticated users, load all their photos and session photos
+        loadUserPhotos(currentUser.uid);
+      }
+    };
+    
+    // Load session photos (only for the current session)
+    const loadSessionPhotos = () => {
+      combinedPhotosRef.on('child_added', (snapshot) => {
+        const photo = { id: snapshot.key, ...snapshot.val() };
+        console.log('📊 DEBUG: New combined photo in session:', snapshot.key);
+        setCombinedPhotos((prevPhotos) => {
+          // Avoid duplicates by checking if photo with same ID already exists
+          if (prevPhotos.some(p => p.id === photo.id)) {
+            return prevPhotos;
+          }
+          return [...prevPhotos, photo];
+        });
+      });
+    };
+    
+    // Load all user photos (persistent across sessions)
+    const loadUserPhotos = (userId) => {
+      console.log('📊 DEBUG: Loading persistent photos for user:', userId);
+      
+      // First load session photos
+      loadSessionPhotos();
+      
+      // Then load user's personal collection
+      database.ref(`users/${userId}/combinedPhotos`).on('value', (snapshot) => {
+        const photosData = snapshot.val() || {};
+        const userPhotos = Object.entries(photosData).map(([id, data]) => {
+          return { id, ...data };
+        });
+        
+        console.log(`📊 DEBUG: Loaded ${userPhotos.length} persistent photos for user`);
+        
+        setCombinedPhotos((prevPhotos) => {
+          // Combine session photos with user photos, avoiding duplicates
+          const sessionPhotos = prevPhotos.filter(p => !userPhotos.some(up => up.id === p.id));
+          return [...sessionPhotos, ...userPhotos].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        });
+      });
+    };
+    
+    // Initialize photo loading based on authentication
+    loadPhotosBasedOnAuthentication();
+    
+    // Listen for auth state changes to reload photos accordingly
+    firebase.auth().onAuthStateChanged((user) => {
+      console.log('📊 DEBUG: Auth state changed, reloading photos');
+      loadPhotosBasedOnAuthentication();
+    });
+    
     // Set up child_added listener for photos
     console.log('📊 DEBUG: Setting up child_added listener for photos');
     photosRef.on('child_added', (snapshot) => {
@@ -450,28 +516,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const buffer = Math.max(1000, approximateLatency * 2);
       console.log(`📸 DEBUG: Calculated buffer time: ${buffer}ms`);
       
-      // Set capture time in the future with buffer
-      const captureTime = Date.now() + 3000 + buffer;
-      console.log(`📸 DEBUG: Set capture time to: ${new Date(captureTime).toISOString()}`);
-      
-      // Save to Firebase
-      console.log('📸 DEBUG: Saving capture data to Firebase...');
-      await database.ref(`sessions/${sessionId}/capture`).set({
-        captureTime,
-        initiatedBy: firebase.auth().currentUser?.uid || 'anonymous',
-        initiated: firebase.database.ServerValue.TIMESTAMP,
-        approximateLatency
-      });
-      
-      console.log(`📸 DEBUG: Capture data saved successfully! Initiated capture for time: ${new Date(captureTime).toISOString()} (buffer: ${buffer}ms)`);
-    } catch (error) {
-      console.error('❌ ERROR in initiateCapture:', error);
-      setError('Failed to initiate synchronized capture.');
-    }
-  };
-  
-  // Improved countdown with better timing and error handling
-  const startCountdown = (captureTime) => {
     console.log('📸 DEBUG: startCountdown function called with captureTime:', captureTime);
     
     try {
@@ -1438,12 +1482,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   const savePhotoToAlbum = async (photoUrl, photoData, metadata = {}) => {
     try {
       const currentUser = firebase.auth().currentUser;
-      if (!currentUser) {
-        console.error('Cannot save photo - user not logged in');
-        return null;
-      }
-      
-      const userId = currentUser.uid;
+      // If there's no user, still save to session but not to a user account
+      const userId = currentUser ? currentUser.uid : 'anonymous';
+      const isAnonymous = currentUser ? currentUser.isAnonymous : true;
       const photoId = firebase.database().ref().push().key;
       
       // Data to save with the photo
@@ -1452,19 +1493,32 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         userId,
         sessionId,
-        ...metadata
+        ...metadata,
+        ...photoData, // Include all photo data
+        isCombined: metadata.isCombined || false,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
       };
       
-      // 1. Save to session path if not already there
-      await database.ref(`sessions/${sessionId}/photos/${photoId}`).set(photoMetadata);
+      console.log(`💾 DEBUG: Saving photo ${photoId} to session`); 
       
-      // 2. Also save to user's permanent gallery
-      await database.ref(`users/${userId}/photos/${photoId}`).set(photoMetadata);
+      // 1. Always save to session for all users (guest or authenticated)
+      await database.ref(`sessions/${sessionId}/combinedPhotos/${photoId}`).set(photoMetadata);
       
-      AppUtils.info(`Photo saved to both session and personal gallery: ${photoId}`);
+      // 2. For authenticated (non-anonymous) users, also save to their permanent collection
+      if (currentUser && !isAnonymous) {
+        console.log(`💾 DEBUG: User is authenticated, saving to permanent collection`);
+        await database.ref(`users/${userId}/combinedPhotos/${photoId}`).set(photoMetadata);
+        AppUtils.info(`Photo saved to permanent user gallery: ${photoId}`);
+      } else {
+        console.log(`💾 DEBUG: User is guest/anonymous, photo only saved to session`);
+        AppUtils.info(`Photo saved to session: ${photoId}`);
+      }
+      
       return photoId;
     } catch (error) {
       console.error('Error saving photo to album:', error);
+      setError('Failed to save photo');
+      setTimeout(() => setError(null), 3000);
       return null;
     }
   };
@@ -1484,9 +1538,20 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     }
   };
   
-  // Toggle gallery view
+  // Toggle gallery view - restrict to authenticated users only
   const toggleGallery = () => {
-    setShowGallery(!showGallery);
+    const currentUser = firebase.auth().currentUser;
+    
+    if (currentUser && !currentUser.isAnonymous) {
+      // Only allow gallery toggle for authenticated users
+      console.log('👥 DEBUG: Authenticated user accessing gallery');
+      setShowGallery(!showGallery);
+    } else {
+      // Guests only see session photos in carousel
+      console.log('👥 DEBUG: Guest user attempted to access gallery');
+      setError("Sign in to view your permanent photo gallery");
+      setTimeout(() => setError(null), 3000);
+    }
   };
   
   // Save combined photos to localStorage with participant authentication info
@@ -1726,23 +1791,24 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       </div>
       
       {/* Combined Photos Gallery */}
-      {showGallery && (
-        <div className="combined-gallery-container">
+      <div className="combined-gallery-container">
+        {showGallery && (
           <CombinedPhotoGallery 
             photos={combinedPhotos} 
             participantInfo={participants}
           />
-        </div>
-      )}
+        )}
+        {!showGallery && combinedPhotos.length === 0 && (
+          <div className="combined-photo-empty text-center p-4">
+            <p>No combined photos captured yet. Combined photos will appear here.</p>
+          </div>
+        )}
+      </div>
       
       {/* Content layer respecting safe areas */}
       <div className="camera-screen-content">
         {/* Header area with session info */}
         <div className="header-area">
-          <div className="participants-count">
-            Participants: {participantCount}/2
-          </div>
-          
           {error && <div className="error">{error}</div>}
           
           <div className="session-header">
@@ -1842,6 +1908,17 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
                   <span className="block w-8 h-8 bg-gray-200 rounded-full m-auto" />
                 </button>
               )}
+            </div>
+            
+            {/* Participants count relocated to bottom right */}
+            <div className="participants-count">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              {participantCount}/2
             </div>
           </div>
         )}
