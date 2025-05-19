@@ -8,6 +8,16 @@ const debugLog = (...args) => {
   ).join(' ');
   console.log(`[${timestamp}] DEBUG:`, message);
 };
+
+// Helper function to handle participant updates
+function handleParticipants(snapshot, setParticipants, setParticipantCount) {
+  const participantData = snapshot.val() || {};
+  console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
+  setParticipants(participantData);
+  const count = Object.keys(participantData).length;
+  setParticipantCount(count);
+  console.log('[PixCrab] Participant count updated:', count);
+}
 import firebase, { database } from '../../services/firebase';
 import useEmblaCarousel from '../../utils/embla-shim';
 import Logo from '../../components/Logo';
