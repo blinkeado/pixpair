@@ -100,15 +100,13 @@ class FirebaseService {
             
             // Set up disconnect handling
             console.log('🔌 [FirebaseService] Setting up disconnect handler');
-            participantRef.onDisconnect().update({
-                connected: false,
-                lastSeen: firebase.database.ServerValue.TIMESTAMP,
-                lastDisconnect: firebase.database.ServerValue.TIMESTAMP
-            }).then(() => {
-                console.log('✅ [FirebaseService] Disconnect handler set up successfully');
-            }).catch(disconnectError => {
-                console.error('❌ [FirebaseService] Error setting up disconnect handler:', disconnectError);
-            });
+            participantRef.onDisconnect().remove()
+                .then(() => {
+                    console.log('✅ [FirebaseService] Disconnect handler set up successfully (participant will be removed on disconnect)');
+                })
+                .catch(disconnectError => {
+                    console.error('❌ [FirebaseService] Error setting up disconnect handler:', disconnectError);
+                });
             
             return participantRef;
         } catch (error) {
