@@ -2138,33 +2138,30 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setUploading(true);
       setError(null);
       
-      // 1. First save to Firebase Storage
-      const photoUrl = await saveCombinedPhotoToStorage(dataUrl);
-      
-      // 2. Broadcast to Firebase for real-time sync with other participants
+      // Upload to Firebase for real-time sync with other participants
       if (sessionId) {
         console.log('[PixCrab] Uploading photo to Firebase for sync');
         try {
           await sessionModel.uploadPhoto(sessionId, dataUrl);
           console.log('[PixCrab] Photo uploaded to Firebase for sync');
-          
           // The photo will be added to the local state via the Firebase listener
-          // so we don't need to add it here to avoid duplicates
         } catch (uploadError) {
           console.error('[PixCrab] Error uploading photo to Firebase:', uploadError);
           // If Firebase upload fails, add to local state directly
-          setCombinedPhotos(prev => [...prev, photoUrl]);
+          setCombinedPhotos(prev => [...prev, dataUrl]);
         }
       } else {
         // If no session ID, just add to local state
-        setCombinedPhotos(prev => [...prev, photoUrl]);
+        setCombinedPhotos(prev => [...prev, dataUrl]);
       }
       
-      // 3. Save to local storage for offline access
-      await saveCombinedPhotosToAlbum();
+      // Save to local storage for offline access (if needed)
+      if (typeof saveCombinedPhotosToAlbum === 'function') {
+        await saveCombinedPhotosToAlbum();
+      }
       
       setUploading(false);
-      return photoUrl;
+      return dataUrl;
       
     } catch (error) {
       console.error('Error handling combined photo:', error);
@@ -2172,7 +2169,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setUploading(false);
       throw error;
     }
-  }, [saveCombinedPhotoToStorage, saveCombinedPhotosToAlbum, sessionId]);
+  }, [saveCombinedPhotosToAlbum, sessionId]);
   
   // Auto-save combined photos when they are created
   useEffect(() => {
