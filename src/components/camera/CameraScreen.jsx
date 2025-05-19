@@ -1816,20 +1816,22 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         )}
       </div>
       
-      {/* Combined Photos Gallery */}
-      <div className="combined-gallery-container">
-        {showGallery && (
+      {/* Combined Photos Gallery - only render overlay when showGallery is true */}
+      {showGallery && (
+        <div className="combined-gallery-container">
           <CombinedPhotoGallery 
             photos={combinedPhotos} 
             participantInfo={participants}
           />
-        )}
-        {!showGallery && combinedPhotos.length === 0 && (
-          <div className="combined-photo-empty text-center p-4">
-            <p>No combined photos captured yet. Combined photos will appear here.</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+      {/* Empty state message only if not in gallery and no photos */}
+      {!showGallery && combinedPhotos.length === 0 && (
+        <div className="combined-photo-empty text-center p-4">
+          <p>No combined photos captured yet. Combined photos will appear here.</p>
+        </div>
+      )}
+
       
       {/* Content layer respecting safe areas */}
       <div className="camera-screen-content">
