@@ -233,11 +233,13 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         const sessionRef = database.ref(`sessions/${sessionId}`);
         const participantsRef = database.ref(`sessions/${sessionId}/participants`);
         const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+        const captureRef = database.ref(`sessions/${sessionId}/capture`);
         
         // Remove all listeners
         sessionRef.off('value');
         participantsRef.off('value');
         combinedPhotosRef.off('child_added');
+        captureRef.off('value');
         
         // Update user's connection status
         const currentUser = firebase.auth().currentUser;
@@ -285,6 +287,30 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Reference to combined photos
     const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+    
+    // Listen for participants in this session
+    console.log('📊 DEBUG: Setting up participants listener');
+    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    participantsRef.on('value', (snapshot) => {
+      const participantData = snapshot.val() || {};
+      console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
+      setParticipants(participantData);
+      setParticipantCount(Object.keys(participantData).length);
+    });
+    
+    // Listen for capture time updates
+    console.log('📊 DEBUG: Setting up capture time listener');
+    const captureRef = database.ref(`sessions/${sessionId}/capture`);
+    captureRef.on('value', (snapshot) => {
+      const captureData = snapshot.val();
+      console.log('📊 DEBUG: Capture data update:', JSON.stringify(captureData));
+      if (captureData && captureData.captureTime) {
+        console.log('📊 DEBUG: Valid capture time received, starting countdown');
+        startCountdown(captureData.captureTime);
+      } else {
+        console.log('📊 DEBUG: No valid capture time in the data');
+      }
+    });
     
     // Load photos based on user authentication status
     const loadPhotosBasedOnAuthentication = () => {
