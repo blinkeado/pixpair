@@ -150,6 +150,24 @@ class SessionModel extends BaseModel {
             throw error;
         }
     }
+    
+    async saveCaptureTiming(captureTime) {
+        if (!this.sessionId) return;
+        await this.firebaseService.saveCaptureTiming(this.sessionId, captureTime);
+    }
+    
+    /**
+     * Upload a combined photo so all participants receive it.
+     * @param {string} sessionId - The ID of the session
+     * @param {string} dataUrl - The data URL of the photo
+     * @returns {Promise<void>}
+     */
+    async uploadPhoto(sessionId, dataUrl) {
+        if (!sessionId) {
+            throw new Error('Session ID is required');
+        }
+        return this.firebaseService.addPhoto(sessionId, dataUrl);
+    }
 
     _subscribeToSessionUpdates() {
         const user = this.firebaseService.auth.currentUser;

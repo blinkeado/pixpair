@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { participantsRef, photosRef } from '../../utils/firebaseRefs';
+import sessionModel from '../../models/SessionModel';
 
 // Add debugLog function at the top of the file (outside the component)
 const debugLog = (...args) => {
@@ -31,23 +33,81 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     setParticipants(participantData);
     setParticipantCount(Object.keys(participantData).length);
   }, []);
+  
+  // State declarations
   const [error, setError] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [photosTaken, setPhotosTaken] = useState([]);
+  const [combinedPhotos, setCombinedPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [participants, setParticipants] = useState({});
   const [participantCount, setParticipantCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState('');
-  const [combinedPhotos, setCombinedPhotos] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
   const [sessionThumbnails, setSessionThumbnails] = useState([]);
   const [selectedFullImageUrl, setSelectedFullImageUrl] = useState(null);
-  console.log(`💾 DEBUG: Current thumbnails in carousel: ${sessionThumbnails.length}`);
+  
+  // Refs
   const [emblaRef] = useEmblaCarousel({ loop: false, align: 'start', containScroll: 'trimSnaps' });
   const countdownRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  
+  console.log(`💾 DEBUG: Current thumbnails in carousel: ${sessionThumbnails.length}`);
+  
+  // Listen for new combined photos and update state
+  useEffect(() => {
+    if (!sessionId) return;
+    
+    console.log('[PixCrab] Setting up photos listener for session:', sessionId);
+    
+    let isMounted = true;
+    const ref = database.ref(`sessions/${sessionId}/photos`);
+    
+    const handleNewPhoto = (snapshot) => {
+      if (!isMounted) return;
+      
+      try {
+        const photo = snapshot.val();
+        if (photo && photo.dataUrl) {
+          console.log('[PixCrab] New photo received, length:', photo.dataUrl.length);
+          
+          // Check if this photo already exists in the state to prevent duplicates
+          setCombinedPhotos(prev => {
+            // Only add if not already in the array
+            if (!prev.some(p => p === photo.dataUrl)) {
+              return [...prev, photo.dataUrl];
+            }
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error('[PixCrab] Error processing new photo:', error);
+      }
+    };
+    
+    // Set up the listener
+    const query = ref.orderByChild('createdAt').startAt(Date.now());
+    query.on('child_added', handleNewPhoto);
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      console.log('[PixCrab] Cleaning up photos listener');
+      
+      try {
+        // Clean up the specific query listener
+        if (query) {
+          query.off('child_added', handleNewPhoto);
+        }
+        
+        console.log('[PixCrab] Photos listener cleanup completed');
+      } catch (error) {
+        console.error('Error during photo listener cleanup:', error);
+      }
+    };
+  }, [sessionId]);
   
   // Redirect if no sessionId
   useEffect(() => {
@@ -1903,13 +1963,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       return null;
     }
   };
-
+  
   const handlePhotoTaken = (photoUrl) => {
     setPhotosTaken(prev => [...prev, photoUrl]);
     savePhotoToAlbum(photoUrl);
   };
   
-  // Handle gallery view with callbacks instead of direct navigation
   const handleGalleryClick = () => {
     // Stop camera before exiting
     stopCamera();
@@ -2073,6 +2132,47 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       setError('Failed to save photos to album');
     }
   }, [combinedPhotos, sessionId, participants, setError, setCopySuccess]);
+  
+  const handleCombinedPhoto = useCallback(async (dataUrl) => {
+    try {
+      setUploading(true);
+      setError(null);
+      
+      // 1. First save to Firebase Storage
+      const photoUrl = await saveCombinedPhotoToStorage(dataUrl);
+      
+      // 2. Broadcast to Firebase for real-time sync with other participants
+      if (sessionId) {
+        console.log('[PixCrab] Uploading photo to Firebase for sync');
+        try {
+          await sessionModel.uploadPhoto(sessionId, dataUrl);
+          console.log('[PixCrab] Photo uploaded to Firebase for sync');
+          
+          // The photo will be added to the local state via the Firebase listener
+          // so we don't need to add it here to avoid duplicates
+        } catch (uploadError) {
+          console.error('[PixCrab] Error uploading photo to Firebase:', uploadError);
+          // If Firebase upload fails, add to local state directly
+          setCombinedPhotos(prev => [...prev, photoUrl]);
+        }
+      } else {
+        // If no session ID, just add to local state
+        setCombinedPhotos(prev => [...prev, photoUrl]);
+      }
+      
+      // 3. Save to local storage for offline access
+      await saveCombinedPhotosToAlbum();
+      
+      setUploading(false);
+      return photoUrl;
+      
+    } catch (error) {
+      console.error('Error handling combined photo:', error);
+      setError('Failed to save combined photo');
+      setUploading(false);
+      throw error;
+    }
+  }, [saveCombinedPhotoToStorage, saveCombinedPhotosToAlbum, sessionId]);
   
   // Auto-save combined photos when they are created
   useEffect(() => {

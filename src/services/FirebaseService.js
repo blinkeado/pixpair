@@ -147,6 +147,20 @@ class FirebaseService {
         return this.database.ref(`sessions/${sessionId}/captureTime`).set(captureTime);
     }
 
+    /**
+     * Store a combined photo under this session for real-time sync.
+     * @param {string} sessionId - The ID of the session
+     * @param {string} photoDataUrl - The data URL of the photo
+     * @returns {Promise<void>}
+     */
+    async addPhoto(sessionId, photoDataUrl) {
+        const ref = this.database.ref(`sessions/${sessionId}/photos`).push();
+        await ref.set({
+            dataUrl: photoDataUrl,
+            createdAt: Date.now(),
+        });
+    }
+
     // Storage methods
     async uploadPhoto(blob, path) {
         const storageRef = this.storage.ref();
