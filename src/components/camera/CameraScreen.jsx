@@ -1651,12 +1651,22 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   
   // Toggle gallery view - restrict to authenticated users only
   const toggleGallery = () => {
+    console.log('🔘 DEBUG: Gallery button clicked');
     const currentUser = firebase.auth().currentUser;
     
     if (currentUser && !currentUser.isAnonymous) {
       // Only allow gallery toggle for authenticated users
-      console.log('👥 DEBUG: Authenticated user accessing gallery');
-      setShowGallery(!showGallery);
+      const newGalleryState = !showGallery;
+      console.log(`👥 DEBUG: Authenticated user accessing gallery. Setting showGallery to: ${newGalleryState}`);
+      
+      // Check if we have the UserProfile component available
+      if (newGalleryState) {
+        // Get user data for gallery
+        const userId = currentUser.uid;
+        console.log(`🔍 DEBUG: Loading gallery for user: ${userId}`);
+      }
+      
+      setShowGallery(newGalleryState);
     } else {
       // Guests only see session photos in carousel
       console.log('👥 DEBUG: Guest user attempted to access gallery');
@@ -1919,7 +1929,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             {/* Toggle Gallery Button - Fit content with padding */}
             <button 
               className="btn btn-primary rainbow-button gallery-btn"
-              onClick={toggleGallery}
+              onClick={(e) => {
+                e.preventDefault(); // Prevent any default behavior
+                e.stopPropagation(); // Stop event propagation
+                console.log('🖱️ DEBUG: Gallery button click event triggered');
+                toggleGallery();
+              }}
               title={"View Gallery"}
             >
               Gallery
@@ -2028,6 +2043,39 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           </div>
 
       </div>
+      
+      {/* Gallery view */}
+      {showGallery && (
+        <div className="gallery-container" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 900 }}>
+          <div className="p-4 text-white">
+            <h2 className="text-xl font-bold mb-4">Your Photo Gallery</h2>
+            <p className="debug-info">
+              🔍 DEBUG: Gallery component mounted. User is authenticated.
+            </p>
+            {/* This would normally render CombinedPhotoGallery component */}
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {combinedPhotos.length > 0 ? (
+                combinedPhotos.map((url, idx) => (
+                  <div key={idx} className="aspect-square overflow-hidden rounded">
+                    <img src={url} alt={`Gallery photo ${idx + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))
+              ) : (
+                <p className="col-span-2 text-center py-8">No photos in your gallery yet</p>
+              )}
+            </div>
+            <button 
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded" 
+              onClick={() => {
+                console.log('🔘 DEBUG: Close gallery button clicked');
+                setShowGallery(false);
+              }}
+            >
+              Close Gallery
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Individual photos grid */}
       <div className="photos-grid">
