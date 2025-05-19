@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import AuthScreen from './auth/AuthScreen';
 import SessionSetup from './session/SessionSetup';
 import CameraScreen from './camera/CameraScreen';
 import AlbumScreen from './album/AlbumScreen';
+import BuilderPage from './builder/BuilderPage';
 import firebase, { auth, initializeFirebase } from '../services/firebase';
 import { PixCrabProvider } from '../context/PixCrabContext';
 import Logo from './Logo';
+import { initBuilder, registerComponents } from '../builder/builder-integration';
 
 // Firebase is already initialized in the firebase.js module
 // No need to call initializeFirebase() again or check window.firebaseConfig
@@ -17,13 +20,18 @@ function App() {
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState(null);
   
-  // Initialize Firebase
+  // Initialize Firebase and Builder.io
   useEffect(() => {
     try {
       // Check if Firebase is initialized by checking if we can access Firebase app
       if (!firebase.apps.length) {
         setError("Firebase initialization failed. Please check your setup.");
         return;
+      }
+      
+      // Initialize Builder.io and register components
+      if (initBuilder()) {
+        registerComponents();
       }
       
       // Firebase is successfully initialized
@@ -107,8 +115,11 @@ function App() {
     );
   }
   
-  // Render the current screen
-  return (
+  // Check if we're in Builder.io mode via URL
+  const isBuilderMode = window.location.pathname.startsWith('/builder');
+  
+  // Store main content in a variable for reuse
+  const mainContent = (
     <PixCrabProvider value={{ user, sessionId }}>
       <div className={`app-container ${currentScreen === 'camera' ? 'camera-mode' : ''}`}>
         {/* Only show logo on auth and session screens, not on camera screen */}
@@ -153,6 +164,22 @@ function App() {
       </div>
     </PixCrabProvider>
   );
+
+  // Use Router for Builder.io paths, but keep existing code for the main app flow
+  if (isBuilderMode) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/builder" element={<BuilderPage />} />
+          <Route path="/builder/:page" element={<BuilderPage />} />
+          <Route path="*" element={mainContent} />
+        </Routes>
+      </Router>
+    );
+  }
+  
+  // Render the current screen (original flow)
+  return mainContent;
 }
 
 export default App; 

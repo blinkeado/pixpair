@@ -4,7 +4,7 @@ const path = require('path');
 
 // Configuration
 const BUILD_COMMAND = 'npm run build';
-const PREVIEW_COMMAND = 'cd dist && python3 -m http.server 9000';
+const PREVIEW_COMMAND = 'npm run preview -- --port 9000';
 const WATCH_PATHS = ['src/**/*', 'public/**/*', 'index.html'];
 const THROTTLE_TIME = 1000; // ms
 
@@ -33,6 +33,7 @@ function startPreviewServer() {
   });
 
   console.log('🌐 Preview available at: http://localhost:9000');
+  console.log('🔍 If you see a white screen, check that index.html in dist directory is properly referencing the built JS files');
 }
 
 // Build the project
