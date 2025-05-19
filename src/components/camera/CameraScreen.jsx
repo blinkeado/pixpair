@@ -484,7 +484,28 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       onExitSession();
     }
   };
-  
+
+  // Navigate to user profile page for authenticated users
+  const navigateToProfile = () => {
+    const currentUser = firebase.auth().currentUser;
+    
+    if (currentUser && !currentUser.isAnonymous) {
+      // Only allow authenticated users to access profile
+      console.log('👥 DEBUG: Authenticated user accessing profile');
+      
+      // Stop camera before navigating
+      stopCamera();
+      
+      // Use window.location to navigate to profile page
+      window.location.href = '/profile';
+    } else {
+      // Guests can't access profile page
+      console.log('👥 DEBUG: Guest user attempted to access profile');
+      setError("Sign in to view your permanent photo gallery");
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
   // Function to copy session ID to clipboard
   const copySessionIdToClipboard = () => {
     if (sessionId) {
@@ -1511,7 +1532,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // If there's no user, still save to session but not to a user account
       const userId = currentUser ? currentUser.uid : 'anonymous';
       const isAnonymous = currentUser ? currentUser.isAnonymous : true;
-      const photoId = firebase.database().ref().push().key;
+      const photoId = photoData?.id || firebase.database().ref().push().key;
       
       // Data to save with the photo
       const photoMetadata = {
@@ -1524,25 +1545,57 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         ...metadata,
         ...photoData, // Include all photo data
         isCombined: metadata.isCombined || false,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        participantIds: metadata.participantIds || [userId] // Ensure participant IDs are tracked
       };
       
-      console.log(`💾 DEBUG: Saving photo ${photoId} to session`); 
+      console.log(`💾 DEBUG: Saving photo ${photoId} to session. Combined: ${photoMetadata.isCombined}`); 
       
-      // 1. Always save to session for all users (guest or authenticated)
+      // 1. Always save to session combinedPhotos collection for visibility to all participants
       await database.ref(`sessions/${sessionId}/combinedPhotos/${photoId}`).set(photoMetadata);
       
       // 2. For authenticated (non-anonymous) users, also save to their permanent collection
       if (currentUser && !isAnonymous) {
         console.log(`💾 DEBUG: User is authenticated, saving to permanent collection`);
-        await database.ref(`users/${userId}/combinedPhotos/${photoId}`).set(photoMetadata);
+        
+        if (metadata.isCombined) {
+          await database.ref(`users/${userId}/combinedPhotos/${photoId}`).set(photoMetadata);
+        } else {
+          await database.ref(`users/${userId}/photos/${photoId}`).set(photoMetadata);
+        }
+        
         AppUtils.info(`Photo saved to permanent user gallery: ${photoId}`);
       } else {
         console.log(`💾 DEBUG: User is guest/anonymous, photo only saved to session`);
         AppUtils.info(`Photo saved to session: ${photoId}`);
       }
       
-      // 3. Update the session thumbnails to include this new photo
+      // 3. If this is a combined photo, ALSO save to all authenticated participants' profiles
+      if (metadata.isCombined && metadata.participantIds && metadata.participantIds.length > 0) {
+        console.log(`💾 DEBUG: Combined photo with ${metadata.participantIds.length} participants. Saving to all auth users.`);
+        
+        for (const participantId of metadata.participantIds) {
+          if (participantId === userId) continue; // Skip current user, already saved above
+          
+          // Check if this participant is authenticated
+          try {
+            const participantRef = database.ref(`sessions/${sessionId}/participants/${participantId}`);
+            const participantSnapshot = await participantRef.once('value');
+            const participantData = participantSnapshot.val();
+            
+            if (participantData && !participantData.isAnonymous) {
+              console.log(`💾 DEBUG: Saving combined photo to authenticated participant: ${participantId}`);
+              await database.ref(`users/${participantId}/combinedPhotos/${photoId}`).set(photoMetadata);
+            } else {
+              console.log(`💾 DEBUG: Participant ${participantId} is anonymous or not found, skipping save to profile`);
+            }
+          } catch (err) {
+            console.error(`Failed to save to participant ${participantId}:`, err);
+          }
+        }
+      }
+      
+      // 4. Update the session thumbnails to include this new photo
       setSessionThumbnails(prev => {
         // Check if this URL is already in the thumbnails
         if (!prev.includes(photoUrl)) {
@@ -1552,9 +1605,14 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         return prev;
       });
       
-      // 4. If this is a combined photo, update the combined photos state
+      // 5. If this is a combined photo, update the combined photos state
       if (metadata.isCombined) {
         setCombinedPhotos(prev => {
+          // Check if this photo is already in the combined photos array
+          if (prev.some(p => p.id === photoId)) {
+            return prev;
+          }
+          
           // Create a new photo object with the necessary properties
           const newPhoto = {
             id: photoId,
@@ -1826,7 +1884,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   return (
     <div className="camera-screen">
       {/* Camera container with video feed */}
-      <div className={`camera-container ${showGallery ? 'hidden' : ''}`}>
+      <div className="camera-container">
         <video 
           ref={videoRef} 
           autoPlay 
@@ -1843,19 +1901,10 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         )}
       </div>
       
-      {/* Combined Photos Gallery - only render overlay when showGallery is true */}
-      {showGallery && (
-        <div className="combined-gallery-container">
-          <CombinedPhotoGallery 
-            photos={combinedPhotos} 
-            participantInfo={participants}
-          />
-        </div>
-      )}
-      {/* Empty state message only if not in gallery and no photos */}
-      {!showGallery && combinedPhotos.length === 0 && (
+      {/* Empty state message if no photos */}
+      {combinedPhotos.length === 0 && (
         <div className="combined-photo-empty text-center p-4">
-          <p>No combined photos captured yet. Combined photos will appear here.</p>
+          <p>No combined photos captured yet. Combined photos will appear in the carousel below.</p>
         </div>
       )}
 
@@ -1871,15 +1920,15 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
             <button 
               className="btn btn-primary rainbow-button gallery-btn"
               onClick={toggleGallery}
-              title={showGallery ? "Return to Camera" : "View Combined Photos"}
+              title={"View Gallery"}
             >
-              {showGallery ? "Camera" : "Gallery"}
+              Gallery
             </button>
             
             {/* Exit button (X icon) - Perfect circle */}
             <button 
               className="btn-icon exit-btn" 
-              onClick={handleExitSession}
+              onClick={handleGalleryClick}
               title="Exit Session"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1912,19 +1961,20 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         )}
         
         {/* Session Thumbnails Carousel - mobile-optimized styling */}
-        {!showGallery && sessionThumbnails.length > 0 && (
+        {sessionThumbnails.length > 0 && (
           <div className="fixed bottom-20 left-0 right-0 z-50 p-2 w-full touch-auto">
             <div 
               className={`${emblaStyles.carousel} bg-black bg-opacity-50 p-2 rounded-lg w-full touch-auto`} 
               ref={emblaRef}
-              style={{ touchAction: 'pan-y' }}
+              style={{ touchAction: 'pan-y', pointerEvents: 'auto' }}
             >
-              <div className={emblaStyles.container}>
+              <div className={emblaStyles.container} style={{ pointerEvents: 'auto' }}>
                 {sessionThumbnails.map((url, idx) => (
                   <div 
                     key={idx} 
                     className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-black bg-opacity-20 cursor-pointer shadow-md"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation(); // Ensure click doesn't propagate to parent elements
                       console.log(`🖱️ DEBUG: Thumbnail clicked, setting modal image URL: ${url}`);
                       setSelectedFullImageUrl(url);
                     }}
@@ -1945,9 +1995,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           </div>
         )}
         
-        {/* Controls area with buttons - only visible when not in gallery view */}
-        {!showGallery && (
-          <div className="controls-area">
+        {/* Controls area with buttons */}
+        <div className="controls-area">
             {/* Centered shutter button - positioned relative to the controls area */}
             <div className="shutter-button-container">
               {cameraReady && (
@@ -1977,15 +2026,13 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
               {participantCount}/2
             </div>
           </div>
-        )}
+
       </div>
       
-      {/* Individual photos grid - only show if not viewing gallery */}
-      {!showGallery && (
-        <div className="photos-grid">
-          {photosTaken.map(renderPhotoItem)}
-        </div>
-      )}
+      {/* Individual photos grid */}
+      <div className="photos-grid">
+        {photosTaken.map(renderPhotoItem)}
+      </div>
       
       {/* Modal for full-size image when clicking on a carousel thumbnail */}
       {selectedFullImageUrl && (

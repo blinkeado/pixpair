@@ -4,6 +4,7 @@ import firebase, { auth, database } from './services/firebase';
 import AuthScreen from './components/auth/AuthScreen';
 import CameraScreen from './components/camera/CameraScreen';
 import AlbumScreen from './components/album/AlbumScreen';
+import UserProfile from './components/profile/UserProfile';
 import AppUtils from './utils/AppUtils';
 
 function App() {
@@ -86,6 +87,22 @@ function App() {
             element={
               <AlbumScreen 
                 onSignOut={handleSignOut}
+              />
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <UserProfile 
+                onReturn={handleExitSession}
+              />
+            } 
+          />
+          <Route 
+            path="/profile/:userId" 
+            element={
+              <UserProfile 
+                onReturn={handleExitSession}
               />
             } 
           />
