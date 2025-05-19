@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import firebase, { auth, database } from '../../services/firebase';
+import FirebaseService from '../../services/FirebaseService';
+import SessionModel from '../../models/SessionModel';
 
 const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, initialSessionId }) => {
   const [sessionIdInput, setSessionIdInput] = useState('');
@@ -8,6 +10,19 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
   const [copySuccess, setCopySuccess] = useState('');
   const [user, setUser] = useState(null);
   const qrCodeRef = useRef(null);
+  
+  // Create instances of FirebaseService and SessionModel
+  const firebaseServiceRef = useRef(null);
+  const sessionModelRef = useRef(null);
+  
+  // Initialize Firebase service and session model
+  useEffect(() => {
+    if (!firebaseServiceRef.current) {
+      console.log('📱 Initializing FirebaseService and SessionModel');
+      firebaseServiceRef.current = new FirebaseService();
+      sessionModelRef.current = new SessionModel(firebaseServiceRef.current);
+    }
+  }, []);
   
   useEffect(() => {
     if (initialSessionId) {
@@ -84,12 +99,18 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
       // Store the created session ID for QR code generation
       setCreatedSessionId(sessionId);
       
+      // Important: Join the session using the SessionModel to ensure the user is added to participants
+      // This is critical for real-time synchronization
+      console.log('🔄 Joining session after creation using SessionModel:', sessionId);
+      await sessionModelRef.current.joinSession(sessionId);
+      console.log('✅ Successfully joined session after creation:', sessionId);
+      
       // Call the onCreateSession callback with the new session ID
       if (typeof onCreateSession === 'function') {
         onCreateSession(sessionId);
       }
     } catch (error) {
-      console.error('Error in session creation:', error);
+      console.error('❌ Error in session creation/join:', error);
       if (error.message.includes("PERMISSION_DENIED")) {
         setError('Database permission denied. Please check Firebase rules.');
       } else {
@@ -125,12 +146,18 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
         return;
       }
       
-      // Join the session
+      // Join the session using the traditional way (for backward compatibility)
       const userId = currentUser.uid;
       
       await firebase.database().ref(`sessions/${sessionIdToJoin}/members/${userId}`).set({
         joinedAt: firebase.database.ServerValue.TIMESTAMP
       });
+      
+      // Critical addition: Use SessionModel to join the session properly
+      // This ensures the user is added to the participants node for real-time synchronization
+      console.log('🔄 Joining session with SessionModel:', sessionIdToJoin);
+      await sessionModelRef.current.joinSession(sessionIdToJoin);
+      console.log('✅ Successfully joined session with SessionModel:', sessionIdToJoin);
       
       // Store the joined session ID for QR code generation
       setCreatedSessionId(sessionIdToJoin);
@@ -141,7 +168,7 @@ const SessionSetup = ({ onCreateSession, onJoinSession, onSignOut, onViewAlbum, 
       }
       
     } catch (error) {
-      console.error('Error joining session:', error);
+      console.error('❌ Error joining session:', error);
       setError('Failed to join session. Please try again.');
     }
   };
