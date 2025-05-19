@@ -609,7 +609,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       console.error('❌ ERROR in startCountdown:', error);
       setError('Failed to start countdown timer.');
     }
-  };
+  }; // End of startCountdown function
   
   // Modified initializeCamera function with better debugging and a fix to ensure camera stays ready
   const initializeCamera = async () => {
