@@ -132,42 +132,134 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     });
   }, [cameraReady]);
   
-  // Set up Firebase listeners when component mounts
+  // Set up Firebase listeners and initialize camera when component mounts or sessionId changes
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      console.log('📊 DEBUG: No sessionId, skipping camera initialization');
+      return;
+    }
 
     console.log('📊 DEBUG: Setting up Firebase listeners for session:', sessionId);
     
-    // Stop any existing camera stream first
-    stopCamera();
+    // Initialize camera with retry logic
+    const initCameraWithRetry = async (attempt = 1, maxAttempts = 3) => {
+      try {
+        console.log(`🎥 Attempting to initialize camera (attempt ${attempt}/${maxAttempts})`);
+        await stopCamera();
+        await initializeCamera();
+        console.log('🎥 Camera initialized successfully');
+      } catch (error) {
+        console.error(`🎥 Camera initialization attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxAttempts) {
+          // Exponential backoff before retry
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`🎥 Retrying camera initialization in ${delay}ms...`);
+          
+          return new Promise(resolve => {
+            setTimeout(() => {
+              initCameraWithRetry(attempt + 1, maxAttempts).then(resolve);
+            }, delay);
+          });
+        } else {
+          console.error('🎥 Max camera initialization attempts reached');
+          setError('Failed to initialize camera. Please refresh the page and try again.');
+        }
+      }
+    };
     
-    // Then initialize the camera
-    initializeCamera();
+    // Start camera initialization
+    let isMounted = true;
     
-    // Add current user to participants with authentication info
-    const currentUser = firebase.auth().currentUser;
-    if (currentUser) {
-      const userId = currentUser.uid;
-      const isAnonymous = currentUser.isAnonymous;
-      const displayName = currentUser.displayName || (isAnonymous ? 'Guest User' : currentUser.email || 'Unknown');
+    const setupSession = async () => {
+      try {
+        // Add current user to participants with authentication info
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          const userId = currentUser.uid;
+          const isAnonymous = currentUser.isAnonymous;
+          const displayName = currentUser.displayName || (isAnonymous ? 'Guest User' : currentUser.email || 'Unknown');
+          
+          console.log(`📊 DEBUG: Adding current user to participants: ${userId}, isAnonymous: ${isAnonymous}`);
+          
+          // Add participant with auth info to participants node
+          await database.ref(`sessions/${sessionId}/participants/${userId}`).set({
+            connected: true,
+            lastSeen: firebase.database.ServerValue.TIMESTAMP,
+            displayName: displayName,
+            photoURL: currentUser.photoURL || null,
+            isAnonymous: isAnonymous
+          });
+          
+          // Also update the members node with authentication status
+          await database.ref(`sessions/${sessionId}/members/${userId}`).set({
+            isAnonymous: isAnonymous,
+            joinTime: firebase.database.ServerValue.TIMESTAMP
+          });
+          
+          console.log('📊 DEBUG: User added to session participants');
+        }
+        
+        // Initialize camera after setting up user data
+        if (isMounted) {
+          await initCameraWithRetry();
+        }
+      } catch (error) {
+        console.error('Error in session setup:', error);
+        if (isMounted) {
+          setError('Error setting up session. Please try again.');
+        }
+      }
+    };
+    
+    // Start the session setup
+    setupSession();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      console.log('🧹 CLEANING UP CAMERA SCREEN - START');
       
-      console.log(`📊 DEBUG: Adding current user to participants: ${userId}, isAnonymous: ${isAnonymous}`);
-      
-      // Add participant with auth info to participants node
-      database.ref(`sessions/${sessionId}/participants/${userId}`).set({
-        connected: true,
-        lastSeen: firebase.database.ServerValue.TIMESTAMP,
-        displayName: displayName,
-        photoURL: currentUser.photoURL || null,
-        isAnonymous: isAnonymous
+      // Stop camera and clean up resources
+      stopCamera().catch(error => {
+        console.error('Error during camera cleanup:', error);
       });
       
-      // Also update the members node with authentication status
-      database.ref(`sessions/${sessionId}/members/${userId}`).set({
-        isAnonymous: isAnonymous,
-        joinTime: firebase.database.ServerValue.TIMESTAMP
-      });
-    }
+      // Clean up Firebase listeners
+      if (sessionId) {
+        console.log(`🧹 Removing Firebase listeners for session: ${sessionId}`);
+        
+        // Get references to all Firebase paths we're listening to
+        const sessionRef = database.ref(`sessions/${sessionId}`);
+        const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+        const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+        
+        // Remove all listeners
+        sessionRef.off('value');
+        participantsRef.off('value');
+        combinedPhotosRef.off('child_added');
+        
+        // Update user's connection status
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          console.log(`🧹 Updating connection status for user: ${currentUser.uid}`);
+          const userSessionRef = database.ref(`sessions/${sessionId}/participants/${currentUser.uid}`);
+          userSessionRef.update({ 
+            connected: false,
+            lastSeen: firebase.database.ServerValue.TIMESTAMP 
+          }).catch(error => {
+            console.error('Error updating user connection status:', error);
+          });
+          
+          // Remove user-specific listeners
+          console.log(`🧹 Removing user listeners for: ${currentUser.uid}`);
+          const userRef = database.ref(`users/${currentUser.uid}`);
+          userRef.off('value');
+        }
+      }
+      
+      console.log('🧹 CLEANUP COMPLETE');
+    };
     
     // Set up initial session data check
     const sessionRef = database.ref(`sessions/${sessionId}`);
@@ -199,15 +291,12 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       const currentUser = firebase.auth().currentUser;
       if (!currentUser) {
         console.log('📊 DEBUG: No authenticated user, only loading session photos');
-        // For guests or unauthenticated users, only load session photos
         loadSessionPhotos();
       } else if (currentUser.isAnonymous) {
         console.log('📊 DEBUG: Guest user, only loading session photos');
-        // For guest users, only load session photos
         loadSessionPhotos();
       } else {
         console.log('📊 DEBUG: Authenticated user, loading all user photos');
-        // For authenticated users, load all their photos and session photos
         loadUserPhotos(currentUser.uid);
       }
     };
@@ -484,21 +573,61 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     };
   }, [sessionId]);
   
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      console.log('🎥 STOPPING CAMERA');
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => {
-        console.log(`🎥 Stopping track: ${track.kind}, enabled: ${track.enabled}`);
-        track.stop();
-      });
-      videoRef.current.srcObject = null;
-      setCameraReady(false);
-      console.log('🎥 CAMERA STOPPED');
-    } else {
-      console.log('🎥 No camera stream to stop');
+  const stopCamera = useCallback(() => {
+    console.log('🎥 STOPPING CAMERA - Current state:', {
+      hasVideoRef: !!videoRef.current,
+      hasSrcObject: videoRef.current?.srcObject ? true : false,
+      cameraReadyState: cameraReady
+    });
+    
+    // Clear any pending timeouts or intervals
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+      setCountdown(null);
     }
-  };
+    
+    // Stop all media tracks
+    if (videoRef.current && videoRef.current.srcObject) {
+      try {
+        const tracks = videoRef.current.srcObject.getTracks();
+        console.log(`🎥 Found ${tracks.length} tracks to stop`);
+        
+        tracks.forEach(track => {
+          try {
+            console.log(`🎥 Stopping track:`, {
+              kind: track.kind,
+              id: track.id,
+              enabled: track.enabled,
+              readyState: track.readyState,
+              muted: track.muted
+            });
+            track.stop();
+          } catch (trackError) {
+            console.error('🎥 Error stopping track:', trackError);
+          }
+        });
+        
+        videoRef.current.srcObject = null;
+        console.log('🎥 Successfully stopped all tracks and cleared srcObject');
+      } catch (error) {
+        console.error('🎥 Error during camera stop:', error);
+      }
+    } else {
+      console.log('🎥 No active camera stream to stop');
+    }
+    
+    // Reset camera state
+    setCameraReady(false);
+    
+    // Force a small delay before allowing camera to be reinitialized
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log('🎥 Camera cleanup complete');
+        resolve();
+      }, 300);
+    });
+  }, [cameraReady]);
   
   // Enhanced exit session to ensure camera is stopped
   const handleExitSession = () => {
@@ -700,63 +829,119 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   }; // End of startCountdown function
   
   // Modified initializeCamera function with better debugging and a fix to ensure camera stays ready
-  const initializeCamera = async () => {
-    console.log('🎥 STARTING CAMERA INITIALIZATION');
+  const initializeCamera = useCallback(async () => {
+    console.log('🎥 STARTING CAMERA INITIALIZATION - Current state:', {
+      cameraReady,
+      hasVideoRef: !!videoRef.current,
+      hasSrcObject: videoRef.current?.srcObject ? true : false
+    });
+    
+    // Don't initialize if already ready
+    if (cameraReady) {
+      console.log('🎥 DEBUG: Camera is already ready, no need to initialize again');
+      return;
+    }
+    
     try {
-      // Ensure we're not already initialized
-      if (cameraReady) {
-        console.log('🎥 DEBUG: Camera is already ready, no need to initialize again');
-        return;
-      }
+      // Ensure any existing camera is properly stopped first
+      await stopCamera();
       
+      console.log('🎥 REQUESTING CAMERA PERMISSIONS...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: false
+      }).catch(err => {
+        console.error('🎥 ERROR GETTING USER MEDIA:', err);
+        throw err;
       });
       
-      console.log('🎥 CAMERA STREAM OBTAINED:', stream ? 'success' : 'failed', 'tracks:', stream.getTracks().length);
+      if (!stream) {
+        throw new Error('Failed to get media stream - no stream returned');
+      }
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        console.log('🎥 ASSIGNED STREAM TO VIDEO ELEMENT');
-        
-        // Add event listeners for camera status changes
-        const videoTracks = stream.getVideoTracks();
-        console.log('🎥 DEBUG: Video tracks:', videoTracks.length);
-        
-        videoTracks.forEach(track => {
-          console.log('🎥 DEBUG: Track details:', {
-            kind: track.kind,
-            id: track.id,
-            enabled: track.enabled,
-            readyState: track.readyState,
-            muted: track.muted
-          });
-          
-          track.addEventListener('ended', () => {
-            console.log('🎥 DEBUG: Video track ended');
-            setCameraReady(false);
-          });
+      const videoTracks = stream.getVideoTracks();
+      console.log(`🎥 CAMERA STREAM OBTAINED: ${videoTracks.length} video track(s)`);
+      
+      if (videoTracks.length === 0) {
+        throw new Error('No video tracks available in the stream');
+      }
+      
+      if (!videoRef.current) {
+        console.error('🎥 VIDEO REF IS NULL - cannot assign stream');
+        stream.getTracks().forEach(track => track.stop());
+        throw new Error('Video element not available');
+      }
+      
+      // Store the current stream to clean up later
+      const currentVideoElement = videoRef.current;
+      
+      // Set up event handlers before assigning srcObject
+      const onLoadedMetadata = () => {
+        console.log('🎥 VIDEO METADATA LOADED', {
+          videoWidth: currentVideoElement.videoWidth,
+          videoHeight: currentVideoElement.videoHeight,
+          readyState: currentVideoElement.readyState
         });
         
-        videoRef.current.onloadedmetadata = () => {
-          console.log('🎥 VIDEO METADATA LOADED, SETTING CAMERA READY');
-          console.log('🎥 DEBUG: Video dimensions after metadata loaded:', {
-            width: videoRef.current.videoWidth,
-            height: videoRef.current.videoHeight
-          });
+        // Only set camera ready if we have valid dimensions
+        if (currentVideoElement.videoWidth > 0 && currentVideoElement.videoHeight > 0) {
+          console.log('🎥 CAMERA READY - Valid video dimensions detected');
           setCameraReady(true);
-        };
-      } else {
-        console.error('🎥 VIDEO REF IS NULL');
-        // Make sure to clean up the stream even if we can't assign it
-        stream.getTracks().forEach(track => track.stop());
-      }
+        } else {
+          console.warn('🎥 WARNING: Video dimensions are zero, camera not ready');
+          // Try to recover by forcing a play
+          currentVideoElement.play().catch(err => {
+            console.error('🎥 Error playing video after metadata load:', err);
+          });
+        }
+      };
+      
+      const onCanPlay = () => {
+        console.log('🎥 VIDEO CAN PLAY EVENT');
+        if (currentVideoElement.videoWidth > 0 && currentVideoElement.videoHeight > 0) {
+          console.log('🎥 CAMERA READY - Video can play with valid dimensions');
+          setCameraReady(true);
+        }
+      };
+      
+      const onError = (e) => {
+        console.error('🎥 VIDEO ELEMENT ERROR:', e);
+        setError('Error initializing camera. Please refresh the page and try again.');
+        setCameraReady(false);
+      };
+      
+      // Add event listeners
+      currentVideoElement.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+      currentVideoElement.addEventListener('canplay', onCanPlay, { once: true });
+      currentVideoElement.addEventListener('error', onError);
+      
+      // Assign the stream
+      console.log('🎥 ASSIGNING STREAM TO VIDEO ELEMENT');
+      currentVideoElement.srcObject = stream;
+      
+      // Try to play the video
+      currentVideoElement.play().catch(err => {
+        console.error('🎥 Error playing video:', err);
+        setError('Could not start camera. Please ensure camera permissions are granted.');
+      });
+      
+      // Cleanup function to remove event listeners
+      return () => {
+        currentVideoElement.removeEventListener('loadedmetadata', onLoadedMetadata);
+        currentVideoElement.removeEventListener('canplay', onCanPlay);
+        currentVideoElement.removeEventListener('error', onError);
+      };
+      
     } catch (err) {
       console.error('🎥 ERROR ACCESSING CAMERA:', err);
-      setError('Could not access camera. Please check permissions.');
+      setError('Could not access camera. Please check permissions and try again.');
+      setCameraReady(false);
     }
-  };
+  }, [cameraReady, stopCamera]);
   
   // Modified takePhoto function with a retry mechanism
   const takePhoto = async () => {
