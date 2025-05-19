@@ -135,11 +135,18 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
   // Set up Firebase listeners and initialize camera when component mounts or sessionId changes
   useEffect(() => {
     if (!sessionId) {
-      console.log('📊 DEBUG: No sessionId, skipping camera initialization');
       return;
     }
 
     console.log('📊 DEBUG: Setting up Firebase listeners for session:', sessionId);
+    
+    // Define all Firebase references at the top level to avoid duplicate declarations
+    const sessionRef = database.ref(`sessions/${sessionId}`);
+    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    const photosRef = database.ref(`sessions/${sessionId}/photos`);
+    const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
+    const captureRef = database.ref(`sessions/${sessionId}/capture`);
+    const connectedRef = database.ref('.info/connected');
     
     // Initialize camera with retry logic
     const initCameraWithRetry = async (attempt = 1, maxAttempts = 3) => {
@@ -231,9 +238,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
         
         // Get references to all Firebase paths we're listening to
         const sessionRef = database.ref(`sessions/${sessionId}`);
-        const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+        // Using the participantsRef defined at the top level
         const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
-        const captureRef = database.ref(`sessions/${sessionId}/capture`);
+        // Using captureRef defined at the top level
         
         // Remove all listeners
         sessionRef.off('value');
@@ -264,7 +271,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     };
     
     // Set up initial session data check
-    const sessionRef = database.ref(`sessions/${sessionId}`);
     sessionRef.once('value', (snapshot) => {
       console.log('📊 DEBUG: Initial session data check:', JSON.stringify(snapshot.val()));
       const sessionData = snapshot.val();
@@ -279,18 +285,9 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Set up all Firebase listeners
     console.log('📊 DEBUG: Setting up all Firebase listeners for path:', `sessions/${sessionId}`);
     
-    // Firebase realtime status check
-    const connectedRef = database.ref('.info/connected');
-    
-    // Reference to session photos
-    const photosRef = database.ref(`sessions/${sessionId}/photos`);
-    
-    // Reference to combined photos
-    const combinedPhotosRef = database.ref(`sessions/${sessionId}/combinedPhotos`);
-    
     // Listen for participants in this session
     console.log('📊 DEBUG: Setting up participants listener');
-    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    // Using the participantsRef defined at the top level
     participantsRef.on('value', (snapshot) => {
       const participantData = snapshot.val() || {};
       console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
@@ -300,7 +297,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Listen for capture time updates
     console.log('📊 DEBUG: Setting up capture time listener');
-    const captureRef = database.ref(`sessions/${sessionId}/capture`);
     captureRef.on('value', (snapshot) => {
       const captureData = snapshot.val();
       console.log('📊 DEBUG: Capture data update:', JSON.stringify(captureData));
@@ -556,7 +552,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Listen for participants in this session
     console.log('📊 DEBUG: Setting up participants listener');
-    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    // Using the participantsRef defined at the top level
     participantsRef.on('value', (snapshot) => {
       const participantData = snapshot.val() || {};
       console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
@@ -566,7 +562,6 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     
     // Listen for capture time updates
     console.log('📊 DEBUG: Setting up capture time listener');
-    const captureRef = database.ref(`sessions/${sessionId}/capture`);
     captureRef.on('value', (snapshot) => {
       const captureData = snapshot.val();
       console.log('📊 DEBUG: Capture data update:', JSON.stringify(captureData));
@@ -1146,7 +1141,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     const startTime = Date.now();
     
     // Fetch participants data to check authentication status
-    const participantsRef = database.ref(`sessions/${sessionId}/participants`);
+    // Using the participantsRef defined at the top level
     console.log(`🔄 DEBUG: Fetching participants data from Firebase path: ${participantsRef.toString()}`);
     
     participantsRef.once('value')
