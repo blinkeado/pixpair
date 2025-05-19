@@ -1516,6 +1516,8 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       // Data to save with the photo
       const photoMetadata = {
         url: photoUrl,
+        downloadURL: photoUrl, // Ensure we have a downloadURL for consistent access
+        dataUrl: photoUrl,     // Store as dataUrl too for direct access
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         userId,
         sessionId,
@@ -1538,6 +1540,31 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
       } else {
         console.log(`💾 DEBUG: User is guest/anonymous, photo only saved to session`);
         AppUtils.info(`Photo saved to session: ${photoId}`);
+      }
+      
+      // 3. Update the session thumbnails to include this new photo
+      setSessionThumbnails(prev => {
+        // Check if this URL is already in the thumbnails
+        if (!prev.includes(photoUrl)) {
+          console.log(`💾 DEBUG: Adding new photo to session thumbnails: ${photoUrl}`);
+          return [...prev, photoUrl];
+        }
+        return prev;
+      });
+      
+      // 4. If this is a combined photo, update the combined photos state
+      if (metadata.isCombined) {
+        setCombinedPhotos(prev => {
+          // Create a new photo object with the necessary properties
+          const newPhoto = {
+            id: photoId,
+            dataUrl: photoUrl,
+            downloadURL: photoUrl,
+            timestamp: Date.now(),
+            ...metadata
+          };
+          return [...prev, newPhoto];
+        });
       }
       
       return photoId;
@@ -1884,31 +1911,32 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
           </div>
         )}
         
-        {/* Session Thumbnails Carousel - with improved styling */}
+        {/* Session Thumbnails Carousel - mobile-optimized styling */}
         {!showGallery && sessionThumbnails.length > 0 && (
-          <div className="absolute bottom-20 left-0 right-0 z-50 p-2 pointer-events-none">
-            <div className={`${emblaStyles.carousel} pointer-events-auto bg-black bg-opacity-30 p-2 rounded-lg`} ref={emblaRef}>
+          <div className="fixed bottom-20 left-0 right-0 z-50 p-2 w-full touch-auto">
+            <div 
+              className={`${emblaStyles.carousel} bg-black bg-opacity-50 p-2 rounded-lg w-full touch-auto`} 
+              ref={emblaRef}
+              style={{ touchAction: 'pan-y' }}
+            >
               <div className={emblaStyles.container}>
                 {sessionThumbnails.map((url, idx) => (
                   <div 
                     key={idx} 
-                    className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-transparent cursor-pointer"
+                    className="w-24 h-40 mx-1 rounded overflow-hidden flex items-center justify-center bg-black bg-opacity-20 cursor-pointer shadow-md"
                     onClick={() => {
                       console.log(`🖱️ DEBUG: Thumbnail clicked, setting modal image URL: ${url}`);
                       setSelectedFullImageUrl(url);
                     }}
-                    style={{ pointerEvents: 'auto' }}
                   >
                     <img 
                       src={url} 
                       alt={`Session photo ${idx + 1}`} 
-                      className="object-contain w-[110%] h-[110%]"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Stop event bubbling
-                        console.log(`🖱️ DEBUG: Image clicked directly, setting modal image URL: ${url}`);
-                        setSelectedFullImageUrl(url);
+                      className="object-contain w-full h-full"
+                      onError={(e) => {
+                        console.error(`Failed to load image: ${url}`);
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYWFhIj5JbWFnZSBFcnJvcjwvdGV4dD48L3N2Zz4=';
                       }}
-                      style={{ pointerEvents: 'auto' }}
                     />
                   </div>
                 ))}
