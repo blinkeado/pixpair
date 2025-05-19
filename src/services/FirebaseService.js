@@ -69,21 +69,52 @@ class FirebaseService {
     }
 
     async joinSession(sessionId, userId, displayName, photoURL) {
-        const participantRef = this.database.ref(`sessions/${sessionId}/participants/${userId}`);
-        await participantRef.set({
+        console.log(`🔄 [FirebaseService] joinSession called - Session: ${sessionId}, User: ${userId}`);
+        console.log(`👤 [FirebaseService] User details - DisplayName: ${displayName}, PhotoURL: ${photoURL || 'none'}`);
+        
+        const participantPath = `sessions/${sessionId}/participants/${userId}`;
+        const participantRef = this.database.ref(participantPath);
+        
+        const participantData = {
             connected: true,
             lastSeen: firebase.database.ServerValue.TIMESTAMP,
             displayName: displayName || 'Guest',
-            photoURL: photoURL || null
-        });
+            photoURL: photoURL || null,
+            joinedAt: firebase.database.ServerValue.TIMESTAMP,
+            isAnonymous: !!(this.auth.currentUser && this.auth.currentUser.isAnonymous)
+        };
         
-        // Set up disconnect handling
-        participantRef.onDisconnect().update({
-            connected: false,
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-        });
+        console.log(`📝 [FirebaseService] Setting participant data at path: ${participantPath}`, participantData);
         
-        return participantRef;
+        try {
+            await participantRef.set(participantData);
+            console.log('✅ [FirebaseService] Successfully updated participant data in Firebase');
+            
+            // Verify the write
+            const snapshot = await participantRef.once('value');
+            if (snapshot.exists()) {
+                console.log('🔍 [FirebaseService] Verified participant data in Firebase:', snapshot.val());
+            } else {
+                console.warn('⚠️ [FirebaseService] Could not verify participant data after write');
+            }
+            
+            // Set up disconnect handling
+            console.log('🔌 [FirebaseService] Setting up disconnect handler');
+            participantRef.onDisconnect().update({
+                connected: false,
+                lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                lastDisconnect: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                console.log('✅ [FirebaseService] Disconnect handler set up successfully');
+            }).catch(disconnectError => {
+                console.error('❌ [FirebaseService] Error setting up disconnect handler:', disconnectError);
+            });
+            
+            return participantRef;
+        } catch (error) {
+            console.error('❌ [FirebaseService] Error in joinSession:', error);
+            throw error; // Re-throw to be handled by the caller
+        }
     }
 
     listenForSessionUpdates(sessionId, callback) {

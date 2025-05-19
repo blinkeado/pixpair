@@ -47,28 +47,42 @@ class SessionModel extends BaseModel {
     }
 
     async joinSession(sessionId) {
+        console.log(`🔄 [SessionModel] joinSession called with sessionId: ${sessionId}`);
         try {
             this.sessionId = sessionId;
             this.isOwner = false;
             
             const user = this.firebaseService.auth.currentUser;
             if (!user) {
-                throw new Error('User not signed in');
+                const errorMsg = 'User not signed in when trying to join session';
+                console.error(`❌ [SessionModel] ${errorMsg}`);
+                throw new Error(errorMsg);
             }
             
+            console.log(`👤 [SessionModel] Current user: ${user.uid}, isAnonymous: ${user.isAnonymous}, displayName: ${user.displayName || 'none'}`);
+            
             // Join the session in Firebase
-            await this.firebaseService.joinSession(sessionId, user.uid);
+            console.log(`🔗 [SessionModel] Calling firebaseService.joinSession for session: ${sessionId}`);
+            await this.firebaseService.joinSession(
+                sessionId, 
+                user.uid,
+                user.displayName || 'Guest',
+                user.photoURL
+            );
+            console.log('✅ [SessionModel] Successfully joined session in Firebase');
             
             // Listen for updates
+            console.log('👂 [SessionModel] Setting up session update listeners');
             this._subscribeToSessionUpdates();
             
-            AppUtils.debugLog(`Joined session: ${this.sessionId}`);
+            console.log(`✅ [SessionModel] Successfully joined session: ${this.sessionId}`);
             this.status = 'connected';
             this.notifyListeners();
             
             return true;
         } catch (error) {
-            AppUtils.debugLog(`Error joining session: ${error.message}`);
+            console.error(`❌ [SessionModel] Error in joinSession:`, error);
+            AppUtils.debugLog(`❌ [SessionModel] Error joining session: ${error.message}`, error);
             this.reset();
             this.notifyListeners();
             throw error;
