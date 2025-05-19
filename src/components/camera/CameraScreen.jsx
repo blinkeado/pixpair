@@ -9,13 +9,6 @@ const debugLog = (...args) => {
   console.log(`[${timestamp}] DEBUG:`, message);
 };
 
-// Stable callback for participant updates
-const onParticipants = useCallback((snapshot) => {
-  const participantData = snapshot.val() || {};
-  console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
-  setParticipants(participantData);
-  setParticipantCount(Object.keys(participantData).length);
-}, []);
 import firebase, { database } from '../../services/firebase';
 import useEmblaCarousel from '../../utils/embla-shim';
 import Logo from '../../components/Logo';
@@ -31,6 +24,9 @@ const emblaStyles = {
 };
 
 const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
+  // Stable callback for participant updates
+  const onParticipants = useCallback((snapshot) => {
+    const participantData = snapshot.val() || {};
     console.log('📊 DEBUG: Participants updated:', JSON.stringify(participantData));
     setParticipants(participantData);
     setParticipantCount(Object.keys(participantData).length);
@@ -560,7 +556,7 @@ const CameraScreen = ({ sessionId, onExitSession, onSignOut }) => {
     // Listen for participants in this session
     console.log('📊 DEBUG: Setting up participants listener');
     // Using the participantsRef defined at the top level
-    participantsRef.on(\'value', onParticipants);
+    participantsRef.on('value', onParticipants);
     
     // Listen for capture time updates
     console.log('📊 DEBUG: Setting up capture time listener');
